@@ -1,5 +1,4 @@
 version: '3.8'
-
 services:
   frontend:
     build:
@@ -30,18 +29,25 @@ services:
       - JWT_SECRET=your-secure-jwt-secret-key-here
       - CORS_ORIGIN=http://localhost:3000
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    command: sh -c "while ! nc -z db 5432; do sleep 1; done; ./server"
     networks:
       - helpdesk-network
 
   db:
     image: postgres:15-alpine
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgrespassword
       - POSTGRES_DB=helpdesk
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:

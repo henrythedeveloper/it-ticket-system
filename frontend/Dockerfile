@@ -12,7 +12,7 @@ RUN npm install
 COPY . .
 
 # Build the application
-RUN npm run build
+RUN npm run build || (exit_code=$?; cat /app/npm-debug.log; exit $exit_code)
 
 # Production environment
 FROM nginx:alpine
