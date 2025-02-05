@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8080/api/v1
+    depends_on:
+      - backend
+    networks:
+      - helpdesk-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgrespassword
+      - DB_NAME=helpdesk
+      - JWT_SECRET=your-secure-jwt-secret-key-here
+      - CORS_ORIGIN=http://localhost:3000
+    depends_on:
+      - db
+    networks:
+      - helpdesk-network
+
+  db:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgrespassword
+      - POSTGRES_DB=helpdesk
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - helpdesk-network
+
+volumes:
+  postgres_data:
+
+networks:
+  helpdesk-network:
+    driver: bridge
