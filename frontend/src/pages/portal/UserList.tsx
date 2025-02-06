@@ -19,12 +19,10 @@ import {
   Edit as EditIcon,
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
 import { User } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../utils/axios';
 import { useNavigate } from 'react-router-dom';
-
-const API_URL = import.meta.env.VITE_API_URL;
 
 type RoleColor = 'primary' | 'error' | 'default';
 
@@ -42,7 +40,11 @@ export default function UserList() {
   const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ['users'],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/users`);
+      const response = await api.get('/users');
+      if (!Array.isArray(response.data)) {
+        console.error('Expected array of users but got:', response.data);
+        return [];
+      }
       return response.data;
     },
   });

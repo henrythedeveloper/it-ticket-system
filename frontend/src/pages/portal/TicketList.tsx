@@ -23,11 +23,9 @@ import {
   Person as PersonIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 import { Ticket } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
-
-const API_URL = import.meta.env.VITE_API_URL;
+import api from '../../utils/axios';
 
 type StatusColor = 'error' | 'warning' | 'success' | 'default';
 
@@ -42,14 +40,19 @@ export default function TicketList() {
   const { data: tickets = [], isLoading } = useQuery<Ticket[]>({
     queryKey: ['tickets'],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/tickets`);
-      return response.data;
+      const response = await api.get('/tickets');
+      const data = response.data;
+      if (!Array.isArray(data)) {
+        console.error('Expected array of tickets but got:', data);
+        return [];
+      }
+      return data;
     },
   });
 
   const updateTicketMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      const response = await axios.patch(`${API_URL}/tickets/${id}`, { status });
+      const response = await api.patch(`/tickets/${id}`, { status });
       return response.data;
     },
     onSuccess: () => {
@@ -64,6 +67,7 @@ export default function TicketList() {
   };
 
   const filteredTickets = React.useMemo(() => {
+    if (!Array.isArray(tickets)) return [];
     return tickets.filter((ticket) => {
       const matchesStatus =
         statusFilter === 'all' || ticket.status === statusFilter;
@@ -97,7 +101,7 @@ export default function TicketList() {
   const updateTicketDetailsMutation = useMutation({
     mutationFn: async (updatedTicket: Partial<Ticket>) => {
       if (!selectedTicket?.id) return;
-      const response = await axios.patch(`${API_URL}/tickets/${selectedTicket.id}`, updatedTicket);
+      const response = await api.patch(`/tickets/${selectedTicket.id}`, updatedTicket);
       return response.data;
     },
     onSuccess: () => {

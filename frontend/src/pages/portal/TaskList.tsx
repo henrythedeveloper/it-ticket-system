@@ -24,9 +24,9 @@ import {
   Done as DoneIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 import { Task, User } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../utils/axios';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -44,7 +44,13 @@ export default function TaskList() {
     queryKey: ['tasks'],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/tasks`);
-      return response.data;
+      // Ensure we always return an array
+      const data = response.data;
+      if (!Array.isArray(data)) {
+        console.error('Expected array of tasks but got:', data);
+        return [];
+      }
+      return data;
     },
   });
 
@@ -86,6 +92,7 @@ export default function TaskList() {
   };
 
   const filteredTasks = React.useMemo(() => {
+    if (!Array.isArray(tasks)) return [];
     return tasks.filter((task) => {
       const matchesStatus =
         statusFilter === 'all' || task.status === statusFilter;
