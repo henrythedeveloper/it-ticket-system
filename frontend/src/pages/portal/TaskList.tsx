@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import TaskDialog from '../../components/TaskDialog';
 import {
   Box,
   Paper,
@@ -36,6 +37,8 @@ export default function TaskList() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = React.useState('all');
   const [priorityFilter, setPriorityFilter] = React.useState('all');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const { data: tasks = [], isLoading } = useQuery<(Task & { assignedUser?: User })[]>({
     queryKey: ['tasks'],
@@ -54,6 +57,27 @@ export default function TaskList() {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
   });
+
+  const saveTaskMutation = useMutation({
+    mutationFn: async (taskData: Partial<Task>) => {
+      if (taskData.id) {
+        const response = await axios.patch(`${API_URL}/tasks/${taskData.id}`, taskData);
+        return response.data;
+      } else {
+        const response = await axios.post(`${API_URL}/tasks`, taskData);
+        return response.data;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setDialogOpen(false);
+      setSelectedTask(null);
+    },
+  });
+
+  const handleSaveTask = (taskData: Partial<Task>) => {
+    saveTaskMutation.mutate(taskData);
+  };
 
   const handleStatusChange = (task: Task, newStatus: string) => {
     if (task.id) {
@@ -103,6 +127,17 @@ export default function TaskList() {
 
   return (
     <Box>
+      <TaskDialog
+        open={dialogOpen}
+        onClose={() => {
+          setDialogOpen(false);
+          setSelectedTask(null);
+        }}
+        task={selectedTask}
+        onSave={handleSaveTask}
+        isNew={!selectedTask}
+        currentUser={user}
+      />
       <Stack
         direction="row"
         justifyContent="space-between"
@@ -113,7 +148,10 @@ export default function TaskList() {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => {/* TODO: Open create task dialog */}}
+          onClick={() => {
+            setSelectedTask(null);
+            setDialogOpen(true);
+          }}
         >
           New Task
         </Button>
@@ -201,6 +239,10 @@ export default function TaskList() {
                   <IconButton
                     size="small"
                     disabled={task.createdBy !== user?.id && user?.role !== 'admin'}
+                    onClick={() => {
+                      setSelectedTask(task);
+                      setDialogOpen(true);
+                    }}
                   >
                     <EditIcon />
                   </IconButton>

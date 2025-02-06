@@ -1,5 +1,6 @@
 export interface Ticket {
   id?: number;
+  ticketNumber?: string;
   category: string;
   description: string;
   submitterEmail: string;

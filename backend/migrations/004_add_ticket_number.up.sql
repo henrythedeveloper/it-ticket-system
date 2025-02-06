@@ -1,5 +1,5 @@
-ALTER TABLE tickets 
-ADD COLUMN ticket_number VARCHAR(20) UNIQUE;
+ALTER TABLE tickets
+ADD COLUMN IF NOT EXISTS ticket_number VARCHAR(20) UNIQUE;
 
 CREATE OR REPLACE FUNCTION generate_ticket_number()
 RETURNS TRIGGER AS $$
@@ -10,6 +10,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS set_ticket_number ON tickets;
 CREATE TRIGGER set_ticket_number
     BEFORE INSERT ON tickets
     FOR EACH ROW

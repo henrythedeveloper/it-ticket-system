@@ -15,6 +15,7 @@ import {
   TextField,
   MenuItem,
 } from '@mui/material';
+import TicketDialog from '../../components/TicketDialog';
 import {
   Edit as EditIcon,
   PlayArrow as StartIcon,
@@ -35,6 +36,8 @@ export default function TicketList() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = React.useState('all');
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [selectedTicket, setSelectedTicket] = React.useState<Ticket | null>(null);
+  const [dialogOpen, setDialogOpen] = React.useState(false);
 
   const { data: tickets = [], isLoading } = useQuery<Ticket[]>({
     queryKey: ['tickets'],
@@ -68,7 +71,8 @@ export default function TicketList() {
         searchQuery === '' ||
         ticket.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         ticket.submitterEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ticket.category.toLowerCase().includes(searchQuery.toLowerCase());
+        ticket.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (ticket.ticketNumber && ticket.ticketNumber.toLowerCase().includes(searchQuery.toLowerCase()));
       return matchesStatus && matchesSearch;
     });
   }, [tickets, statusFilter, searchQuery]);
@@ -90,12 +94,34 @@ export default function TicketList() {
     return category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ');
   };
 
+  const updateTicketDetailsMutation = useMutation({
+    mutationFn: async (updatedTicket: Partial<Ticket>) => {
+      if (!selectedTicket?.id) return;
+      const response = await axios.patch(`${API_URL}/tickets/${selectedTicket.id}`, updatedTicket);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
+    },
+  });
+
+  const handleSaveTicket = (updatedTicket: Partial<Ticket>) => {
+    updateTicketDetailsMutation.mutate(updatedTicket);
+  };
+
   if (isLoading) {
     return <Typography>Loading tickets...</Typography>;
   }
 
   return (
     <Box>
+      <TicketDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        ticket={selectedTicket}
+        onSave={handleSaveTicket}
+        isAdmin={user?.role === 'admin'}
+      />
       <Stack
         direction="row"
         justifyContent="space-between"
@@ -133,6 +159,7 @@ export default function TicketList() {
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell>Ticket #</TableCell>
               <TableCell>Category</TableCell>
               <TableCell>Description</TableCell>
               <TableCell>Submitter</TableCell>
@@ -143,7 +170,19 @@ export default function TicketList() {
           </TableHead>
           <TableBody>
             {filteredTickets.map((ticket) => (
-              <TableRow key={ticket.id}>
+              <TableRow
+                key={ticket.id}
+                onClick={() => {
+                  setSelectedTicket(ticket);
+                  setDialogOpen(true);
+                }}
+                sx={{ cursor: 'pointer', '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' } }}
+              >
+                <TableCell>
+                  <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                    {ticket.ticketNumber || '-'}
+                  </Typography>
+                </TableCell>
                 <TableCell>
                   <Chip
                     label={getCategoryLabel(ticket.category)}
@@ -176,29 +215,34 @@ export default function TicketList() {
                   )}
                 </TableCell>
                 <TableCell>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleStatusChange(ticket, 'in_progress')}
-                    disabled={
-                      ticket.status === 'in_progress' ||
-                      ticket.status === 'resolved'
-                    }
-                  >
-                    <StartIcon />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleStatusChange(ticket, 'resolved')}
-                    disabled={ticket.status === 'resolved'}
-                  >
-                    <DoneIcon />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={() => {/* TODO: Open edit ticket dialog */}}
-                  >
-                    <EditIcon />
-                  </IconButton>
+                  <Box onClick={(e) => e.stopPropagation()}>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleStatusChange(ticket, 'in_progress')}
+                      disabled={
+                        ticket.status === 'in_progress' ||
+                        ticket.status === 'resolved'
+                      }
+                    >
+                      <StartIcon />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleStatusChange(ticket, 'resolved')}
+                      disabled={ticket.status === 'resolved'}
+                    >
+                      <DoneIcon />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setSelectedTicket(ticket);
+                        setDialogOpen(true);
+                      }}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                  </Box>
                 </TableCell>
               </TableRow>
             ))}

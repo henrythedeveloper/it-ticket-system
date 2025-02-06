@@ -39,10 +39,8 @@ if err != nil {
 log.Fatalf("Failed to connect to database: %v", err)
 }
 
-// Auto-migrate database schema
-if err := autoMigrate(db); err != nil {
-log.Fatalf("Failed to migrate database: %v", err)
-}
+// Initialize database connection
+log.Println("Database connected successfully")
 
 // Initialize services and handlers
 authService := auth.NewService(db, cfg.JWT.Secret, cfg.JWT.TokenExpiry)
@@ -89,6 +87,11 @@ router.Use(middleware.CORSMiddleware(cfg.Server.AllowedOrigins))
 // Public routes
 public := router.Group("/api/v1")
 {
+    // Health check
+    public.GET("/health", func(c *gin.Context) {
+        c.JSON(200, gin.H{"status": "healthy"})
+    })
+
 // Auth endpoints
 public.POST("/auth/login", authHandler.Login)
 public.POST("/auth/register", authHandler.Register)
