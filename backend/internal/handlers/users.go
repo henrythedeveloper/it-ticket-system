@@ -27,11 +27,17 @@ authService: authService,
 func (h *UserHandler) ListUsers(c *gin.Context) {
 var users []models.User
 if err := h.db.Order("created_at DESC").Find(&users).Error; err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
-return
+  c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
+  return
 }
 
-c.JSON(http.StatusOK, users)
+// Ensure empty array if no users found
+if len(users) == 0 {
+  c.JSON(http.StatusOK, gin.H{"data": []models.User{}})
+  return
+}
+
+c.JSON(http.StatusOK, gin.H{"data": users})
 }
 
 type UpdateUserRequest struct {

@@ -11,9 +11,7 @@ import {
   Alert,
   MenuItem,
 } from '@mui/material';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL;
+import api from '../../utils/axios';
 
 interface TicketSubmission {
   category: string;
@@ -40,7 +38,7 @@ export default function SubmitTicket() {
 
   const onSubmit = async (data: TicketSubmission) => {
     try {
-      await axios.post(`${API_URL}/tickets`, data);
+      await api.post('/tickets', data);
       navigate('/success', { 
         state: { email: data.submitterEmail }
       });

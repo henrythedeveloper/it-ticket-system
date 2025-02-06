@@ -59,11 +59,17 @@ query = query.Where("status = ?", status)
 }
 
 if err := query.Find(&tickets).Error; err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tickets"})
-return
+  c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tickets"})
+  return
 }
 
-c.JSON(http.StatusOK, tickets)
+// Ensure empty array if no tickets found
+if len(tickets) == 0 {
+  c.JSON(http.StatusOK, gin.H{"data": []models.Ticket{}})
+  return
+}
+
+c.JSON(http.StatusOK, gin.H{"data": tickets})
 }
 
 // GetTicket retrieves a specific ticket

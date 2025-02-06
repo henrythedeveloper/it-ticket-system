@@ -36,19 +36,22 @@ export default function TicketList() {
   const [searchQuery, setSearchQuery] = React.useState('');
   const [selectedTicket, setSelectedTicket] = React.useState<Ticket | null>(null);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [expandedTicketId, setExpandedTicketId] = React.useState<number | null>(null);
 
-  const { data: tickets = [], isLoading } = useQuery<Ticket[]>({
+  const truncateDescription = (text: string, maxLength: number = 100) => {
+    if (text.length <= maxLength) return text;
+    return `${text.slice(0, maxLength)}...`;
+  };
+
+  const { data, isLoading } = useQuery<{ data: Ticket[] }>({
     queryKey: ['tickets'],
     queryFn: async () => {
       const response = await api.get('/tickets');
-      const data = response.data;
-      if (!Array.isArray(data)) {
-        console.error('Expected array of tickets but got:', data);
-        return [];
-      }
-      return data;
+      return response.data;
     },
   });
+
+  const tickets = data?.data || [];
 
   const updateTicketMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
@@ -193,7 +196,21 @@ export default function TicketList() {
                     size="small"
                   />
                 </TableCell>
-                <TableCell>{ticket.description}</TableCell>
+                <TableCell
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id || null);
+                  }}
+                  sx={{
+                    cursor: 'pointer',
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                      textDecoration: 'underline'
+                    }
+                  }}
+                >
+                  {expandedTicketId === ticket.id ? ticket.description : truncateDescription(ticket.description)}
+                </TableCell>
                 <TableCell>{ticket.submitterEmail}</TableCell>
                 <TableCell>
                   <Chip

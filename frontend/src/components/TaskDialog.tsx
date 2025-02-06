@@ -15,9 +15,7 @@ import {
 } from '@mui/material';
 import { Task, User } from '../types';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL;
+import api from '../utils/axios';
 
 interface TaskDialogProps {
   open: boolean;
@@ -36,25 +34,32 @@ export default function TaskDialog({ open, onClose, task, onSave, isNew, current
     status: 'todo',
     assignedTo: undefined,
   });
+  const [reassignmentNotes, setReassignmentNotes] = React.useState('');
+  const [previousAssignee, setPreviousAssignee] = React.useState<number | undefined>();
 
   // Fetch users for assignment
-  const { data: users = [] } = useQuery<User[]>({
+  const { data } = useQuery<{ data: User[] }>({
     queryKey: ['users'],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/users`);
+      const response = await api.get('/users');
       return response.data;
     },
   });
 
+  const users = data?.data || [];
+
   React.useEffect(() => {
     if (task && !isNew) {
       setEditedTask({
+        id: task.id,
         title: task.title,
         description: task.description,
         priority: task.priority,
         status: task.status,
         assignedTo: task.assignedTo,
       });
+      setPreviousAssignee(task.assignedTo);
+      setReassignmentNotes('');
     } else {
       setEditedTask({
         title: '',
@@ -83,6 +88,10 @@ export default function TaskDialog({ open, onClose, task, onSave, isNew, current
   };
 
   const handleSave = () => {
+    if (!isNew && editedTask.assignedTo !== previousAssignee && !reassignmentNotes) {
+      return; // Don't save if reassignment notes are required but missing
+    }
+
     const taskToSave: Partial<Task> = {
       ...editedTask,
     };
@@ -91,7 +100,13 @@ export default function TaskDialog({ open, onClose, task, onSave, isNew, current
       taskToSave.createdBy = currentUser.id;
     }
 
-    onSave(taskToSave);
+    // Include reassignment notes in the API call
+    const payload = {
+      ...taskToSave,
+      reassignmentNotes: editedTask.assignedTo !== previousAssignee ? reassignmentNotes : undefined,
+    };
+
+    onSave(payload);
     onClose();
   };
 
@@ -164,17 +179,22 @@ export default function TaskDialog({ open, onClose, task, onSave, isNew, current
               <Select
                 value={editedTask.assignedTo?.toString() || ''}
                 onChange={(e) => {
-                  const value = e.target.value;
+                  const newAssignee = e.target.value ? Number(e.target.value) : undefined;
+                  if (previousAssignee !== undefined && newAssignee !== previousAssignee) {
+                    setReassignmentNotes('');
+                  }
                   setEditedTask(prev => ({
                     ...prev,
-                    assignedTo: value ? Number(value) : undefined
+                    assignedTo: newAssignee
                   }));
                 }}
                 label="Assigned To"
                 disabled={!canEdit}
               >
                 <MenuItem value="">Unassigned</MenuItem>
-                {users.map((user) => (
+                {users
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((user) => (
                   <MenuItem key={user.id} value={user.id}>
                     {user.name}
                   </MenuItem>
@@ -182,6 +202,21 @@ export default function TaskDialog({ open, onClose, task, onSave, isNew, current
               </Select>
             </FormControl>
           </Grid>
+
+          {!isNew && editedTask.assignedTo !== previousAssignee && (
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Reassignment Notes"
+                required
+                multiline
+                rows={2}
+                value={reassignmentNotes}
+                onChange={(e) => setReassignmentNotes(e.target.value)}
+                helperText="Please explain why you are reassigning this task"
+              />
+            </Grid>
+          )}
         </Grid>
       </DialogContent>
       <DialogActions>

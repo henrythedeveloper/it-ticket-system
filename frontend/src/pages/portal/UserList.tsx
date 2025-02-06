@@ -22,32 +22,20 @@ import { useQuery } from '@tanstack/react-query';
 import { User } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../utils/axios';
-import { useNavigate } from 'react-router-dom';
-
 type RoleColor = 'primary' | 'error' | 'default';
 
 export default function UserList() {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
-  // Redirect if not admin
-  React.useEffect(() => {
-    if (user && user.role !== 'admin') {
-      navigate('/portal/tickets');
-    }
-  }, [user, navigate]);
-
-  const { data: users = [], isLoading } = useQuery<User[]>({
+  const { data, isLoading } = useQuery<{ data: User[] }>({
     queryKey: ['users'],
     queryFn: async () => {
       const response = await api.get('/users');
-      if (!Array.isArray(response.data)) {
-        console.error('Expected array of users but got:', response.data);
-        return [];
-      }
       return response.data;
     },
   });
+
+  const users = data?.data || [];
 
   const getRoleColor = (role: string): RoleColor => {
     switch (role) {
@@ -80,14 +68,16 @@ export default function UserList() {
         alignItems="center"
         sx={{ mb: 3 }}
       >
-        <Typography variant="h4">IT Staff Management</Typography>
-        <Button
-          variant="contained"
-          startIcon={<PersonAddIcon />}
-          onClick={() => {/* TODO: Open invite user dialog */}}
-        >
-          Invite User
-        </Button>
+        <Typography variant="h4">IT Staff List</Typography>
+        {user?.role === 'admin' && (
+          <Button
+            variant="contained"
+            startIcon={<PersonAddIcon />}
+            onClick={() => {/* TODO: Open invite user dialog */}}
+          >
+            Invite User
+          </Button>
+        )}
       </Stack>
 
       <TableContainer component={Paper}>
@@ -117,13 +107,15 @@ export default function UserList() {
                   {userData.createdAt && formatDate(userData.createdAt)}
                 </TableCell>
                 <TableCell>
-                  <IconButton
-                    size="small"
-                    disabled={userData.id === user?.id} // Can't edit yourself
-                    onClick={() => {/* TODO: Open edit user dialog */}}
-                  >
-                    <EditIcon />
-                  </IconButton>
+                  {user?.role === 'admin' && (
+                    <IconButton
+                      size="small"
+                      disabled={userData.id === user?.id} // Can't edit yourself
+                      onClick={() => {/* TODO: Open edit user dialog */}}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

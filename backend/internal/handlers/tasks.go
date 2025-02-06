@@ -104,11 +104,30 @@ query = query.Where("created_by = ?", userID)
 }
 
 if err := query.Find(&tasks).Error; err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tasks"})
-return
+  c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tasks"})
+  return
 }
 
-c.JSON(http.StatusOK, tasks)
+// Debug logging
+if len(tasks) == 0 {
+  c.JSON(http.StatusOK, []models.Task{}) // Ensure we always return an array
+  return
+}
+
+// Ensure we have valid data
+for i := range tasks {
+  if tasks[i].Status == "" {
+    tasks[i].Status = models.TaskStatusTodo
+  }
+  if tasks[i].Priority == "" {
+    tasks[i].Priority = models.TaskPriorityLow
+  }
+}
+
+// Return explicitly as array
+c.JSON(http.StatusOK, gin.H{
+  "data": tasks,
+})
 }
 
 // GetTask retrieves a specific task

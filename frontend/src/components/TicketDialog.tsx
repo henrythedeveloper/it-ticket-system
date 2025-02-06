@@ -14,9 +14,7 @@ import {
 } from '@mui/material';
 import { Ticket, User } from '../types';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL;
+import api from '../utils/axios';
 
 interface TicketDialogProps {
   open: boolean;
@@ -30,14 +28,16 @@ export default function TicketDialog({ open, onClose, ticket, onSave, isAdmin }:
   const [editedTicket, setEditedTicket] = React.useState<Partial<Ticket>>({});
 
   // Fetch users for assignment
-  const { data: users = [] } = useQuery<User[]>({
+  const { data } = useQuery<{ data: User[] }>({
     queryKey: ['users'],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/users`);
+      const response = await api.get('/users');
       return response.data;
     },
     enabled: isAdmin, // Only fetch users if admin
   });
+
+  const users = data?.data || [];
 
   React.useEffect(() => {
     if (ticket) {

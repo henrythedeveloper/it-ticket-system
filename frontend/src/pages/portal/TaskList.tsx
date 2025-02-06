@@ -44,24 +44,20 @@ export default function TaskList() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskWithAssignee | null>(null);
 
-  const { data, isLoading, error } = useQuery<TaskWithAssignee[]>({
+  const { data, isLoading, error } = useQuery<{ data: TaskWithAssignee[] }>({
     queryKey: ['tasks'],
     queryFn: async () => {
       try {
         const response = await api.get('/tasks');
-        if (!Array.isArray(response.data)) {
-          console.error('API response is not an array:', response.data);
-          return [];
-        }
         return response.data;
       } catch (err) {
         console.error('Error fetching tasks:', err);
-        return [];
+        return { data: [] };
       }
     },
   });
 
-  const tasks = Array.isArray(data) ? data : [];
+  const tasks = data?.data || [];
 
   const updateTaskMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
@@ -281,6 +277,80 @@ export default function TaskList() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {user && (
+        <>
+          <Typography variant="h5" sx={{ mt: 4, mb: 2 }}>
+            Tasks Assigned to You
+          </Typography>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Title</TableCell>
+                  <TableCell>Description</TableCell>
+                  <TableCell>Priority</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredTasks
+                  .filter(task => task.assignedTo === user.id)
+                  .map((task) => (
+                    <TableRow
+                      key={task.id}
+                      sx={{ backgroundColor: 'rgba(25, 118, 210, 0.08)' }}
+                    >
+                      <TableCell>{task.title}</TableCell>
+                      <TableCell>{task.description}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={task.priority}
+                          color={getPriorityColor(task.priority)}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={task.status}
+                          color={getStatusColor(task.status)}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleStatusChange(task, 'in_progress')}
+                          disabled={task.status !== 'todo'}
+                        >
+                          <StartIcon />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleStatusChange(task, 'done')}
+                          disabled={task.status === 'done'}
+                        >
+                          <DoneIcon />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          disabled={task.createdBy !== user.id && user.role !== 'admin'}
+                          onClick={() => {
+                            setSelectedTask(task);
+                            setDialogOpen(true);
+                          }}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </>
+      )}
     </Box>
   );
 }
