@@ -44,13 +44,24 @@ export default function TaskList() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskWithAssignee | null>(null);
 
-  const { data: tasks = [], isLoading } = useQuery<TaskWithAssignee[]>({
+  const { data, isLoading, error } = useQuery<TaskWithAssignee[]>({
     queryKey: ['tasks'],
     queryFn: async () => {
-      const response = await api.get('/tasks');
-      return response.data;
+      try {
+        const response = await api.get('/tasks');
+        if (!Array.isArray(response.data)) {
+          console.error('API response is not an array:', response.data);
+          return [];
+        }
+        return response.data;
+      } catch (err) {
+        console.error('Error fetching tasks:', err);
+        return [];
+      }
     },
   });
+
+  const tasks = Array.isArray(data) ? data : [];
 
   const updateTaskMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
@@ -90,11 +101,21 @@ export default function TaskList() {
   };
 
   const filteredTasks = React.useMemo(() => {
-    return tasks.filter((task) => {
-      const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
-      const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
-      return matchesStatus && matchesPriority;
-    });
+    if (!Array.isArray(tasks)) {
+      console.error('Tasks is not an array:', tasks);
+      return [];
+    }
+    try {
+      return tasks.filter((task) => {
+        if (!task) return false;
+        const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
+        const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
+        return matchesStatus && matchesPriority;
+      });
+    } catch (err) {
+      console.error('Error filtering tasks:', err);
+      return [];
+    }
   }, [tasks, statusFilter, priorityFilter]);
 
   const getPriorityColor = (priority: string): ChipColor => {
@@ -122,6 +143,11 @@ export default function TaskList() {
         return 'default';
     }
   };
+
+  if (error) {
+    console.error('Error fetching tasks:', error);
+    return <Typography color="error">Error loading tasks. Please try again later.</Typography>;
+  }
 
   if (isLoading) {
     return <Typography>Loading tasks...</Typography>;
