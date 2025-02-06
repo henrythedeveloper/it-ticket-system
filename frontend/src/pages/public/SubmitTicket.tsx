@@ -147,13 +147,7 @@ export default function SubmitTicket() {
               Submit Ticket
             </Button>
 
-            <Button
-              fullWidth
-              variant="text"
-              onClick={() => navigate('/login')}
-            >
-              IT Staff Login
-            </Button>
+
           </Box>
         </Paper>
       </Box>

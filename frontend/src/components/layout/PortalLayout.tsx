@@ -48,9 +48,7 @@ export default function PortalLayout() {
   const menuItems = [
     { text: 'Tickets', icon: <InboxIcon />, path: '/portal/tickets' },
     { text: 'Tasks', icon: <AssignmentIcon />, path: '/portal/tasks' },
-    ...(user?.role === 'admin'
-      ? [{ text: 'Users', icon: <PersonIcon />, path: '/portal/users' }]
-      : [])
+    { text: 'Users', icon: <PersonIcon />, path: '/portal/users' }
   ];
 
   const handleLogout = async () => {

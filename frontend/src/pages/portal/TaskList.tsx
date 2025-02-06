@@ -16,6 +16,7 @@ import {
   Stack,
   TextField,
   MenuItem,
+  Tooltip,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -30,11 +31,13 @@ import api from '../../utils/axios';
 
 type ChipColor = 'error' | 'warning' | 'success' | 'default';
 
-interface TaskWithAssignee extends Task {
-  assignedUser?: {
-    name: string;
-  };
-}
+// TaskWithAssignee is not needed anymore since Task already includes full User objects
+type TaskWithAssignee = Task;
+
+const truncateDescription = (description: string, limit: number = 100) => {
+  if (description.length <= limit) return description;
+  return `${description.slice(0, limit)}...`;
+};
 
 export default function TaskList() {
   const { user } = useAuth();
@@ -228,7 +231,15 @@ export default function TaskList() {
             {filteredTasks.map((task) => (
               <TableRow key={task.id}>
                 <TableCell>{task.title}</TableCell>
-                <TableCell>{task.description}</TableCell>
+                <TableCell>
+                  {task.description.length > 100 ? (
+                    <Tooltip title={task.description}>
+                      <span>{truncateDescription(task.description)}</span>
+                    </Tooltip>
+                  ) : (
+                    task.description
+                  )}
+                </TableCell>
                 <TableCell>
                   <Chip
                     label={task.priority}
@@ -303,7 +314,15 @@ export default function TaskList() {
                       sx={{ backgroundColor: 'rgba(25, 118, 210, 0.08)' }}
                     >
                       <TableCell>{task.title}</TableCell>
-                      <TableCell>{task.description}</TableCell>
+                      <TableCell>
+                        {task.description.length > 100 ? (
+                          <Tooltip title={task.description}>
+                            <span>{truncateDescription(task.description)}</span>
+                          </Tooltip>
+                        ) : (
+                          task.description
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Chip
                           label={task.priority}

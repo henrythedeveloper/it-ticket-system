@@ -1,27 +1,16 @@
--- Remove sample data in reverse order of dependencies
+-- Delete all data in correct order to handle foreign key constraints
+DELETE FROM task_history;
+DELETE FROM ticket_history;
+DELETE FROM tasks;
+DELETE FROM ticket_solutions;
+DELETE FROM tickets;
+DELETE FROM users;
 
--- Remove ticket assignments
-UPDATE tickets SET assigned_to = NULL;
-
--- Remove tasks
-DELETE FROM tasks 
-WHERE title IN (
-    'Set up new employee laptops',
-    'Update network security policy'
-);
-
--- Remove sample tickets
-DELETE FROM tickets 
-WHERE submitter_email IN (
-    'john@example.com',
-    'sarah@example.com',
-    'mike@example.com',
-    'lisa@example.com'
-);
-
--- Remove test users
-DELETE FROM users 
-WHERE email IN (
-    'admin@helpdesk.local',
-    'staff@helpdesk.local'
-);
+-- Reset sequences
+ALTER SEQUENCE tasks_id_seq RESTART WITH 1;
+ALTER SEQUENCE tickets_id_seq RESTART WITH 1;
+ALTER SEQUENCE users_id_seq RESTART WITH 1;
+ALTER SEQUENCE ticket_solutions_id_seq RESTART WITH 1;
+ALTER SEQUENCE ticket_number_seq RESTART WITH 1;
+ALTER SEQUENCE ticket_history_id_seq RESTART WITH 1;
+ALTER SEQUENCE task_history_id_seq RESTART WITH 1;

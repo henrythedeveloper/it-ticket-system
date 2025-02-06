@@ -68,6 +68,8 @@ return db.AutoMigrate(
 &models.User{},
 &models.Ticket{},
 &models.Task{},
+&models.TicketSolution{},
+&models.TicketHistory{},
 )
 }
 
@@ -113,9 +115,13 @@ tickets := protected.Group("/tickets")
 {
 tickets.GET("", ticketHandler.ListTickets)
 tickets.GET("/:id", ticketHandler.GetTicket)
+tickets.GET("/:id/history", ticketHandler.GetTicketHistory)
 tickets.PATCH("/:id", ticketHandler.UpdateTicket)
 tickets.DELETE("/:id", middleware.RequireRole("admin"), ticketHandler.DeleteTicket)
 tickets.GET("/stats", ticketHandler.GetTicketStats)
+
+// Solutions management
+protected.GET("/solutions", ticketHandler.ListSolutions)
 }
 
 // Tasks management
@@ -124,6 +130,7 @@ tasks := protected.Group("/tasks")
 tasks.POST("", taskHandler.CreateTask)
 tasks.GET("", taskHandler.ListTasks)
 tasks.GET("/:id", taskHandler.GetTask)
+tasks.GET("/:id/history", taskHandler.GetTaskHistory)
 tasks.PATCH("/:id", taskHandler.UpdateTask)
 tasks.DELETE("/:id", taskHandler.DeleteTask)
 tasks.GET("/stats", taskHandler.GetTaskStats)

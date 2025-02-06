@@ -38,7 +38,7 @@ export default function TicketList() {
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [expandedTicketId, setExpandedTicketId] = React.useState<number | null>(null);
 
-  const truncateDescription = (text: string, maxLength: number = 100) => {
+  const truncateDescription = (text: string, maxLength: number = 50) => {
     if (text.length <= maxLength) return text;
     return `${text.slice(0, maxLength)}...`;
   };
@@ -270,6 +270,112 @@ export default function TicketList() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {user && (
+        <>
+          <Typography variant="h5" sx={{ mt: 4, mb: 2 }}>
+            Tickets Assigned to You
+          </Typography>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Ticket #</TableCell>
+                  <TableCell>Category</TableCell>
+                  <TableCell>Description</TableCell>
+                  <TableCell>Submitter</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredTickets
+                  .filter(ticket => ticket.assignedTo === user.id)
+                  .map((ticket) => (
+                    <TableRow
+                      key={ticket.id}
+                      onClick={() => {
+                        setSelectedTicket(ticket);
+                        setDialogOpen(true);
+                      }}
+                      sx={{
+                        cursor: 'pointer',
+                        backgroundColor: 'primary.light',
+                        '&:hover': {
+                          backgroundColor: 'primary.main',
+                          '& .MuiTypography-root': { color: 'white' },
+                          '& .MuiChip-root': { backgroundColor: 'white' }
+                        }
+                      }}
+                    >
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'white' }}>
+                          {ticket.ticketNumber || '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getCategoryLabel(ticket.category)}
+                          size="small"
+                          sx={{ backgroundColor: 'white' }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography sx={{ color: 'white' }}>
+                          {ticket.description.length > 50
+                            ? `${ticket.description.slice(0, 50)}...`
+                            : ticket.description}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography sx={{ color: 'white' }}>
+                          {ticket.submitterEmail}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={ticket.status}
+                          color={getStatusColor(ticket.status)}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Box onClick={(e) => e.stopPropagation()}>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleStatusChange(ticket, 'in_progress')}
+                            disabled={ticket.status === 'in_progress' || ticket.status === 'resolved'}
+                            sx={{ color: 'white' }}
+                          >
+                            <StartIcon />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleStatusChange(ticket, 'resolved')}
+                            disabled={ticket.status === 'resolved'}
+                            sx={{ color: 'white' }}
+                          >
+                            <DoneIcon />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedTicket(ticket);
+                              setDialogOpen(true);
+                            }}
+                            sx={{ color: 'white' }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </>
+      )}
     </Box>
   );
 }

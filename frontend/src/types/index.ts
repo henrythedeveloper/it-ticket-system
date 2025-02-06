@@ -6,8 +6,30 @@ export interface Ticket {
   submitterEmail: string;
   status: 'open' | 'in_progress' | 'resolved';
   assignedTo?: number;
+  solution?: string;
+  resolvedBy?: number;
+  resolvedAt?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface TicketHistory {
+  id: number;
+  ticketId: number;
+  action: string;
+  userId: number;
+  notes: string;
+  createdAt: string;
+}
+
+export interface TicketSolution {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Task {
@@ -17,9 +39,22 @@ export interface Task {
   priority: 'low' | 'medium' | 'high';
   status: 'todo' | 'in_progress' | 'done';
   createdBy: number;
+  creator?: User;
   assignedTo?: number;
+  assignedUser?: User;
   createdAt?: string;
   updatedAt?: string;
+  history?: TaskHistory[];
+}
+
+export interface TaskHistory {
+  id: number;
+  taskId: number;
+  action: string;
+  userId: number;
+  user?: User;
+  notes: string;
+  createdAt: string;
 }
 
 export interface User {

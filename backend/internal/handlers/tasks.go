@@ -36,10 +36,18 @@ return
 // Get current user ID from context
 createdBy := middleware.GetUserID(c)
 
+// Start a transaction
+tx := h.db.Begin()
+if tx.Error != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start transaction"})
+return
+}
+
 // Verify assignee exists if provided
 if req.AssignedTo != nil {
 var user models.User
-if err := h.db.First(&user, req.AssignedTo).Error; err != nil {
+if err := tx.First(&user, req.AssignedTo).Error; err != nil {
+tx.Rollback()
 c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user assignment"})
 return
 }
@@ -54,8 +62,28 @@ CreatedBy:   createdBy,
 AssignedTo:  req.AssignedTo,
 }
 
-if err := h.db.Create(task).Error; err != nil {
+if err := tx.Create(task).Error; err != nil {
+tx.Rollback()
 c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create task"})
+return
+}
+
+// Create history entry
+history := models.TaskHistory{
+TaskID: task.ID,
+Action: "created",
+UserID: createdBy,
+Notes:  "Task created",
+}
+
+if err := tx.Create(&history).Error; err != nil {
+tx.Rollback()
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create history"})
+return
+}
+
+if err := tx.Commit().Error; err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
 return
 }
 
@@ -104,30 +132,17 @@ query = query.Where("created_by = ?", userID)
 }
 
 if err := query.Find(&tasks).Error; err != nil {
-  c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tasks"})
-  return
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tasks"})
+return
 }
 
-// Debug logging
+// Ensure empty array if no tasks found
 if len(tasks) == 0 {
-  c.JSON(http.StatusOK, []models.Task{}) // Ensure we always return an array
-  return
+c.JSON(http.StatusOK, gin.H{"data": []models.Task{}})
+return
 }
 
-// Ensure we have valid data
-for i := range tasks {
-  if tasks[i].Status == "" {
-    tasks[i].Status = models.TaskStatusTodo
-  }
-  if tasks[i].Priority == "" {
-    tasks[i].Priority = models.TaskPriorityLow
-  }
-}
-
-// Return explicitly as array
-c.JSON(http.StatusOK, gin.H{
-  "data": tasks,
-})
+c.JSON(http.StatusOK, gin.H{"data": tasks})
 }
 
 // GetTask retrieves a specific task
@@ -152,11 +167,12 @@ c.JSON(http.StatusOK, task)
 }
 
 type UpdateTaskRequest struct {
-Title       *string `json:"title,omitempty"`
-Description *string `json:"description,omitempty"`
-Priority    *string `json:"priority,omitempty" binding:"omitempty,oneof=low medium high"`
-Status      *string `json:"status,omitempty" binding:"omitempty,oneof=todo in_progress done"`
-AssignedTo  *uint   `json:"assignedTo,omitempty"`
+Title            *string `json:"title,omitempty"`
+Description      *string `json:"description,omitempty"`
+Priority         *string `json:"priority,omitempty" binding:"omitempty,oneof=low medium high"`
+Status           *string `json:"status,omitempty" binding:"omitempty,oneof=todo in_progress done"`
+AssignedTo       *uint   `json:"assignedTo,omitempty"`
+ReassignmentNotes *string `json:"reassignmentNotes,omitempty"`
 }
 
 // UpdateTask handles task updates
@@ -189,33 +205,126 @@ c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 return
 }
 
-// Update fields if provided
-if req.Title != nil {
-task.Title = *req.Title
+// Start a transaction
+tx := h.db.Begin()
+if tx.Error != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start transaction"})
+return
 }
+
+// Get user ID from context
+userID := c.GetUint("userID")
+
+// Update fields if provided and create history entries
+if req.Title != nil {
+oldTitle := task.Title
+task.Title = *req.Title
+// Create history entry for title change
+history := models.TaskHistory{
+TaskID: task.ID,
+Action: "title_updated",
+UserID: userID,
+Notes:  "Title changed from '" + oldTitle + "' to '" + *req.Title + "'",
+}
+if err := tx.Create(&history).Error; err != nil {
+tx.Rollback()
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create history entry"})
+return
+}
+}
+
 if req.Description != nil {
 task.Description = *req.Description
+// Create history entry for description change
+history := models.TaskHistory{
+TaskID: task.ID,
+Action: "description_updated",
+UserID: userID,
+Notes:  "Description updated",
 }
+if err := tx.Create(&history).Error; err != nil {
+tx.Rollback()
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create history entry"})
+return
+}
+}
+
 if req.Priority != nil {
+oldPriority := task.Priority
 task.Priority = *req.Priority
+// Create history entry for priority change
+history := models.TaskHistory{
+TaskID: task.ID,
+Action: "priority_changed",
+UserID: userID,
+Notes:  "Priority changed from '" + oldPriority + "' to '" + *req.Priority + "'",
 }
+if err := tx.Create(&history).Error; err != nil {
+tx.Rollback()
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create history entry"})
+return
+}
+}
+
 if req.Status != nil {
+oldStatus := task.Status
 task.Status = *req.Status
+// Create history entry for status change
+history := models.TaskHistory{
+TaskID: task.ID,
+Action: "status_changed",
+UserID: userID,
+Notes:  "Status changed from '" + oldStatus + "' to '" + *req.Status + "'",
 }
+if err := tx.Create(&history).Error; err != nil {
+tx.Rollback()
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create history entry"})
+return
+}
+}
+
 if req.AssignedTo != nil {
-// Verify assignee exists
+// Verify assignee exists if not unassigning
 if *req.AssignedTo != 0 {
 var user models.User
-if err := h.db.First(&user, req.AssignedTo).Error; err != nil {
+if err := tx.First(&user, req.AssignedTo).Error; err != nil {
+tx.Rollback()
 c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user assignment"})
 return
 }
 }
+
+// Create history entry for assignment change
+var notes string
+if req.ReassignmentNotes != nil {
+notes = *req.ReassignmentNotes
+} else {
+notes = "Task reassigned"
+}
+
+history := models.TaskHistory{
+TaskID: task.ID,
+Action: "reassigned",
+UserID: userID,
+Notes:  notes,
+}
+if err := tx.Create(&history).Error; err != nil {
+tx.Rollback()
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create history entry"})
+return
+}
+
 task.AssignedTo = req.AssignedTo
 }
 
-if err := h.db.Save(&task).Error; err != nil {
+if err := tx.Save(&task).Error; err != nil {
+tx.Rollback()
 c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update task"})
+return
+}
+
+if err := tx.Commit().Error; err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
 return
 }
 
@@ -255,6 +364,26 @@ return
 }
 
 c.JSON(http.StatusOK, gin.H{"message": "Task deleted successfully"})
+}
+
+// GetTaskHistory returns the history for a specific task
+func (h *TaskHandler) GetTaskHistory(c *gin.Context) {
+id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+if err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid task ID"})
+return
+}
+
+var history []models.TaskHistory
+if err := h.db.Where("task_id = ?", id).
+Preload("User").
+Order("created_at DESC").
+Find(&history).Error; err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch task history"})
+return
+}
+
+c.JSON(http.StatusOK, gin.H{"data": history})
 }
 
 // GetTaskStats returns task statistics
