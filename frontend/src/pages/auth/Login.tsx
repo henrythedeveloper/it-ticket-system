@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import { LoginCredentials } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import axios from 'axios';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -24,10 +25,15 @@ export default function Login() {
       await login(data);
       navigate('/portal');
     } catch (error) {
-      if (error instanceof Error) {
-        setError(error.message);
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        switch (status) {
+          case 405: setError('Invalid API endpoint'); break;
+          case 401: setError('Invalid credentials'); break;
+          default: setError(error.response?.data?.message || 'Login failed');
+        }
       } else {
-        setError('Invalid email or password');
+        setError('Network error');
       }
     }
   };

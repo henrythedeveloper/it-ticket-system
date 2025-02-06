@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import api from '../utils/axios';
+import { isAxiosError } from 'axios';
 import { User, LoginCredentials, RegisterCredentials } from '../types';
+
 
 interface AuthContextType {
   user: User | null;
@@ -11,7 +13,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -48,14 +50,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (credentials: LoginCredentials) => {
+    console.log('Attempting login:', `${api.defaults.baseURL}/auth/login`);
     try {
       const response = await api.post('/auth/login', credentials);
+      console.log('Login response:', response);
       const { token, user } = response.data;
       localStorage.setItem('token', token);
       setUser(user);
-    } catch (error) {
-      console.error('Login failed:', error);
-      throw error;
+    } catch (err) {
+      if (isAxiosError(err)) {
+        console.error('Login error:', {
+          status: err.response?.status,
+          data: err.response?.data,
+          config: err.config
+        });
+      } else {
+        console.error('Non-Axios error:', err);
+      }
+      throw err;
     }
   };
 

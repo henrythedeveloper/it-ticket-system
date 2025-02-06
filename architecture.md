@@ -11,19 +11,54 @@ The Help Desk Ticket System is a full-stack web application that manages support
 
 ### Frontend
 - **Framework:** React with TypeScript
+- **Build Tool:** Vite
 - **State Management:** React Context + Hooks
 - **UI Components:** Material-UI
 - **Form Handling:** React Hook Form
 - **API Client:** Axios
 - **Authentication:** JWT stored in HTTP-only cookies
+- **Web Server:** Nginx for static file serving
 
 ### Backend
 - **Language:** Go
-- **Web Framework:** Gin or Echo
+- **Web Framework:** Gin
 - **Database:** PostgreSQL
 - **ORM:** GORM
 - **Authentication:** JWT + bcrypt
 - **Email:** SMTP (e.g., SendGrid)
+
+## Project Structure
+
+### Backend Structure
+```
+backend/
+├── cmd/
+│   └── server/           # Application entrypoint
+├── internal/
+│   ├── auth/            # Authentication logic
+│   ├── config/          # Configuration management
+│   ├── handlers/        # HTTP request handlers
+│   ├── middleware/      # HTTP middleware
+│   └── models/          # Database models
+├── migrations/          # Database migrations
+└── scripts/            # Utility scripts
+```
+
+### Frontend Structure
+```
+frontend/
+├── src/
+│   ├── components/     # Reusable UI components
+│   ├── contexts/       # React contexts
+│   ├── pages/
+│   │   ├── auth/      # Authentication pages
+│   │   ├── portal/    # Internal portal pages
+│   │   └── public/    # Public pages
+│   ├── types/         # TypeScript definitions
+│   └── utils/         # Utility functions
+├── nginx.conf         # Nginx configuration
+└── vite.config.ts     # Vite configuration
+```
 
 ## Core Components
 
@@ -33,6 +68,7 @@ The Help Desk Ticket System is a full-stack web application that manages support
    - Ticket submission form
    - Category selection
    - Email confirmation display
+   - Success page after submission
 
 2. **Help Desk Portal (`/portal`)**
    - Authentication screens (login/register)
@@ -98,6 +134,7 @@ CREATE TABLE users (
 -- Tickets table
 CREATE TABLE tickets (
     id SERIAL PRIMARY KEY,
+    ticket_number VARCHAR(50) UNIQUE NOT NULL,  -- Auto-generated ticket reference
     category VARCHAR(100) NOT NULL,  -- network, hardware, software
     description TEXT NOT NULL,
     submitter_email VARCHAR(255) NOT NULL,
@@ -141,23 +178,39 @@ CREATE TABLE tasks (
    - Database connection pooling
    - Prepared statements for SQL
 
+## Development Environment
+
+1. **Docker Compose Setup**
+   - Frontend container with Node.js
+   - Backend container with Go
+   - PostgreSQL database container
+   - Nginx reverse proxy
+
+2. **Development Tools**
+   - Hot reload for frontend (Vite)
+   - Database migration scripts
+   - JWT secret generation utilities
+   - Password hashing utilities
+
 ## Deployment Strategy
 
 1. **Frontend**
-   - Build static assets
+   - Build static assets with Vite
    - Deploy to CDN (e.g., Cloudflare, Vercel)
    - Environment-specific configuration
+   - Nginx for serving static files
 
 2. **Backend**
    - Docker containerization
    - Deploy to cloud platform (e.g., AWS, GCP)
-   - Reverse proxy (e.g., Nginx)
+   - Reverse proxy (Nginx)
    - SSL/TLS termination
 
 3. **Database**
    - Managed database service
    - Regular backups
    - Migration strategy
+   - Connection pooling
 
 ## Development Workflow
 
@@ -166,14 +219,5 @@ CREATE TABLE tasks (
 3. Write unit and integration tests
 4. Use environment variables for configuration
 5. Follow code style guidelines
-
-## Next Steps
-
-1. Set up project structure
-2. Implement authentication system
-3. Create database schema
-4. Build basic API endpoints
-5. Develop frontend components
-6. Add email notification system
-7. Implement security measures
-8. Set up deployment pipeline
+6. Regular database migrations
+7. Docker-based local development

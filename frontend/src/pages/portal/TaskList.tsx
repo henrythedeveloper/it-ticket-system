@@ -24,13 +24,17 @@ import {
   Done as DoneIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Task, User } from '../../types';
+import { Task } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../utils/axios';
 
-const API_URL = import.meta.env.VITE_API_URL;
-
 type ChipColor = 'error' | 'warning' | 'success' | 'default';
+
+interface TaskWithAssignee extends Task {
+  assignedUser?: {
+    name: string;
+  };
+}
 
 export default function TaskList() {
   const { user } = useAuth();
@@ -38,25 +42,19 @@ export default function TaskList() {
   const [statusFilter, setStatusFilter] = React.useState('all');
   const [priorityFilter, setPriorityFilter] = React.useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<TaskWithAssignee | null>(null);
 
-  const { data: tasks = [], isLoading } = useQuery<(Task & { assignedUser?: User })[]>({
+  const { data: tasks = [], isLoading } = useQuery<TaskWithAssignee[]>({
     queryKey: ['tasks'],
     queryFn: async () => {
-      const response = await api.get(`${API_URL}/tasks`);
-      // Ensure we always return an array
-      const data = response.data;
-      if (!Array.isArray(data)) {
-        console.error('Expected array of tasks but got:', data);
-        return [];
-      }
-      return data;
+      const response = await api.get('/tasks');
+      return response.data;
     },
   });
 
   const updateTaskMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      const response = await api.patch(`${API_URL}/tasks/${id}`, { status });
+      const response = await api.patch(`/tasks/${id}`, { status });
       return response.data;
     },
     onSuccess: () => {
@@ -65,12 +63,12 @@ export default function TaskList() {
   });
 
   const saveTaskMutation = useMutation({
-    mutationFn: async (taskData: Partial<Task>) => {
+    mutationFn: async (taskData: Partial<TaskWithAssignee>) => {
       if (taskData.id) {
-        const response = await api.patch(`${API_URL}/tasks/${taskData.id}`, taskData);
+        const response = await api.patch(`/tasks/${taskData.id}`, taskData);
         return response.data;
       } else {
-        const response = await api.post(`${API_URL}/tasks`, taskData);
+        const response = await api.post('/tasks', taskData);
         return response.data;
       }
     },
@@ -81,23 +79,20 @@ export default function TaskList() {
     },
   });
 
-  const handleSaveTask = (taskData: Partial<Task>) => {
+  const handleSaveTask = (taskData: Partial<TaskWithAssignee>) => {
     saveTaskMutation.mutate(taskData);
   };
 
-  const handleStatusChange = (task: Task, newStatus: string) => {
+  const handleStatusChange = (task: TaskWithAssignee, newStatus: string) => {
     if (task.id) {
       updateTaskMutation.mutate({ id: task.id, status: newStatus });
     }
   };
 
   const filteredTasks = React.useMemo(() => {
-    if (!Array.isArray(tasks)) return [];
     return tasks.filter((task) => {
-      const matchesStatus =
-        statusFilter === 'all' || task.status === statusFilter;
-      const matchesPriority =
-        priorityFilter === 'all' || task.priority === priorityFilter;
+      const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
+      const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
       return matchesStatus && matchesPriority;
     });
   }, [tasks, statusFilter, priorityFilter]);
@@ -145,6 +140,7 @@ export default function TaskList() {
         isNew={!selectedTask}
         currentUser={user}
       />
+      
       <Stack
         direction="row"
         justifyContent="space-between"
