@@ -1,163 +1,73 @@
 import React from 'react';
-import { Navigate, Outlet, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
 import {
-  AppBar,
   Box,
-  CssBaseline,
-  Drawer,
-  IconButton,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
+  AppBar,
   Toolbar,
   Typography,
-  Button
+  Button,
+  Container,
+  CircularProgress,
+  Paper,
 } from '@mui/material';
-import {
-  Menu as MenuIcon,
-  Inbox as InboxIcon,
-  Assignment as AssignmentIcon,
-  Person as PersonIcon,
-  Logout as LogoutIcon
-} from '@mui/icons-material';
-
-const drawerWidth = 240;
+import { Navigate, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function PortalLayout() {
+  const { user, logout, isLoading } = useAuth();
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout } = useAuth();
-  const [mobileOpen, setMobileOpen] = React.useState(false);
 
-  console.log('PortalLayout - Auth State:', { 
-    user, 
-    isAuthenticated,
-    token: localStorage.getItem('token') 
-  });
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
-
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
-
-  const menuItems = [
-    { text: 'Tickets', icon: <InboxIcon />, path: '/portal/tickets' },
-    { text: 'Tasks', icon: <AssignmentIcon />, path: '/portal/tasks' },
-    { text: 'Users', icon: <PersonIcon />, path: '/portal/users' }
-  ];
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
-
-  const drawer = (
-    <Box>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div">
-          Help Desk Portal
-        </Typography>
-      </Toolbar>
-      <List>
-        {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton 
-              onClick={() => navigate(item.path)}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-    </Box>
-  );
-
-  return (
-    <Box sx={{ display: 'flex' }}>
-      <CssBaseline />
-      <AppBar
-        position="fixed"
-        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
-      >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Help Desk
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="body1">
-              {user?.name}
-            </Typography>
-            <Button
-              color="inherit"
-              onClick={handleLogout}
-              startIcon={<LogoutIcon />}
-            >
-              Logout
-            </Button>
-          </Box>
-        </Toolbar>
-      </AppBar>
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
       <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-      >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true, // Better mobile performance
-          }}
-          sx={{
-            display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: drawerWidth
-            },
-          }}
-        >
-          {drawer}
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: drawerWidth
-            },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
-      </Box>
-      <Box
-        component="main"
         sx={{
-          flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          mt: '64px'
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
         }}
       >
-        <Outlet />
+        <CircularProgress />
       </Box>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <Box>
+      <AppBar position="static">
+        <Toolbar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Help Desk Portal
+          </Typography>
+          <Button color="inherit" onClick={() => navigate('/portal')}>
+            Dashboard
+          </Button>
+          {user?.role === 'admin' && (
+            <Button color="inherit" onClick={() => navigate('/portal/users')}>
+              Users
+            </Button>
+          )}
+          <Button color="inherit" onClick={() => navigate('/portal/tickets')}>
+            Tickets
+          </Button>
+          <Button color="inherit" onClick={() => navigate('/portal/tasks')}>
+            Tasks
+          </Button>
+          <Button color="inherit" onClick={() => logout()}>
+            Logout
+          </Button>
+        </Toolbar>
+      </AppBar>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Paper sx={{ p: 3 }}>
+          <Outlet />
+        </Paper>
+      </Container>
     </Box>
   );
 }

@@ -1,285 +1,238 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Button,
+  TextField,
+  Box,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Grid,
   Typography,
-  TextField,
-  Box,
-  Paper,
   List,
   ListItem,
   ListItemText,
-  Divider,
-  Autocomplete,
+  Tabs,
+  Tab,
 } from '@mui/material';
-import { Ticket, User, TicketHistory, TicketSolution } from '../types';
+import { Ticket, User, TicketHistory } from '../types';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/axios';
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`ticket-tabpanel-${index}`}
+      aria-labelledby={`ticket-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ p: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
 
 interface TicketDialogProps {
   open: boolean;
   onClose: () => void;
   ticket: Ticket | null;
-  onSave: (updatedTicket: Partial<Ticket>) => void;
+  onSave: (ticket: Partial<Ticket>) => void;
   isAdmin: boolean;
 }
 
-export default function TicketDialog({ open, onClose, ticket, onSave, isAdmin }: TicketDialogProps) {
-  const [editedTicket, setEditedTicket] = React.useState<Partial<Ticket>>({});
-  const [solution, setSolution] = React.useState('');
-  const [selectedSolution, setSelectedSolution] = React.useState<TicketSolution | null>(null);
+export default function TicketDialog({
+  open,
+  onClose,
+  ticket,
+  onSave,
+  isAdmin,
+}: TicketDialogProps) {
+  const { user } = useAuth();
+  const [status, setStatus] = useState<'open' | 'in_progress' | 'resolved'>('open');
+  const [assignedTo, setAssignedTo] = useState<number | undefined>(undefined);
+  const [solution, setSolution] = useState('');
+  const [notes, setNotes] = useState('');
+  const [currentTab, setCurrentTab] = useState(0);
 
-  // Fetch users for assignment
-  const { data } = useQuery<{ data: User[] }>({
+  const { data: users } = useQuery<{ data: User[] }>({
     queryKey: ['users'],
     queryFn: async () => {
       const response = await api.get('/users');
       return response.data;
     },
-    enabled: isAdmin,
   });
 
-  // Fetch ticket history
   const { data: historyData } = useQuery<{ data: TicketHistory[] }>({
     queryKey: ['ticket-history', ticket?.id],
     queryFn: async () => {
-      const response = await api.get(`/tickets/${ticket?.id}/history`);
+      if (!ticket?.id) return { data: [] };
+      const response = await api.get(`/tickets/${ticket.id}/history`);
       return response.data;
     },
     enabled: !!ticket?.id,
   });
 
-  // Fetch existing solutions
-  const { data: solutionsData } = useQuery<{ data: TicketSolution[] }>({
-    queryKey: ['ticket-solutions', ticket?.category],
-    queryFn: async () => {
-      const response = await api.get(`/solutions?category=${ticket?.category}`);
-      return response.data;
-    },
-    enabled: !!ticket?.category,
-  });
-
-  const users = data?.data || [];
-  const history = historyData?.data || [];
-  const solutions = solutionsData?.data || [];
-
-  React.useEffect(() => {
+  useEffect(() => {
     if (ticket) {
-      setEditedTicket({
-        status: ticket.status,
-        assignedTo: ticket.assignedTo,
-        solution: ticket.solution,
-      });
+      setStatus(ticket.status);
+      setAssignedTo(ticket.assignedTo);
       setSolution(ticket.solution || '');
+      setNotes('');
     }
   }, [ticket]);
 
-  const handleChange = (field: keyof Ticket) => (
-    event: React.ChangeEvent<{ value: unknown }> | { target: { value: unknown } }
-  ) => {
-    setEditedTicket((prev) => ({
-      ...prev,
-      [field]: event.target.value,
-    }));
-  };
-
   const handleSave = () => {
-    const updates = {
-      ...editedTicket,
-      solution: editedTicket.status === 'resolved' ? solution : undefined,
+    if (!ticket) return;
+
+    const updates: Partial<Ticket> = {
+      status,
+      assignedTo,
+      solution,
     };
+
     onSave(updates);
     onClose();
   };
 
-  const handleSolutionSelect = (solution: TicketSolution | null) => {
-    setSelectedSolution(solution);
-    if (solution) {
-      setSolution(solution.description);
-    }
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    setCurrentTab(newValue);
+  };
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleString();
   };
 
   if (!ticket) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
         Ticket {ticket.ticketNumber}
+        <Typography variant="subtitle2" color="textSecondary">
+          Submitted by {ticket.submitterEmail}
+        </Typography>
       </DialogTitle>
       <DialogContent>
-        <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid item xs={12} md={8}>
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" color="text.secondary">
-                Category
-              </Typography>
-              <Typography variant="body1">
-                {ticket.category}
-              </Typography>
-            </Box>
+        <Box sx={{ width: '100%' }}>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs value={currentTab} onChange={handleTabChange}>
+              <Tab label="Details" />
+              <Tab label="History" />
+            </Tabs>
+          </Box>
 
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" color="text.secondary">
-                Description
-              </Typography>
-              <Paper 
-                elevation={0}
-                sx={{ 
-                  p: 2,
-                  backgroundColor: 'grey.50',
-                  maxHeight: '200px',
-                  overflowY: 'auto'
-                }}
+          <TabPanel value={currentTab} index={0}>
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as 'open' | 'in_progress' | 'resolved')}
+                label="Status"
               >
-                <Typography 
-                  variant="body1" 
-                  sx={{ 
-                    whiteSpace: 'pre-wrap',
-                    textAlign: 'justify',
-                  }}
+                <MenuItem value="open">Open</MenuItem>
+                <MenuItem value="in_progress">In Progress</MenuItem>
+                <MenuItem value="resolved">Resolved</MenuItem>
+              </Select>
+            </FormControl>
+
+            {(isAdmin || user?.role === 'staff') && (
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Assign To</InputLabel>
+                <Select
+                  value={assignedTo || ''}
+                  onChange={(e) => setAssignedTo(e.target.value ? Number(e.target.value) : undefined)}
+                  label="Assign To"
                 >
-                  {ticket.description}
-                </Typography>
-              </Paper>
-            </Box>
-
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" color="text.secondary">
-                Submitter
-              </Typography>
-              <Typography variant="body1">
-                {ticket.submitterEmail}
-              </Typography>
-            </Box>
-
-            {isAdmin && (
-              <>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Status</InputLabel>
-                      <Select
-                        value={editedTicket.status || ticket.status}
-                        onChange={handleChange('status')}
-                        label="Status"
-                      >
-                        <MenuItem value="open">Open</MenuItem>
-                        <MenuItem value="in_progress">In Progress</MenuItem>
-                        <MenuItem value="resolved">Resolved</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Assigned To</InputLabel>
-                      <Select
-                        value={editedTicket.assignedTo || ticket.assignedTo || ''}
-                        onChange={handleChange('assignedTo')}
-                        label="Assigned To"
-                      >
-                        <MenuItem value="">Unassigned</MenuItem>
-                        {users
-                          .sort((a, b) => a.name.localeCompare(b.name))
-                          .map((user) => (
-                            <MenuItem key={user.id} value={user.id}>
-                              {user.name}
-                            </MenuItem>
-                          ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                </Grid>
-
-                {editedTicket.status === 'resolved' && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="subtitle1" gutterBottom>
-                      Resolution
-                    </Typography>
-                    <Autocomplete
-                      options={solutions}
-                      getOptionLabel={(option) => option.title}
-                      value={selectedSolution}
-                      onChange={(_, newValue) => handleSolutionSelect(newValue)}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Search existing solutions"
-                          variant="outlined"
-                          size="small"
-                          fullWidth
-                        />
-                      )}
-                    />
-                    <TextField
-                      label="Solution Details"
-                      multiline
-                      rows={4}
-                      value={solution}
-                      onChange={(e) => setSolution(e.target.value)}
-                      fullWidth
-                      required
-                      sx={{ mt: 2 }}
-                      placeholder="Describe how the issue was resolved..."
-                    />
-                  </Box>
-                )}
-              </>
+                  <MenuItem value="">Unassigned</MenuItem>
+                  {users?.data?.map((user) => (
+                    <MenuItem key={user.id} value={user.id}>
+                      {user.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             )}
-          </Grid>
 
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2, mb: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Ticket History
-              </Typography>
-              <List>
-                {history.map((entry, index) => (
-                  <React.Fragment key={entry.id}>
-                    <ListItem>
-                      <ListItemText
-                        primary={entry.action}
-                        secondary={
-                          <>
-                            <Typography variant="caption" color="text.secondary">
-                              {new Date(entry.createdAt).toLocaleString()}
-                            </Typography>
-                            {entry.notes && (
-                              <Typography variant="body2">
-                                {entry.notes}
-                              </Typography>
-                            )}
-                          </>
-                        }
-                      />
-                    </ListItem>
-                    {index < history.length - 1 && <Divider />}
-                  </React.Fragment>
-                ))}
-              </List>
-            </Paper>
-          </Grid>
-        </Grid>
+            <TextField
+              fullWidth
+              label="Description"
+              multiline
+              rows={4}
+              value={ticket.description}
+              InputProps={{
+                readOnly: true,
+              }}
+              sx={{ mb: 2 }}
+            />
+
+            <TextField
+              fullWidth
+              label="Solution"
+              multiline
+              rows={4}
+              value={solution}
+              onChange={(e) => setSolution(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+
+            <TextField
+              fullWidth
+              label="Notes"
+              multiline
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              helperText="Add notes about your changes"
+            />
+          </TabPanel>
+
+          <TabPanel value={currentTab} index={1}>
+            <List>
+              {historyData?.data?.map((entry) => (
+                <ListItem key={entry.id} divider>
+                  <ListItemText
+                    primary={entry.notes}
+                    secondary={
+                      <>
+                        <Typography variant="caption" component="span">
+                          {entry.action.toUpperCase()} - {formatDate(entry.createdAt)}
+                        </Typography>
+                        {entry.userId && (
+                          <Typography variant="caption" component="span" sx={{ ml: 1 }}>
+                            by {users?.data?.find(u => u.id === entry.userId)?.name || 'Unknown'}
+                          </Typography>
+                        )}
+                      </>
+                    }
+                  />
+                </ListItem>
+              ))}
+            </List>
+          </TabPanel>
+        </Box>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        {isAdmin && (
-          <Button 
-            onClick={handleSave} 
-            color="primary"
-            disabled={editedTicket.status === 'resolved' && !solution}
-          >
-            Save Changes
-          </Button>
-        )}
+        <Button onClick={handleSave} variant="contained" color="primary">
+          Save Changes
+        </Button>
       </DialogActions>
     </Dialog>
   );

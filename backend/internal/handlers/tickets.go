@@ -1,322 +1,261 @@
 package handlers
 
 import (
-	"net/http"
-	"strconv"
-	"time"
+    "net/http"
+    "time"
 
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
-	"helpdesk/internal/models"
+    "github.com/gin-gonic/gin"
+    "gorm.io/gorm"
+    "helpdesk/internal/models"
 )
 
 type TicketHandler struct {
-	db *gorm.DB
+    db *gorm.DB
 }
 
 func NewTicketHandler(db *gorm.DB) *TicketHandler {
-	return &TicketHandler{db: db}
+    return &TicketHandler{db: db}
 }
 
 type CreateTicketRequest struct {
-	Category       string `json:"category" binding:"required"`
-	Description    string `json:"description" binding:"required"`
-	SubmitterEmail string `json:"submitterEmail" binding:"required,email"`
+    Category       string `json:"category" binding:"required"`
+    Description    string `json:"description" binding:"required"`
+    SubmitterEmail string `json:"submitterEmail" binding:"required,email"`
 }
 
 // CreateTicket handles public ticket submissions
 func (h *TicketHandler) CreateTicket(c *gin.Context) {
-	var req CreateTicketRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+    var req CreateTicketRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
 
-	ticket := &models.Ticket{
-		Category:       req.Category,
-		Description:    req.Description,
-		SubmitterEmail: req.SubmitterEmail,
-		Status:         models.TicketStatusOpen,
-	}
+    tx := h.db.Begin()
+    if tx.Error != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start transaction"})
+        return
+    }
 
-	tx := h.db.Begin()
-	if tx.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start transaction"})
-		return
-	}
+    // Get next ticket number from sequence
+    var ticketNumber string
+    err := tx.Raw("SELECT CONCAT('TICKET-', LPAD(nextval('ticket_number_seq')::text, 6, '0'))").Scan(&ticketNumber).Error
+    if err != nil {
+        tx.Rollback()
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate ticket number"})
+        return
+    }
 
-	if err := tx.Create(ticket).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create ticket"})
-		return
-	}
+    ticket := &models.Ticket{
+        TicketNumber:   ticketNumber,
+        Category:       req.Category,
+        Description:    req.Description,
+        SubmitterEmail: req.SubmitterEmail,
+        Status:         models.TicketStatusOpen,
+    }
 
-	// Create initial history entry
-	history := models.TicketHistory{
-		TicketID: ticket.ID,
-		Action:   "created",
-		Notes:    "Ticket created",
-	}
+    if err := tx.Create(ticket).Error; err != nil {
+        tx.Rollback()
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create ticket"})
+        return
+    }
 
-	if err := tx.Create(&history).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create history entry"})
-		return
-	}
+    // Create initial history entry
+    history := models.TicketHistory{
+        TicketID: ticket.ID,
+        Action:   "created",
+        Notes:    "Ticket submitted",
+    }
 
-	if err := tx.Commit().Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
-		return
-	}
+    if err := tx.Create(&history).Error; err != nil {
+        tx.Rollback()
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create ticket history"})
+        return
+    }
 
-	c.JSON(http.StatusCreated, ticket)
+    if err := tx.Commit().Error; err != nil {
+        tx.Rollback()
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
+        return
+    }
+
+    c.JSON(http.StatusCreated, gin.H{
+        "message": "Ticket created successfully",
+        "ticket":  ticket,
+    })
 }
 
-// ListTickets returns all tickets with optional filtering
-func (h *TicketHandler) ListTickets(c *gin.Context) {
-	var tickets []models.Ticket
-	query := h.db.Order("created_at DESC")
-
-	// Apply filters
-	if status := c.Query("status"); status != "" {
-		query = query.Where("status = ?", status)
-	}
-
-	if err := query.Find(&tickets).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tickets"})
-		return
-	}
-
-	// Ensure empty array if no tickets found
-	if len(tickets) == 0 {
-		c.JSON(http.StatusOK, gin.H{"data": []models.Ticket{}})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"data": tickets})
-}
-
-// GetTicket retrieves a specific ticket
-func (h *TicketHandler) GetTicket(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket ID"})
-		return
-	}
-
-	var ticket models.Ticket
-	if err := h.db.First(&ticket, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Ticket not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch ticket"})
-		return
-	}
-
-	c.JSON(http.StatusOK, ticket)
-}
-
-type UpdateTicketRequest struct {
-	Status     *string `json:"status,omitempty"`
-	AssignedTo *uint   `json:"assignedTo,omitempty"`
-	Solution   *string `json:"solution,omitempty"`
-}
-
-// UpdateTicket handles ticket status updates and assignments
+// UpdateTicket handles ticket updates
 func (h *TicketHandler) UpdateTicket(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket ID"})
-		return
-	}
+    var req struct {
+        Status     string `json:"status"`
+        AssignedTo *uint  `json:"assignedTo"`
+        Solution   *string `json:"solution"`
+    }
 
-	var req UpdateTicketRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
 
-	// Start a transaction
-	tx := h.db.Begin()
-	if tx.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start transaction"})
-		return
-	}
+    ticketID := c.Param("id")
+    userID, exists := c.Get("userID")
+    if !exists {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in context"})
+        return
+    }
 
-	var ticket models.Ticket
-	if err := tx.First(&ticket, id).Error; err != nil {
-		tx.Rollback()
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Ticket not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch ticket"})
-		return
-	}
+    tx := h.db.Begin()
+    if tx.Error != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start transaction"})
+        return
+    }
 
-	// Get user ID from context
-	userID := c.GetUint("userID")
+    var ticket models.Ticket
+    if err := tx.First(&ticket, ticketID).Error; err != nil {
+        tx.Rollback()
+        c.JSON(http.StatusNotFound, gin.H{"error": "Ticket not found"})
+        return
+    }
 
-	// Update fields if provided
-	if req.Status != nil {
-		oldStatus := ticket.Status
-		ticket.Status = *req.Status
+    // Record the changes in history
+    changes := make(map[string]interface{})
+    historyNotes := ""
 
-		// Add history entry for status change
-		history := models.TicketHistory{
-			TicketID: uint(id),
-			Action:   "status_change",
-			UserID:   &userID,
-			Notes:    "Status changed from " + oldStatus + " to " + *req.Status,
-		}
-		if err := tx.Create(&history).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create history entry"})
-			return
-		}
+    if req.Status != "" && req.Status != ticket.Status {
+        changes["status"] = req.Status
+        historyNotes += "Status changed to " + req.Status + ". "
+        if req.Status == "resolved" {
+            now := time.Now()
+            changes["resolved_at"] = &now
+            changes["resolved_by"] = userID
+        }
+    }
 
-		// If status is resolved, update resolved fields
-		if *req.Status == models.TicketStatusResolved {
-			now := time.Now()
-			ticket.ResolvedAt = &now
-			ticket.ResolvedBy = &userID
-		}
-	}
+    if req.AssignedTo != nil && (ticket.AssignedTo == nil || *req.AssignedTo != *ticket.AssignedTo) {
+        changes["assigned_to"] = req.AssignedTo
+        historyNotes += "Reassigned ticket. "
+    }
 
-	if req.AssignedTo != nil {
-		// Verify user exists if assigning
-		if *req.AssignedTo != 0 {
-			var user models.User
-			if err := tx.First(&user, req.AssignedTo).Error; err != nil {
-				tx.Rollback()
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user assignment"})
-				return
-			}
+    if req.Solution != nil && (ticket.Solution == nil || *req.Solution != *ticket.Solution) {
+        changes["solution"] = req.Solution
+        historyNotes += "Added solution. "
+    }
 
-			// Add history entry for assignment
-			history := models.TicketHistory{
-				TicketID: uint(id),
-				Action:   "assigned",
-				UserID:   &userID,
-				Notes:    "Ticket assigned to " + user.Name,
-			}
-			if err := tx.Create(&history).Error; err != nil {
-				tx.Rollback()
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create history entry"})
-				return
-			}
-		}
-		ticket.AssignedTo = req.AssignedTo
-	}
+    if len(changes) > 0 {
+        if err := tx.Model(&ticket).Updates(changes).Error; err != nil {
+            tx.Rollback()
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update ticket"})
+            return
+        }
 
-	if req.Solution != nil && ticket.Status == models.TicketStatusResolved {
-		ticket.Solution = req.Solution
-		// Add history entry for solution
-		history := models.TicketHistory{
-			TicketID: uint(id),
-			Action:   "resolved",
-			UserID:   &userID,
-			Notes:    *req.Solution,
-		}
-		if err := tx.Create(&history).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create history entry"})
-			return
-		}
-	}
+        // Create history entry
+        uid := userID.(uint)
+        history := models.TicketHistory{
+            TicketID: ticket.ID,
+            UserID:   &uid,
+            Action:   "updated",
+            Notes:    historyNotes,
+        }
 
-	if err := tx.Save(&ticket).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update ticket"})
-		return
-	}
+        if err := tx.Create(&history).Error; err != nil {
+            tx.Rollback()
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create ticket history"})
+            return
+        }
+    }
 
-	if err := tx.Commit().Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
-		return
-	}
+    if err := tx.Commit().Error; err != nil {
+        tx.Rollback()
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
+        return
+    }
 
-	c.JSON(http.StatusOK, ticket)
+    c.JSON(http.StatusOK, gin.H{
+        "message": "Ticket updated successfully",
+        "ticket":  ticket,
+    })
 }
 
-// GetTicketHistory returns the history for a specific ticket
+// GetTicket returns a specific ticket
+func (h *TicketHandler) GetTicket(c *gin.Context) {
+    ticketID := c.Param("id")
+    var ticket models.Ticket
+
+    if err := h.db.First(&ticket, ticketID).Error; err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": "Ticket not found"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"data": ticket})
+}
+
+// ListTickets returns all tickets
+func (h *TicketHandler) ListTickets(c *gin.Context) {
+    var tickets []models.Ticket
+    if err := h.db.Find(&tickets).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tickets"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"data": tickets})
+}
+
+// GetTicketHistory returns the history of a specific ticket
 func (h *TicketHandler) GetTicketHistory(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket ID"})
-		return
-	}
+    ticketID := c.Param("id")
+    var history []models.TicketHistory
 
-	var history []models.TicketHistory
-	if err := h.db.Where("ticket_id = ?", id).Order("created_at DESC").Find(&history).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch ticket history"})
-		return
-	}
+    if err := h.db.Where("ticket_id = ?", ticketID).Order("created_at desc").Find(&history).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch ticket history"})
+        return
+    }
 
-	c.JSON(http.StatusOK, gin.H{"data": history})
+    c.JSON(http.StatusOK, gin.H{"data": history})
 }
 
-// ListSolutions returns all solutions for a given category
-func (h *TicketHandler) ListSolutions(c *gin.Context) {
-	category := c.Query("category")
-
-	var solutions []models.TicketSolution
-	query := h.db.Order("created_at DESC")
-
-	if category != "" {
-		query = query.Where("category = ?", category)
-	}
-
-	if err := query.Find(&solutions).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch solutions"})
-		return
-	}
-
-	// Ensure empty array if no solutions found
-	if len(solutions) == 0 {
-		c.JSON(http.StatusOK, gin.H{"data": []models.TicketSolution{}})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"data": solutions})
-}
-
-// DeleteTicket handles ticket deletion (soft delete)
+// DeleteTicket soft deletes a ticket
 func (h *TicketHandler) DeleteTicket(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket ID"})
-		return
-	}
+    ticketID := c.Param("id")
+    var ticket models.Ticket
 
-	result := h.db.Delete(&models.Ticket{}, id)
-	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete ticket"})
-		return
-	}
+    if err := h.db.First(&ticket, ticketID).Error; err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": "Ticket not found"})
+        return
+    }
 
-	if result.RowsAffected == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket not found"})
-		return
-	}
+    if err := h.db.Delete(&ticket).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete ticket"})
+        return
+    }
 
-	c.JSON(http.StatusOK, gin.H{"message": "Ticket deleted successfully"})
+    c.JSON(http.StatusOK, gin.H{"message": "Ticket deleted successfully"})
 }
 
 // GetTicketStats returns ticket statistics
 func (h *TicketHandler) GetTicketStats(c *gin.Context) {
-	var stats struct {
-		Total      int64 `json:"total"`
-		Open       int64 `json:"open"`
-		InProgress int64 `json:"inProgress"`
-		Resolved   int64 `json:"resolved"`
-	}
+    var stats struct {
+        Total     int64 `json:"total"`
+        Open      int64 `json:"open"`
+        InProgress int64 `json:"in_progress"`
+        Resolved  int64 `json:"resolved"`
+    }
 
-	h.db.Model(&models.Ticket{}).Count(&stats.Total)
-	h.db.Model(&models.Ticket{}).Where("status = ?", models.TicketStatusOpen).Count(&stats.Open)
-	h.db.Model(&models.Ticket{}).Where("status = ?", models.TicketStatusInProgress).Count(&stats.InProgress)
-	h.db.Model(&models.Ticket{}).Where("status = ?", models.TicketStatusResolved).Count(&stats.Resolved)
+    h.db.Model(&models.Ticket{}).Count(&stats.Total)
+    h.db.Model(&models.Ticket{}).Where("status = ?", "open").Count(&stats.Open)
+    h.db.Model(&models.Ticket{}).Where("status = ?", "in_progress").Count(&stats.InProgress)
+    h.db.Model(&models.Ticket{}).Where("status = ?", "resolved").Count(&stats.Resolved)
 
-	c.JSON(http.StatusOK, stats)
+    c.JSON(http.StatusOK, gin.H{"data": stats})
+}
+
+// ListSolutions returns all ticket solutions
+func (h *TicketHandler) ListSolutions(c *gin.Context) {
+    var solutions []models.TicketSolution
+    if err := h.db.Find(&solutions).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch solutions"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"data": solutions})
 }

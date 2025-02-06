@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Paper,
@@ -84,7 +84,7 @@ export default function UserList() {
       setDialogData({
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: user.role as 'admin' | 'staff',
       });
     } else {
       setSelectedUser(null);
@@ -209,7 +209,7 @@ export default function UserList() {
                   fullWidth
                   label="Name"
                   value={dialogData.name}
-                  onChange={(e) => setDialogData(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) => setDialogData((prev) => ({ ...prev, name: e.target.value }))}
                   required
                 />
               </Grid>
@@ -219,7 +219,7 @@ export default function UserList() {
                   label="Email"
                   type="email"
                   value={dialogData.email}
-                  onChange={(e) => setDialogData(prev => ({ ...prev, email: e.target.value }))}
+                  onChange={(e) => setDialogData((prev) => ({ ...prev, email: e.target.value }))}
                   required
                 />
               </Grid>
@@ -228,7 +228,7 @@ export default function UserList() {
                   <InputLabel>Role</InputLabel>
                   <Select
                     value={dialogData.role}
-                    onChange={(e) => setDialogData(prev => ({ ...prev, role: e.target.value as 'admin' | 'staff' }))}
+                    onChange={(e) => setDialogData((prev) => ({ ...prev, role: e.target.value as 'admin' | 'staff' }))}
                     label="Role"
                   >
                     <MenuItem value="staff">Staff</MenuItem>

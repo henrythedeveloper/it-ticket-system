@@ -1,17 +1,17 @@
 -- Insert admin user
 INSERT INTO users (name, email, password, role)
 VALUES ('Admin User', 'admin@busitticket.com',
-        '$2a$10$wLlztQGRH.RBL0/5sWCchtuxLWUkbVGjkc9qiM3o5zLNwX5.fZX2a', -- password is 'admin123'
+        '$2a$10$/3R2Ldhwt/oVRxM6I9paLuZgEsZHLX64Rlv6rNqR75vex3ehl9i5y', -- password is 'admin123'
         'admin');
 
 -- Insert staff users
 INSERT INTO users (name, email, password, role)
 VALUES 
     ('John Smith', 'john.smith@busitticket.com',
-     '$2a$10$UZPVnxPKh7XAqUJ1UijxfOi5K7USPUNRnFJVKjKLKv2pFaCMlwoHy', -- password is 'staff123'
+     '$2a$10$jINNGmtL/Yuh8GwiY76Eueo.TGgACW7BQvM6LH/KLTrMidWky0xtS', -- password is 'staff123'
      'staff'),
     ('Jane Doe', 'jane.doe@busitticket.com',
-     '$2a$10$UZPVnxPKh7XAqUJ1UijxfOi5K7USPUNRnFJVKjKLKv2pFaCMlwoHy', -- password is 'staff123'
+     '$2a$10$jINNGmtL/Yuh8GwiY76Eueo.TGgACW7BQvM6LH/KLTrMidWky0xtS', -- password is 'staff123'
      'staff');
 
 -- Insert sample tickets

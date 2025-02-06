@@ -22,18 +22,39 @@ export default function Login() {
 
   const onSubmit = async (data: LoginCredentials) => {
     try {
+      setError(''); // Clear any previous errors
+      console.log('Attempting login with:', { email: data.email });
       await login(data);
       navigate('/portal');
     } catch (error) {
+      console.error('Login error:', error);
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;
+        const message = error.response?.data?.error || error.response?.data?.message;
+        
         switch (status) {
-          case 405: setError('Invalid API endpoint'); break;
-          case 401: setError('Invalid credentials'); break;
-          default: setError(error.response?.data?.message || 'Login failed');
+          case 404:
+            setError('API endpoint not found. Please check server configuration.');
+            break;
+          case 401:
+            setError('Invalid email or password.');
+            break;
+          case 500:
+            setError('Server error. Please try again later.');
+            break;
+          default:
+            setError(message || 'Failed to login. Please try again.');
         }
+        
+        // Log detailed error for debugging
+        console.error('Login failed:', {
+          status,
+          message,
+          url: error.config?.url,
+          data: error.response?.data
+        });
       } else {
-        setError('Network error');
+        setError('Network error. Please check your connection.');
       }
     }
   };

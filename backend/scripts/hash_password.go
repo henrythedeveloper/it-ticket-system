@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	password := "admin123"
+	password := "staff123"
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		panic(err)

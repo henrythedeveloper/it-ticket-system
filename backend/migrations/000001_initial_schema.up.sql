@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS tickets (
     submitter_email VARCHAR(255) NOT NULL,
     assigned_to INTEGER REFERENCES users(id),
     solution TEXT,
+    resolved_by INTEGER REFERENCES users(id),
+    resolved_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP WITH TIME ZONE
