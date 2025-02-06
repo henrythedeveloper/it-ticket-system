@@ -4,7 +4,6 @@ import {
   AppBar,
   Toolbar,
   Typography,
-  Button,
   Container,
   CircularProgress,
   IconButton,
@@ -69,7 +68,7 @@ export default function PortalLayout() {
   const drawer = (
     <Box>
       <Toolbar>
-        <Typography variant="h6" noWrap>
+        <Typography variant="h6" noWrap sx={{ color: theme.palette.text.primary }}>
           Help Desk Portal
         </Typography>
       </Toolbar>
@@ -120,52 +119,23 @@ export default function PortalLayout() {
         sx={{
           zIndex: theme.zIndex.drawer + 1,
           backgroundColor: theme.palette.mode === 'light' 
-            ? 'rgba(255, 255, 255, 0.8)'
+            ? theme.palette.primary.main
             : 'rgba(0, 0, 0, 0.8)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: `1px solid ${theme.palette.divider}`,
         }}
       >
         <Container maxWidth="lg">
-          <Toolbar disableGutters>
-            <IconButton
-              color="inherit"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ mr: 2, display: { md: 'none' } }}
-            >
-              <MenuIcon />
-            </IconButton>
-
-            <Typography
-              variant="h6"
-              noWrap
-              sx={{ flexGrow: 1, display: { xs: 'none', md: 'block' } }}
-            >
-              Help Desk Portal
-            </Typography>
-
-            {!isMobile && (
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                {menuItems.map((item) => (
-                  <Button
-                    key={item.text}
-                    color="inherit"
-                    onClick={() => navigate(item.path)}
-                    sx={{
-                      borderRadius: 2,
-                      ...(location.pathname === item.path && {
-                        backgroundColor: 'action.selected',
-                      }),
-                    }}
-                  >
-                    {item.text}
-                  </Button>
-                ))}
-              </Box>
+          <Toolbar disableGutters sx={{ justifyContent: 'flex-end' }}>
+            {isMobile && (
+              <IconButton
+                color="inherit"
+                edge="start"
+                onClick={handleDrawerToggle}
+                sx={{ mr: 2 }}
+              >
+                <MenuIcon />
+              </IconButton>
             )}
-
-            <IconButton onClick={toggleColorMode} color="inherit" sx={{ ml: 2 }}>
+            <IconButton onClick={toggleColorMode} color="inherit">
               {mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
             </IconButton>
           </Toolbar>
