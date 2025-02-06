@@ -8,6 +8,7 @@ interface AuthContextType {
   register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  isAuthenticating: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -83,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         logout,
         isLoading,
+        isAuthenticating: !!user
       }}
     >
       {children}

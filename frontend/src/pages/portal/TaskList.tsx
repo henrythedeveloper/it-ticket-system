@@ -43,7 +43,7 @@ export default function TaskList() {
   const { data: tasks = [], isLoading } = useQuery<(Task & { assignedUser?: User })[]>({
     queryKey: ['tasks'],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/tasks`);
+      const response = await api.get(`${API_URL}/tasks`);
       // Ensure we always return an array
       const data = response.data;
       if (!Array.isArray(data)) {
@@ -56,7 +56,7 @@ export default function TaskList() {
 
   const updateTaskMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      const response = await axios.patch(`${API_URL}/tasks/${id}`, { status });
+      const response = await api.patch(`${API_URL}/tasks/${id}`, { status });
       return response.data;
     },
     onSuccess: () => {
@@ -67,10 +67,10 @@ export default function TaskList() {
   const saveTaskMutation = useMutation({
     mutationFn: async (taskData: Partial<Task>) => {
       if (taskData.id) {
-        const response = await axios.patch(`${API_URL}/tasks/${taskData.id}`, taskData);
+        const response = await api.patch(`${API_URL}/tasks/${taskData.id}`, taskData);
         return response.data;
       } else {
-        const response = await axios.post(`${API_URL}/tasks`, taskData);
+        const response = await api.post(`${API_URL}/tasks`, taskData);
         return response.data;
       }
     },
