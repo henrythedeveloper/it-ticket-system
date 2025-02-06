@@ -21,12 +21,12 @@ type User struct {
 // Ticket represents a help desk ticket submitted by end users
 type Ticket struct {
 	ID             uint           `json:"id" gorm:"primaryKey"`
-	Category       string         `json:"category" gorm:"type:varchar(100);not null"`
-	Description    string         `json:"description" gorm:"type:text;not null"`
-	Status         string         `json:"status" gorm:"type:varchar(50);not null;default:'open'"`
-	SubmitterEmail string         `json:"submitterEmail" gorm:"not null"`
+	TicketNumber   string         `json:"ticketNumber" gorm:"unique"`
+	Category       string         `json:"category"`
+	Description    string         `json:"description"`
+	Status         string         `json:"status"`
+	SubmitterEmail string         `json:"submitterEmail"`
 	AssignedTo     *uint          `json:"assignedTo,omitempty" gorm:"index"`
-	AssignedUser   *User          `json:"assignedUser,omitempty" gorm:"foreignKey:AssignedTo"`
 	CreatedAt      time.Time      `json:"createdAt"`
 	UpdatedAt      time.Time      `json:"updatedAt"`
 	DeletedAt      gorm.DeletedAt `json:"-" gorm:"index"`
@@ -34,18 +34,18 @@ type Ticket struct {
 
 // Task represents an internal task for IT staff
 type Task struct {
-	ID          uint           `json:"id" gorm:"primaryKey"`
-	Title       string         `json:"title" gorm:"not null"`
-	Description string         `json:"description" gorm:"type:text;not null"`
-	Priority    string         `json:"priority" gorm:"type:varchar(50);not null"`
-	Status      string         `json:"status" gorm:"type:varchar(50);not null;default:'todo'"`
-	CreatedBy   uint          `json:"createdBy" gorm:"not null"`
-	Creator     User          `json:"creator" gorm:"foreignKey:CreatedBy"`
-	AssignedTo  *uint         `json:"assignedTo,omitempty" gorm:"index"`
-	AssignedUser *User        `json:"assignedUser,omitempty" gorm:"foreignKey:AssignedTo"`
-	CreatedAt   time.Time      `json:"createdAt"`
-	UpdatedAt   time.Time      `json:"updatedAt"`
-	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
+	ID           uint           `json:"id" gorm:"primaryKey"`
+	Title        string         `json:"title" gorm:"not null"`
+	Description  string         `json:"description" gorm:"type:text;not null"`
+	Priority     string         `json:"priority" gorm:"type:varchar(50);not null"`
+	Status       string         `json:"status" gorm:"type:varchar(50);not null;default:'todo'"`
+	CreatedBy    uint           `json:"createdBy" gorm:"not null"`
+	Creator      User           `json:"creator" gorm:"foreignKey:CreatedBy"`
+	AssignedTo   *uint          `json:"assignedTo,omitempty" gorm:"index"`
+	AssignedUser *User          `json:"assignedUser,omitempty" gorm:"foreignKey:AssignedTo"`
+	CreatedAt    time.Time      `json:"createdAt"`
+	UpdatedAt    time.Time      `json:"updatedAt"`
+	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index"`
 }
 
 // TableName overrides the table name for User
@@ -97,7 +97,7 @@ const (
 	// Task statuses
 	TaskStatusTodo       = "todo"
 	TaskStatusInProgress = "in_progress"
-	TaskStatusDone      = "done"
+	TaskStatusDone       = "done"
 
 	// Task priorities
 	TaskPriorityLow    = "low"

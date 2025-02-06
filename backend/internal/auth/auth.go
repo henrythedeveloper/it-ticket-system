@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+	"log"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -13,14 +14,14 @@ import (
 
 var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrUserExists        = errors.New("user already exists")
-	ErrInvalidToken      = errors.New("invalid token")
+	ErrUserExists         = errors.New("user already exists")
+	ErrInvalidToken       = errors.New("invalid token")
 )
 
 type Service struct {
-	db         *gorm.DB
-	jwtSecret  []byte
-	tokenExp   time.Duration
+	db        *gorm.DB
+	jwtSecret []byte
+	tokenExp  time.Duration
 }
 
 type Claims struct {
@@ -31,9 +32,9 @@ type Claims struct {
 
 func NewService(db *gorm.DB, jwtSecret string, tokenExp time.Duration) *Service {
 	return &Service{
-		db:         db,
-		jwtSecret:  []byte(jwtSecret),
-		tokenExp:   tokenExp,
+		db:        db,
+		jwtSecret: []byte(jwtSecret),
+		tokenExp:  tokenExp,
 	}
 }
 
@@ -72,6 +73,8 @@ func (s *Service) RegisterUser(email, password, name string) (*models.User, erro
 
 // Login authenticates a user and returns a JWT token
 func (s *Service) Login(email, password string) (string, *models.User, error) {
+	log.Printf("Login attempt for email: %s", email)
+
 	var user models.User
 	if err := s.db.Where("email = ?", email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -80,8 +83,13 @@ func (s *Service) Login(email, password string) (string, *models.User, error) {
 		return "", nil, err
 	}
 
+	log.Printf("Stored hash: %s", user.Password)
 	// Verify password
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	// Add this debug log
+	log.Printf("Password comparison result: %v", err)
+
+	if err != nil {
 		return "", nil, ErrInvalidCredentials
 	}
 

@@ -1,20 +1,20 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { 
-  AppBar, 
-  Box, 
-  CssBaseline, 
-  Drawer, 
-  IconButton, 
-  List, 
-  ListItem, 
-  ListItemButton, 
-  ListItemIcon, 
-  ListItemText, 
-  Toolbar, 
-  Typography, 
-  Button 
+import {
+  AppBar,
+  Box,
+  CssBaseline,
+  Drawer,
+  IconButton,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Toolbar,
+  Typography,
+  Button
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -27,8 +27,15 @@ import {
 const drawerWidth = 240;
 
 export default function PortalLayout() {
+  const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+
+  console.log('PortalLayout - Auth State:', { 
+    user, 
+    isAuthenticated,
+    token: localStorage.getItem('token') 
+  });
 
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
@@ -41,10 +48,15 @@ export default function PortalLayout() {
   const menuItems = [
     { text: 'Tickets', icon: <InboxIcon />, path: '/portal/tickets' },
     { text: 'Tasks', icon: <AssignmentIcon />, path: '/portal/tasks' },
-    ...(user?.role === 'admin' 
-      ? [{ text: 'Users', icon: <PersonIcon />, path: '/portal/users' }] 
+    ...(user?.role === 'admin'
+      ? [{ text: 'Users', icon: <PersonIcon />, path: '/portal/users' }]
       : [])
   ];
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   const drawer = (
     <Box>
@@ -56,7 +68,9 @@ export default function PortalLayout() {
       <List>
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
-            <ListItemButton href={item.path}>
+            <ListItemButton 
+              onClick={() => navigate(item.path)}
+            >
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} />
             </ListItemButton>
@@ -90,9 +104,9 @@ export default function PortalLayout() {
             <Typography variant="body1">
               {user?.name}
             </Typography>
-            <Button 
-              color="inherit" 
-              onClick={logout}
+            <Button
+              color="inherit"
+              onClick={handleLogout}
               startIcon={<LogoutIcon />}
             >
               Logout
@@ -113,9 +127,9 @@ export default function PortalLayout() {
           }}
           sx={{
             display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
-              width: drawerWidth 
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth
             },
           }}
         >
@@ -125,9 +139,9 @@ export default function PortalLayout() {
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
-              width: drawerWidth 
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth
             },
           }}
           open
