@@ -1,142 +1,57 @@
-import React, { Suspense } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
-import { CircularProgress, Box, CssBaseline, IconButton } from '@mui/material';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeContextProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
-import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
 import PortalLayout from './components/layout/PortalLayout';
-
-// Lazy loaded components
-const Login = React.lazy(() => import('./pages/auth/Login'));
-const Register = React.lazy(() => import('./pages/auth/Register'));
-const SubmitTicket = React.lazy(() => import('./pages/public/SubmitTicket'));
-const TicketSuccess = React.lazy(() => import('./pages/public/TicketSuccess'));
-const TicketList = React.lazy(() => import('./pages/portal/TicketList'));
-const TaskList = React.lazy(() => import('./pages/portal/TaskList'));
-const UserList = React.lazy(() => import('./pages/portal/UserList'));
-
-// Loading component
-const LoadingScreen = () => (
-  <Box
-    display="flex"
-    justifyContent="center"
-    alignItems="center"
-    minHeight="100vh"
-  >
-    <CircularProgress />
-  </Box>
-);
-
-const createAppTheme = (darkMode: boolean) =>
-  createTheme({
-    palette: {
-      mode: darkMode ? 'dark' : 'light',
-      primary: {
-        main: darkMode ? '#90caf9' : '#1976d2',
-      },
-      secondary: {
-        main: darkMode ? '#f48fb1' : '#dc004e',
-      },
-      background: {
-        default: darkMode ? '#121212' : '#fff',
-        paper: darkMode ? '#1e1e1e' : '#fff',
-      },
-    },
-    components: {
-      MuiButton: {
-        styleOverrides: {
-          root: {
-            textTransform: 'none',
-          },
-        },
-      },
-      MuiAppBar: {
-        styleOverrides: {
-          root: {
-            backgroundColor: darkMode ? '#272727' : '#1976d2',
-          },
-        },
-      },
-      MuiDrawer: {
-        styleOverrides: {
-          paper: {
-            backgroundColor: darkMode ? '#1e1e1e' : '#fff',
-          },
-        },
-      },
-    },
-  });
-
-const ThemeToggle = () => {
-  const { darkMode, toggleDarkMode } = useTheme();
-
-  return (
-    <IconButton
-      sx={{ ml: 1, position: 'fixed', bottom: 16, right: 16, bgcolor: 'background.paper' }}
-      onClick={toggleDarkMode}
-      color="inherit"
-    >
-      {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-    </IconButton>
-  );
-};
+import TaskList from './pages/portal/TaskList';
+import TicketList from './pages/portal/TicketList';
+import UserList from './pages/portal/UserList';
+import SubmitTicket from './pages/public/SubmitTicket';
+import TicketSuccess from './pages/public/TicketSuccess';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      retry: 1,
+      retry: false,
     },
   },
 });
 
-const AppContent = () => {
-  const { darkMode } = useTheme();
-  const theme = createAppTheme(darkMode);
-
+export default function App() {
   return (
-    <MuiThemeProvider theme={theme}>
-      <CssBaseline />
-      <AuthProvider>
-        <BrowserRouter>
-          <Suspense fallback={<LoadingScreen />}>
+    <QueryClientProvider client={queryClient}>
+      <ThemeContextProvider>
+        <AuthProvider>
+          <BrowserRouter>
             <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<SubmitTicket />} />
-              <Route path="/success" element={<TicketSuccess />} />
+              {/* Public Routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/submit-ticket" element={<SubmitTicket />} />
+              <Route path="/ticket-success" element={<TicketSuccess />} />
 
-              {/* Protected routes */}
+              {/* Portal Routes */}
               <Route path="/portal" element={<PortalLayout />}>
-                <Route index element={<Navigate to="/portal/tickets" replace />} />
+                <Route index element={<TaskList />} />
                 <Route path="tickets" element={<TicketList />} />
                 <Route path="tasks" element={<TaskList />} />
                 <Route path="users" element={<UserList />} />
               </Route>
 
-              {/* Catch all */}
-              <Route path="*" element={<Navigate to="/" replace />} />
+              {/* Redirect root to portal */}
+              <Route path="/" element={<Navigate to="/portal" replace />} />
+              
+              {/* Catch all other routes */}
+              <Route path="*" element={<Navigate to="/portal" replace />} />
             </Routes>
-            <ThemeToggle />
-          </Suspense>
-        </BrowserRouter>
-      </AuthProvider>
-    </MuiThemeProvider>
-  );
-};
-
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AppContent />
-      </ThemeProvider>
+          </BrowserRouter>
+        </AuthProvider>
+      </ThemeContextProvider>
     </QueryClientProvider>
   );
 }
-
-export default App;

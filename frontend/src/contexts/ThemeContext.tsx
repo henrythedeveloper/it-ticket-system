@@ -1,37 +1,92 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useMemo, useState } from 'react';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 
-type ThemeContextType = {
-  darkMode: boolean;
-  toggleDarkMode: () => void;
-};
+interface ThemeContextType {
+  toggleColorMode: () => void;
+  mode: 'light' | 'dark';
+}
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const ThemeContext = createContext<ThemeContextType>({
+  toggleColorMode: () => {},
+  mode: 'light',
+});
 
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('darkMode');
-    return saved ? JSON.parse(saved) : false;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('darkMode', JSON.stringify(darkMode));
-  }, [darkMode]);
-
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
-
-  return (
-    <ThemeContext.Provider value={{ darkMode, toggleDarkMode }}>
-      {children}
-    </ThemeContext.Provider>
-  );
-};
-
-export const useTheme = () => {
+export const useThemeContext = () => {
   const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
+  if (!context) {
+    throw new Error('useThemeContext must be used within a ThemeContextProvider');
   }
   return context;
 };
+
+export function ThemeContextProvider({ children }: { children: React.ReactNode }) {
+  const [mode, setMode] = useState<'light' | 'dark'>(() => {
+    const savedMode = localStorage.getItem('theme-mode');
+    return (savedMode as 'light' | 'dark') || 'light';
+  });
+
+  const colorMode = useMemo(
+    () => ({
+      toggleColorMode: () => {
+        setMode((prevMode) => {
+          const newMode = prevMode === 'light' ? 'dark' : 'light';
+          localStorage.setItem('theme-mode', newMode);
+          return newMode;
+        });
+      },
+      mode,
+    }),
+    [mode]
+  );
+
+  const theme = useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode,
+          primary: {
+            main: mode === 'light' ? '#1976d2' : '#90caf9',
+          },
+          background: {
+            default: mode === 'light' ? '#f5f5f5' : '#121212',
+            paper: mode === 'light' ? '#ffffff' : '#1e1e1e',
+          },
+        },
+        components: {
+          MuiAppBar: {
+            styleOverrides: {
+              root: {
+                backgroundColor: mode === 'light' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)',
+                backdropFilter: 'blur(20px)',
+              },
+            },
+          },
+          MuiButton: {
+            styleOverrides: {
+              root: {
+                textTransform: 'none',
+              },
+            },
+          },
+          MuiDrawer: {
+            styleOverrides: {
+              paper: {
+                backgroundColor: mode === 'light' ? '#ffffff' : '#1e1e1e',
+              },
+            },
+          },
+        },
+      }),
+    [mode]
+  );
+
+  return (
+    <ThemeContext.Provider value={colorMode}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        {children}
+      </ThemeProvider>
+    </ThemeContext.Provider>
+  );
+}
