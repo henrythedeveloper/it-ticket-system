@@ -28,7 +28,7 @@ export default function CommonSolutions({ category, email }: CommonSolutionsProp
       const params = new URLSearchParams();
       if (category) params.append('category', category);
       if (email) params.append('email', email);
-      const response = await api.get(`/solutions?${params.toString()}`);
+      const response = await api.get(`/ticket-solutions?${params.toString()}`);
       return response.data;
     },
     enabled: Boolean(category), // Only run query if category is provided

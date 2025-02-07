@@ -22,21 +22,20 @@ import {
   Help as HelpIcon,
   Menu as MenuIcon,
 } from '@mui/icons-material';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { useThemeContext } from '../../contexts/ThemeContext';
 
 const DRAWER_WIDTH = 280;
 
 export default function PublicLayout() {
   const theme = useTheme();
-  const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { toggleColorMode, mode } = useThemeContext();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Only show the drawer on the submit ticket page
-  const showDrawer = location.pathname === '/submit-ticket';
+  // Show drawer on all public pages
+  const showDrawer = true;
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -51,13 +50,25 @@ export default function PublicLayout() {
       <List>
         <ListItemButton onClick={() => {
           if (isMobile) setMobileOpen(false);
+          navigate('/submit-ticket');
+        }}>
+          <ListItemIcon>
+            <HelpIcon />
+          </ListItemIcon>
+          <ListItemText
+            primary="Submit Ticket"
+            secondary="Get help from our support team"
+          />
+        </ListItemButton>
+        <ListItemButton onClick={() => {
+          if (isMobile) setMobileOpen(false);
           navigate('/solutions');
         }}>
           <ListItemIcon>
             <FAQIcon />
           </ListItemIcon>
-          <ListItemText 
-            primary="Common Solutions" 
+          <ListItemText
+            primary="Common Solutions"
             secondary="Browse solutions by category"
           />
         </ListItemButton>
@@ -68,8 +79,8 @@ export default function PublicLayout() {
           <ListItemIcon>
             <HelpIcon />
           </ListItemIcon>
-          <ListItemText 
-            primary="Frequently Asked Questions" 
+          <ListItemText
+            primary="Frequently Asked Questions"
             secondary="Find answers to common questions"
           />
         </ListItemButton>

@@ -130,7 +130,7 @@ func setupRouter(
         }
 
         // Solutions management
-        solutions := protected.Group("/solutions")
+        solutions := protected.Group("/ticket-solutions")
         {
             solutions.GET("", ticketHandler.ListSolutions)
             solutions.GET("/by-category", ticketHandler.ListSolutions) // With category query param
@@ -149,14 +149,13 @@ func setupRouter(
             tasks.GET("/stats", taskHandler.GetTaskStats)
         }
 
-        // User management (admin only)
+        // User management
         users := protected.Group("/users")
-        users.Use(middleware.RequireRole("admin"))
         {
             users.GET("", userHandler.ListUsers)
             users.PATCH("/:id", userHandler.UpdateUser)
-            users.DELETE("/:id", userHandler.DeleteUser)
-            users.GET("/stats", userHandler.GetUserStats)
+            users.DELETE("/:id", middleware.RequireRole("admin"), userHandler.DeleteUser)
+            users.GET("/stats", middleware.RequireRole("admin"), userHandler.GetUserStats)
         }
 
         // User profile

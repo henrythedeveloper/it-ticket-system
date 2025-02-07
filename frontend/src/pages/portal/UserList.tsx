@@ -9,6 +9,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Paper,
   Chip,
   IconButton,
   Stack,
@@ -31,7 +32,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../utils/axios';
-import PageContainer from '../../components/layout/PageContainer';
 
 type RoleColor = 'primary' | 'error' | 'default';
 
@@ -149,7 +149,7 @@ export default function UserList() {
   }
 
   return (
-    <PageContainer>
+    <Box>
       <Stack
         direction="row"
         alignItems="center"
@@ -157,11 +157,10 @@ export default function UserList() {
       >
         <Typography variant="h4">IT Staff List</Typography>
       </Stack>
-
-      <TableContainer sx={{
-        maxHeight: { xs: 'calc(100vh - 250px)', sm: 'calc(100vh - 300px)' },
-        overflow: 'auto'
-      }}>
+<TableContainer component={Paper} sx={{
+  maxHeight: { xs: 'calc(100vh - 250px)', sm: 'calc(100vh - 300px)' },
+  overflow: 'auto'
+}}>
         <Table stickyHeader>
           <TableHead>
             <TableRow>
@@ -190,15 +189,15 @@ export default function UserList() {
                   {formatDate(userData.createdAt)}
                 </TableCell>
                 <TableCell sx={{ width: { xs: '30%', sm: '15%' } }}>
-                  {user?.role === 'admin' && (
-                    <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-start' }}>
-                      <IconButton
-                        size="small"
-                        disabled={userData.id === user?.id}
-                        onClick={() => handleOpenDialog(userData)}
-                      >
-                        <EditIcon />
-                      </IconButton>
+                  <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-start' }}>
+                    <IconButton
+                      size="small"
+                      disabled={userData.id === user?.id}
+                      onClick={() => handleOpenDialog(userData)}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    {user?.role === 'admin' && (
                       <IconButton
                         size="small"
                         disabled={userData.id === user?.id}
@@ -207,8 +206,8 @@ export default function UserList() {
                       >
                         <DeleteIcon />
                       </IconButton>
-                    </Stack>
-                  )}
+                    )}
+                  </Stack>
                 </TableCell>
               </TableRow>
             ))}
@@ -246,16 +245,17 @@ export default function UserList() {
               </Grid>
               <Grid item xs={12}>
                 <FormControl fullWidth>
-                  <InputLabel>Role</InputLabel>
-                  <Select
-                    value={dialogData.role}
-                    onChange={(e) => setDialogData((prev) => ({ ...prev, role: e.target.value as 'admin' | 'staff' }))}
-                    label="Role"
-                  >
-                    <MenuItem value="staff">Staff</MenuItem>
-                    <MenuItem value="admin">Admin</MenuItem>
-                  </Select>
-                </FormControl>
+                    <InputLabel>Role</InputLabel>
+                    <Select
+                      value={dialogData.role}
+                      onChange={(e) => setDialogData((prev) => ({ ...prev, role: e.target.value as 'admin' | 'staff' }))}
+                      label="Role"
+                      disabled={user?.role !== 'admin'}
+                    >
+                      <MenuItem value="staff">Staff</MenuItem>
+                      <MenuItem value="admin">Admin</MenuItem>
+                    </Select>
+                  </FormControl>
               </Grid>
             </Grid>
           </Box>
@@ -287,6 +287,6 @@ export default function UserList() {
           </Button>
         </DialogActions>
       </Dialog>
-    </PageContainer>
+    </Box>
   );
 }

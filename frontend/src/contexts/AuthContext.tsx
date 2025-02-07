@@ -21,18 +21,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const init = async () => {
       try {
-        // Check if we're running in Docker
-        const isDocker = import.meta.env.PROD;
-        
-        // Clear any stored tokens in production/Docker environment
-        if (isDocker) {
-          console.log('Running in production, clearing stored auth...');
-          localStorage.removeItem('token');
-          delete api.defaults.headers.common['Authorization'];
-          setIsLoading(false);
-          return;
-        }
-
         const token = localStorage.getItem('token');
         if (!token) {
           setIsLoading(false);

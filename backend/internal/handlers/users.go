@@ -45,44 +45,54 @@ Name string `json:"name,omitempty"`
 Role string `json:"role,omitempty" binding:"omitempty,oneof=admin staff"`
 }
 
-// UpdateUser handles user updates (admin only)
+// UpdateUser handles user updates
 func (h *UserHandler) UpdateUser(c *gin.Context) {
-id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-if err != nil {
-c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-return
-}
+    id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+        return
+    }
 
-// Prevent self-modification through this endpoint
-currentUserID := middleware.GetUserID(c)
-if uint(id) == currentUserID {
-c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot modify own user through this endpoint"})
-return
-}
+    currentUserID := middleware.GetUserID(c)
+    userRole := c.GetString("userRole")
+    
+    var user models.User
+    if err := h.db.First(&user, id).Error; err != nil {
+        if err == gorm.ErrRecordNotFound {
+            c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+            return
+        }
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
+        return
+    }
 
-var user models.User
-if err := h.db.First(&user, id).Error; err != nil {
-if err == gorm.ErrRecordNotFound {
-c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-return
-}
-c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
-return
-}
+    var req UpdateUserRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
 
-var req UpdateUserRequest
-if err := c.ShouldBindJSON(&req); err != nil {
-c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-return
-}
+        // Handle permissions
+        if userRole != "admin" {
+            // Non-admins can only edit their own profile
+            if uint(id) != currentUserID {
+                c.JSON(http.StatusForbidden, gin.H{"error": "You can only edit your own profile"})
+                return
+            }
+            // Non-admins can't change roles
+            if req.Role != "" {
+                c.JSON(http.StatusForbidden, gin.H{"error": "Only admins can change roles"})
+                return
+            }
+        }
 
-// Update fields if provided
-if req.Name != "" {
-user.Name = req.Name
-}
-if req.Role != "" {
-user.Role = req.Role
-}
+    // Update fields if provided
+    if req.Name != "" {
+        user.Name = req.Name
+    }
+    if req.Role != "" && userRole == "admin" {
+        user.Role = req.Role
+    }
 
 if err := h.db.Save(&user).Error; err != nil {
 c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
@@ -118,31 +128,18 @@ c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
 return
 }
 
-// Check if user has any assigned tickets
-var ticketCount int64
-if err := h.db.Model(&models.Ticket{}).Where("assigned_to = ?", id).Count(&ticketCount).Error; err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check user's tickets"})
-return
+// Set assigned_to to null for all tickets and tasks
+if err := h.db.Model(&models.Ticket{}).Where("assigned_to = ?", id).Update("assigned_to", nil).Error; err != nil {
+    c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update tickets"})
+    return
 }
 
-if ticketCount > 0 {
-c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot delete user with assigned tickets"})
-return
+if err := h.db.Model(&models.Task{}).Where("assigned_to = ?", id).Update("assigned_to", nil).Error; err != nil {
+    c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update tasks"})
+    return
 }
 
-// Check if user has any assigned tasks
-var taskCount int64
-if err := h.db.Model(&models.Task{}).Where("assigned_to = ?", id).Count(&taskCount).Error; err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check user's tasks"})
-return
-}
-
-if taskCount > 0 {
-c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot delete user with assigned tasks"})
-return
-}
-
-// Perform the deletion
+// Now perform the deletion
 if err := h.db.Delete(&user).Error; err != nil {
 c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user"})
 return

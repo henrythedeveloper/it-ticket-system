@@ -21,7 +21,6 @@ import {
 } from '@mui/material';
 import { Ticket, User, TicketHistory, Nullable } from '../types';
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '../hooks/useAuth';
 import api from '../utils/axios';
 import CommonSolutions from './CommonSolutions';
 
@@ -56,7 +55,6 @@ interface TicketDialogProps {
   onClose: () => void;
   ticket: Ticket | null;
   onSave: (ticket: Partial<Ticket>) => void;
-  isAdmin: boolean;
 }
 
 export default function TicketDialog({
@@ -64,9 +62,7 @@ export default function TicketDialog({
   onClose,
   ticket,
   onSave,
-  isAdmin,
 }: TicketDialogProps) {
-  const { user } = useAuth();
   const [status, setStatus] = useState<'open' | 'in_progress' | 'resolved'>('open');
   const [assignedTo, setAssignedTo] = useState<Nullable<number>>(null);
   const [solution, setSolution] = useState<string>('');
@@ -164,26 +160,24 @@ export default function TicketDialog({
               </Select>
             </FormControl>
 
-            {(isAdmin || user?.role === 'staff') && (
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel>Assign To</InputLabel>
-                <Select
-                  value={assignedTo?.toString() || ''}
-                  onChange={(e: SelectChangeEvent<string>) => {
-                    const value = e.target.value;
-                    setAssignedTo(value ? Number(value) : null);
-                  }}
-                  label="Assign To"
-                >
-                  <MenuItem value="">Unassigned</MenuItem>
-                  {users?.data?.map((user) => (
-                    <MenuItem key={user.id} value={user.id?.toString()}>
-                      {user.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Assign To</InputLabel>
+              <Select
+                value={assignedTo?.toString() || ''}
+                onChange={(e: SelectChangeEvent<string>) => {
+                  const value = e.target.value;
+                  setAssignedTo(value ? Number(value) : null);
+                }}
+                label="Assign To"
+              >
+                <MenuItem value="">Unassigned</MenuItem>
+                {users?.data?.map((user) => (
+                  <MenuItem key={user.id} value={user.id?.toString()}>
+                    {user.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
             <TextField
               fullWidth

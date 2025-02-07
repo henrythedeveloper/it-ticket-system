@@ -12,6 +12,8 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import SubmitTicket from './pages/public/SubmitTicket';
 import TicketSuccess from './pages/public/TicketSuccess';
+import Solutions from './pages/public/Solutions';
+import FAQ from './pages/public/FAQ';
 
 // Portal Pages
 import Dashboard from './pages/portal/Dashboard';
@@ -43,6 +45,8 @@ export default function App() {
               <Route element={<PublicLayout />}>
                 <Route path="/submit-ticket" element={<SubmitTicket />} />
                 <Route path="/ticket-success" element={<TicketSuccess />} />
+                <Route path="/solutions" element={<Solutions />} />
+                <Route path="/faq" element={<FAQ />} />
               </Route>
 
               {/* Portal Routes */}

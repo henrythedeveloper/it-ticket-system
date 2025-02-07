@@ -13,6 +13,7 @@ import {
   TextField,
   MenuItem,
   Box,
+  Paper,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -24,7 +25,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ticket } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../utils/axios';
-import PageContainer from '../../components/layout/PageContainer';
 import TicketDialog from '../../components/TicketDialog';
 
 type StatusColor = 'error' | 'warning' | 'success' | 'default';
@@ -121,13 +121,12 @@ export default function TicketList() {
   }
 
   return (
-    <PageContainer>
+    <Box>
       <TicketDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         ticket={selectedTicket}
         onSave={handleSaveTicket}
-        isAdmin={user?.role === 'admin'}
       />
       <Stack
         direction="row"
@@ -164,7 +163,7 @@ export default function TicketList() {
           <MenuItem value="resolved">Resolved</MenuItem>
         </TextField>
       </Stack>
-<TableContainer sx={{
+<TableContainer component={Paper} sx={{
   maxHeight: { xs: 'calc(100vh - 250px)', sm: 'calc(100vh - 300px)' },
   overflow: 'auto'
 }}>
@@ -178,7 +177,6 @@ export default function TicketList() {
         <TableCell sx={{ width: { xs: '20%', sm: '10%' } }}>Status</TableCell>
         <TableCell sx={{ width: { xs: '20%', sm: '13%' }, display: { xs: 'none', md: 'table-cell' } }}>Assigned To</TableCell>
         <TableCell sx={{ width: { xs: '20%', sm: '10%' } }}>Actions</TableCell>
-              <TableCell sx={{ width: '10%' }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -284,7 +282,7 @@ export default function TicketList() {
               Tickets Assigned to You
             </Typography>
           </Box>
-          <TableContainer sx={{
+          <TableContainer component={Paper} sx={{
             maxHeight: { xs: 'calc(100vh - 250px)', sm: 'calc(100vh - 300px)' },
             overflow: 'auto'
           }}>
@@ -401,6 +399,6 @@ export default function TicketList() {
           </TableContainer>
         </>
       )}
-    </PageContainer>
+    </Box>
   );
 }

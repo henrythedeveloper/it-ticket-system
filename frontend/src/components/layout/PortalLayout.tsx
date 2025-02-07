@@ -26,10 +26,12 @@ import {
   Assignment,
   AssignmentTurnedIn,
   ExitToApp,
+  Edit as EditIcon,
 } from '@mui/icons-material';
 import { Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useThemeContext } from '../../contexts/ThemeContext';
+import UserProfileDialog from '../UserProfileDialog';
 
 const DRAWER_WIDTH = 240;
 
@@ -41,6 +43,7 @@ export default function PortalLayout() {
   const { toggleColorMode, mode } = useThemeContext();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -62,7 +65,7 @@ export default function PortalLayout() {
     { text: 'Dashboard', icon: <Dashboard />, path: '/portal' },
     { text: 'Tickets', icon: <Assignment />, path: '/portal/tickets' },
     { text: 'Tasks', icon: <AssignmentTurnedIn />, path: '/portal/tasks' },
-    ...(user.role === 'admin' ? [{ text: 'Users', icon: <Group />, path: '/portal/users' }] : []),
+    { text: 'Users', icon: <Group />, path: '/portal/users' },
   ];
 
   const drawer = (
@@ -98,6 +101,13 @@ export default function PortalLayout() {
             primaryTypographyProps={{ variant: 'subtitle2' }}
             secondaryTypographyProps={{ variant: 'caption' }}
           />
+          <IconButton 
+            onClick={() => setProfileDialogOpen(true)}
+            size="small"
+            sx={{ ml: 1 }}
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
         </ListItem>
         <ListItem disablePadding>
           <ListItemButton onClick={logout}>
@@ -128,14 +138,14 @@ export default function PortalLayout() {
             disableGutters 
             sx={{ 
               justifyContent: isMobile ? 'space-between' : 'flex-end',
-              minHeight: { xs: 56, sm: 64 } // Adjust toolbar height for mobile
+              minHeight: { xs: 56, sm: 64 }
             }}
           >
             {isMobile && (
               <IconButton
                 color="inherit"
                 onClick={handleDrawerToggle}
-                sx={{ ml: -1 }} // Align to the left edge
+                sx={{ ml: -1 }}
               >
                 <MenuIcon />
               </IconButton>
@@ -203,7 +213,7 @@ export default function PortalLayout() {
         sx={{
           flexGrow: 1,
           width: { xs: '100%', md: `calc(100% - ${DRAWER_WIDTH}px)` },
-          mt: { xs: 7, sm: 8 }, // Adjust margin top for mobile
+          mt: { xs: 7, sm: 8 },
           backgroundColor: theme.palette.mode === 'light'
             ? 'grey.50'
             : 'grey.900',
@@ -215,7 +225,7 @@ export default function PortalLayout() {
           maxWidth="xl"
           sx={{
             py: { xs: 2, sm: 3 },
-            px: { xs: 2, sm: 3, md: 4 }  // Increased horizontal padding
+            px: { xs: 2, sm: 3, md: 4 }
           }}
         >
           <Box
@@ -223,16 +233,21 @@ export default function PortalLayout() {
               backgroundColor: theme.palette.background.paper,
               borderRadius: { xs: 1, sm: 2 },
               boxShadow: theme.shadows[1],
-              p: { xs: 2, sm: 3, md: 4 },  // Increased padding at all breakpoints
+              p: { xs: 2, sm: 3, md: 4 },
               overflow: 'auto',
-              height: '100%',  // Ensure full height
-              minHeight: '500px',  // Minimum height to prevent squishing
+              height: '100%',
+              minHeight: '500px',
             }}
           >
             <Outlet />
           </Box>
         </Container>
       </Box>
+
+      <UserProfileDialog
+        open={profileDialogOpen}
+        onClose={() => setProfileDialogOpen(false)}
+      />
     </Box>
   );
 }
