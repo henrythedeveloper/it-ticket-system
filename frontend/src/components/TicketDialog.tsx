@@ -21,7 +21,7 @@ import {
 } from '@mui/material';
 import { Ticket, User, TicketHistory, Nullable } from '../types';
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import api from '../utils/axios';
 import CommonSolutions from './CommonSolutions';
 

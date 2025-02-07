@@ -26,7 +26,7 @@ import {
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Task } from '../../types';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import api from '../../utils/axios';
 
 type ChipColor = 'error' | 'warning' | 'success' | 'default';

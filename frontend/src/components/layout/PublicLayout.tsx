@@ -94,7 +94,7 @@ export default function PublicLayout() {
           }),
         }}
       >
-        <Container maxWidth="lg">
+        <Container maxWidth="xl">
           <Toolbar 
             sx={{ 
               justifyContent: 'space-between',
@@ -166,21 +166,25 @@ export default function PublicLayout() {
         component="main"
         sx={{
           flexGrow: 1,
-          width: { sm: `calc(100% - ${showDrawer ? DRAWER_WIDTH : 0}px)` },
+          width: {
+            xs: '100%',
+            sm: showDrawer ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%'
+          },
           mt: { xs: 7, sm: 8 },
           backgroundColor: theme.palette.mode === 'light'
             ? 'grey.50'
             : 'grey.900',
-          transition: theme.transitions.create('background-color', {
-            duration: theme.transitions.duration.shortest,
+          transition: theme.transitions.create(['width', 'margin', 'background-color'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
           }),
         }}
       >
-        <Container 
-          maxWidth="lg" 
-          sx={{ 
+        <Container
+          maxWidth="xl"
+          sx={{
             py: { xs: 2, sm: 3 },
-            px: { xs: 1, sm: 2, md: 3 }
+            px: { xs: 2, sm: 3, md: 4 }  // Increased horizontal padding
           }}
         >
           <Box
@@ -188,8 +192,17 @@ export default function PublicLayout() {
               backgroundColor: theme.palette.background.paper,
               borderRadius: { xs: 1, sm: 2 },
               boxShadow: theme.shadows[1],
-              p: { xs: 2, sm: 3 },
+              p: { xs: 2, sm: 3, md: 4 },  // Increased padding at all breakpoints
               overflow: 'auto',
+              height: '100%',  // Ensure full height
+              minHeight: '500px',  // Minimum height to prevent squishing
+              maxWidth: '100%',  // Ensure content doesn't overflow container
+              '& > *': {  // Add spacing between child elements
+                mb: { xs: 2, sm: 3 },
+                '&:last-child': {
+                  mb: 0
+                }
+              }
             }}
           >
             <Outlet />

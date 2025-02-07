@@ -28,7 +28,7 @@ import {
   ExitToApp,
 } from '@mui/icons-material';
 import { Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { useThemeContext } from '../../contexts/ThemeContext';
 
 const DRAWER_WIDTH = 240;
@@ -123,7 +123,7 @@ export default function PortalLayout() {
             : 'rgba(0, 0, 0, 0.8)',
         }}
       >
-        <Container maxWidth="lg">
+        <Container maxWidth="xl">
           <Toolbar 
             disableGutters 
             sx={{ 
@@ -211,11 +211,11 @@ export default function PortalLayout() {
           minHeight: '100vh',
         }}
       >
-        <Container 
-          maxWidth="lg" 
-          sx={{ 
+        <Container
+          maxWidth="xl"
+          sx={{
             py: { xs: 2, sm: 3 },
-            px: { xs: 1, sm: 2, md: 3 }
+            px: { xs: 2, sm: 3, md: 4 }  // Increased horizontal padding
           }}
         >
           <Box
@@ -223,8 +223,10 @@ export default function PortalLayout() {
               backgroundColor: theme.palette.background.paper,
               borderRadius: { xs: 1, sm: 2 },
               boxShadow: theme.shadows[1],
-              p: { xs: 1, sm: 2, md: 3 },
+              p: { xs: 2, sm: 3, md: 4 },  // Increased padding at all breakpoints
               overflow: 'auto',
+              height: '100%',  // Ensure full height
+              minHeight: '500px',  // Minimum height to prevent squishing
             }}
           >
             <Outlet />

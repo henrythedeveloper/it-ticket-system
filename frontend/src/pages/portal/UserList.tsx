@@ -29,7 +29,7 @@ import {
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User } from '../../types';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import api from '../../utils/axios';
 import PageContainer from '../../components/layout/PageContainer';
 
@@ -150,44 +150,46 @@ export default function UserList() {
 
   return (
     <PageContainer>
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        sx={{ mb: 3 }}
-      >
-        <Typography variant="h4">IT Staff List</Typography>
-      </Stack>
+      <Box sx={{ width: '100%', mb: 3 }}>
+        <Typography variant="h4" sx={{ mb: { xs: 2, sm: 3 } }}>
+          IT Staff List
+        </Typography>
+      </Box>
 
-      <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)' }}>
-        <Table stickyHeader sx={{ tableLayout: 'fixed' }}>
+      <TableContainer sx={{
+        maxHeight: { xs: 'calc(100vh - 250px)', sm: 'calc(100vh - 300px)' },
+        overflow: 'auto'
+      }}>
+        <Table stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ width: '20%' }}>Name</TableCell>
-              <TableCell sx={{ width: '30%' }}>Email</TableCell>
-              <TableCell sx={{ width: '15%' }}>Role</TableCell>
-              <TableCell sx={{ width: '20%' }}>Joined</TableCell>
-              <TableCell sx={{ width: '15%' }}>Actions</TableCell>
+              <TableCell sx={{ width: { xs: '25%', sm: '20%' } }}>Name</TableCell>
+              <TableCell sx={{ width: { xs: '35%', sm: '30%' }, display: { xs: 'none', sm: 'table-cell' } }}>Email</TableCell>
+              <TableCell sx={{ width: { xs: '20%', sm: '15%' } }}>Role</TableCell>
+              <TableCell sx={{ width: { xs: '25%', sm: '20%' }, display: { xs: 'none', md: 'table-cell' } }}>Joined</TableCell>
+              <TableCell sx={{ width: { xs: '30%', sm: '15%' } }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {users.map((userData) => (
               <TableRow key={userData.id}>
-                <TableCell>{userData.name}</TableCell>
-                <TableCell>{userData.email}</TableCell>
-                <TableCell>
+                <TableCell sx={{ width: { xs: '25%', sm: '20%' } }}>{userData.name}</TableCell>
+                <TableCell sx={{ width: { xs: '35%', sm: '30%' }, display: { xs: 'none', sm: 'table-cell' } }}>
+                  {userData.email}
+                </TableCell>
+                <TableCell sx={{ width: { xs: '20%', sm: '15%' } }}>
                   <Chip
                     label={userData.role}
                     color={getRoleColor(userData.role)}
                     size="small"
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ width: { xs: '25%', sm: '20%' }, display: { xs: 'none', md: 'table-cell' } }}>
                   {formatDate(userData.createdAt)}
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ width: { xs: '30%', sm: '15%' } }}>
                   {user?.role === 'admin' && (
-                    <Stack direction="row" spacing={1}>
+                    <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-start' }}>
                       <IconButton
                         size="small"
                         disabled={userData.id === user?.id}

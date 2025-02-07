@@ -9,7 +9,7 @@ import {
   Box,
 } from '@mui/material';
 import { LoginCredentials } from '../../types';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import axios from 'axios';
 import PageContainer from '../../components/layout/PageContainer';
 

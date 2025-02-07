@@ -22,7 +22,7 @@ import {
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ticket } from '../../types';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import api from '../../utils/axios';
 import PageContainer from '../../components/layout/PageContainer';
 import TicketDialog from '../../components/TicketDialog';
@@ -129,23 +129,24 @@ export default function TicketList() {
         onSave={handleSaveTicket}
         isAdmin={user?.role === 'admin'}
       />
+      <Box sx={{ width: '100%', mb: 3 }}>
+        <Typography variant="h4" sx={{ mb: { xs: 2, sm: 3 } }}>
+          Help Desk Tickets
+        </Typography>
+      </Box>
+
       <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={2}
         sx={{ mb: 3 }}
       >
-        <Typography variant="h4">Help Desk Tickets</Typography>
-      </Stack>
-
-      <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
         <TextField
           label="Search tickets"
           variant="outlined"
           size="small"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          sx={{ width: 300 }}
+          sx={{ width: { xs: '100%', sm: 300 } }}
         />
         <TextField
           select
@@ -161,17 +162,20 @@ export default function TicketList() {
           <MenuItem value="resolved">Resolved</MenuItem>
         </TextField>
       </Stack>
-
-      <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)' }}>
-        <Table stickyHeader sx={{ tableLayout: 'fixed' }}>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ width: '12%' }}>Ticket #</TableCell>
-              <TableCell sx={{ width: '10%' }}>Category</TableCell>
-              <TableCell sx={{ width: '30%' }}>Description</TableCell>
-              <TableCell sx={{ width: '15%' }}>Submitter</TableCell>
-              <TableCell sx={{ width: '10%' }}>Status</TableCell>
-              <TableCell sx={{ width: '13%' }}>Assigned To</TableCell>
+<TableContainer sx={{
+  maxHeight: { xs: 'calc(100vh - 250px)', sm: 'calc(100vh - 300px)' },
+  overflow: 'auto'
+}}>
+  <Table stickyHeader>
+    <TableHead>
+      <TableRow>
+        <TableCell sx={{ width: { xs: '20%', sm: '12%' } }}>Ticket #</TableCell>
+        <TableCell sx={{ width: { xs: '20%', sm: '10%' }, display: { xs: 'none', sm: 'table-cell' } }}>Category</TableCell>
+        <TableCell sx={{ width: { xs: '40%', sm: '30%' } }}>Description</TableCell>
+        <TableCell sx={{ width: { xs: '20%', sm: '15%' }, display: { xs: 'none', md: 'table-cell' } }}>Submitter</TableCell>
+        <TableCell sx={{ width: { xs: '20%', sm: '10%' } }}>Status</TableCell>
+        <TableCell sx={{ width: { xs: '20%', sm: '13%' }, display: { xs: 'none', md: 'table-cell' } }}>Assigned To</TableCell>
+        <TableCell sx={{ width: { xs: '20%', sm: '10%' } }}>Actions</TableCell>
               <TableCell sx={{ width: '10%' }}>Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -185,41 +189,44 @@ export default function TicketList() {
                 }}
                 sx={{ cursor: 'pointer', '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' } }}
               >
-                <TableCell>
+                <TableCell sx={{ width: { xs: '20%', sm: '12%' } }}>
                   <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
                     {ticket.ticketNumber || '-'}
                   </Typography>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ width: { xs: '20%', sm: '10%' }, display: { xs: 'none', sm: 'table-cell' } }}>
                   <Chip
                     label={getCategoryLabel(ticket.category)}
                     size="small"
                   />
                 </TableCell>
                 <TableCell
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id || null);
-                  }}
                   sx={{
+                    width: { xs: '40%', sm: '30%' },
                     cursor: 'pointer',
                     '&:hover': {
                       backgroundColor: 'rgba(0, 0, 0, 0.04)',
                       textDecoration: 'underline'
                     }
                   }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id || null);
+                  }}
                 >
                   {expandedTicketId === ticket.id ? ticket.description : truncateDescription(ticket.description)}
                 </TableCell>
-                <TableCell>{ticket.submitterEmail}</TableCell>
-                <TableCell>
+                <TableCell sx={{ width: { xs: '20%', sm: '15%' }, display: { xs: 'none', md: 'table-cell' } }}>
+                  {ticket.submitterEmail}
+                </TableCell>
+                <TableCell sx={{ width: { xs: '20%', sm: '10%' } }}>
                   <Chip
                     label={ticket.status}
                     color={getStatusColor(ticket.status)}
                     size="small"
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ width: { xs: '20%', sm: '13%' }, display: { xs: 'none', md: 'table-cell' } }}>
                   {ticket.assignedTo ? (
                     <Chip
                       icon={<PersonIcon />}
@@ -270,19 +277,24 @@ export default function TicketList() {
 
       {user && (
         <>
-          <Typography variant="h5" sx={{ mt: 4, mb: 2 }}>
-            Tickets Assigned to You
-          </Typography>
-          <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)' }}>
-            <Table stickyHeader sx={{ tableLayout: 'fixed' }}>
+          <Box sx={{ width: '100%', mt: 4, mb: 3 }}>
+            <Typography variant="h5">
+              Tickets Assigned to You
+            </Typography>
+          </Box>
+          <TableContainer sx={{
+            maxHeight: { xs: 'calc(100vh - 250px)', sm: 'calc(100vh - 300px)' },
+            overflow: 'auto'
+          }}>
+            <Table stickyHeader>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ width: '12%' }}>Ticket #</TableCell>
-                  <TableCell sx={{ width: '10%' }}>Category</TableCell>
-                  <TableCell sx={{ width: '30%' }}>Description</TableCell>
-                  <TableCell sx={{ width: '15%' }}>Submitter</TableCell>
-                  <TableCell sx={{ width: '10%' }}>Status</TableCell>
-                  <TableCell sx={{ width: '23%' }}>Actions</TableCell>
+                  <TableCell sx={{ width: { xs: '20%', sm: '12%' } }}>Ticket #</TableCell>
+                  <TableCell sx={{ width: { xs: '20%', sm: '10%' }, display: { xs: 'none', sm: 'table-cell' } }}>Category</TableCell>
+                  <TableCell sx={{ width: { xs: '40%', sm: '30%' } }}>Description</TableCell>
+                  <TableCell sx={{ width: { xs: '20%', sm: '15%' }, display: { xs: 'none', md: 'table-cell' } }}>Submitter</TableCell>
+                  <TableCell sx={{ width: { xs: '20%', sm: '10%' } }}>Status</TableCell>
+                  <TableCell sx={{ width: { xs: '20%', sm: '23%' } }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -313,9 +325,9 @@ export default function TicketList() {
                         }
                       })}
                     >
-                      <TableCell>
-                        <Typography 
-                          variant="body2" 
+                      <TableCell sx={{ width: { xs: '20%', sm: '12%' } }}>
+                        <Typography
+                          variant="body2"
                           sx={(theme) => ({
                             fontFamily: 'monospace',
                             color: theme.palette.primary.contrastText
@@ -324,33 +336,33 @@ export default function TicketList() {
                           {ticket.ticketNumber || '-'}
                         </Typography>
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ width: { xs: '20%', sm: '10%' }, display: { xs: 'none', sm: 'table-cell' } }}>
                         <Chip
                           label={getCategoryLabel(ticket.category)}
                           size="small"
                           sx={{ backgroundColor: 'white' }}
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ width: { xs: '40%', sm: '30%' } }}>
                         <Typography sx={(theme) => ({ color: theme.palette.primary.contrastText })}>
                           {ticket.description.length > 50
                             ? `${ticket.description.slice(0, 50)}...`
                             : ticket.description}
                         </Typography>
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ width: { xs: '20%', sm: '15%' }, display: { xs: 'none', md: 'table-cell' } }}>
                         <Typography sx={(theme) => ({ color: theme.palette.primary.contrastText })}>
                           {ticket.submitterEmail}
                         </Typography>
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ width: { xs: '20%', sm: '10%' } }}>
                         <Chip
                           label={ticket.status}
                           color={getStatusColor(ticket.status)}
                           size="small"
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ width: { xs: '20%', sm: '23%' } }}>
                         <Box onClick={(e) => e.stopPropagation()}>
                           <IconButton
                             size="small"

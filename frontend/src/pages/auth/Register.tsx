@@ -9,7 +9,7 @@ import {
   Alert,
 } from '@mui/material';
 import { RegisterCredentials } from '../../types';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import PageContainer from '../../components/layout/PageContainer';
 
 export default function Register() {
