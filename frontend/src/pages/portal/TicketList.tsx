@@ -1,7 +1,5 @@
 import React from 'react';
 import {
-  Box,
-  Paper,
   Typography,
   Table,
   TableBody,
@@ -14,8 +12,8 @@ import {
   Stack,
   TextField,
   MenuItem,
+  Box,
 } from '@mui/material';
-import TicketDialog from '../../components/TicketDialog';
 import {
   Edit as EditIcon,
   PlayArrow as StartIcon,
@@ -26,6 +24,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ticket } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../utils/axios';
+import PageContainer from '../../components/layout/PageContainer';
+import TicketDialog from '../../components/TicketDialog';
 
 type StatusColor = 'error' | 'warning' | 'success' | 'default';
 
@@ -121,7 +121,7 @@ export default function TicketList() {
   }
 
   return (
-    <Box>
+    <PageContainer>
       <TicketDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
@@ -162,17 +162,17 @@ export default function TicketList() {
         </TextField>
       </Stack>
 
-      <TableContainer component={Paper}>
-        <Table>
+      <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)' }}>
+        <Table stickyHeader sx={{ tableLayout: 'fixed' }}>
           <TableHead>
             <TableRow>
-              <TableCell>Ticket #</TableCell>
-              <TableCell>Category</TableCell>
-              <TableCell>Description</TableCell>
-              <TableCell>Submitter</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Assigned To</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell sx={{ width: '12%' }}>Ticket #</TableCell>
+              <TableCell sx={{ width: '10%' }}>Category</TableCell>
+              <TableCell sx={{ width: '30%' }}>Description</TableCell>
+              <TableCell sx={{ width: '15%' }}>Submitter</TableCell>
+              <TableCell sx={{ width: '10%' }}>Status</TableCell>
+              <TableCell sx={{ width: '13%' }}>Assigned To</TableCell>
+              <TableCell sx={{ width: '10%' }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -240,10 +240,7 @@ export default function TicketList() {
                     <IconButton
                       size="small"
                       onClick={() => handleStatusChange(ticket, 'in_progress')}
-                      disabled={
-                        ticket.status === 'in_progress' ||
-                        ticket.status === 'resolved'
-                      }
+                      disabled={ticket.status === 'in_progress' || ticket.status === 'resolved'}
                     >
                       <StartIcon />
                     </IconButton>
@@ -276,16 +273,16 @@ export default function TicketList() {
           <Typography variant="h5" sx={{ mt: 4, mb: 2 }}>
             Tickets Assigned to You
           </Typography>
-          <TableContainer component={Paper}>
-            <Table>
+          <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)' }}>
+            <Table stickyHeader sx={{ tableLayout: 'fixed' }}>
               <TableHead>
                 <TableRow>
-                  <TableCell>Ticket #</TableCell>
-                  <TableCell>Category</TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell>Submitter</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Actions</TableCell>
+                  <TableCell sx={{ width: '12%' }}>Ticket #</TableCell>
+                  <TableCell sx={{ width: '10%' }}>Category</TableCell>
+                  <TableCell sx={{ width: '30%' }}>Description</TableCell>
+                  <TableCell sx={{ width: '15%' }}>Submitter</TableCell>
+                  <TableCell sx={{ width: '10%' }}>Status</TableCell>
+                  <TableCell sx={{ width: '23%' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -298,18 +295,32 @@ export default function TicketList() {
                         setSelectedTicket(ticket);
                         setDialogOpen(true);
                       }}
-                      sx={{
+                      sx={(theme) => ({
                         cursor: 'pointer',
-                        backgroundColor: 'primary.light',
+                        backgroundColor: theme.palette.mode === 'light' ? 'primary.light' : 'primary.dark',
                         '&:hover': {
-                          backgroundColor: 'primary.main',
-                          '& .MuiTypography-root': { color: 'white' },
-                          '& .MuiChip-root': { backgroundColor: 'white' }
+                          backgroundColor: theme.palette.primary.main,
+                          '& .MuiTypography-root': { 
+                            color: theme.palette.primary.contrastText 
+                          },
+                          '& .MuiChip-root': { 
+                            backgroundColor: theme.palette.background.paper,
+                            color: theme.palette.text.primary
+                          },
+                          '& .MuiIconButton-root': {
+                            color: theme.palette.primary.contrastText
+                          }
                         }
-                      }}
+                      })}
                     >
                       <TableCell>
-                        <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'white' }}>
+                        <Typography 
+                          variant="body2" 
+                          sx={(theme) => ({
+                            fontFamily: 'monospace',
+                            color: theme.palette.primary.contrastText
+                          })}
+                        >
                           {ticket.ticketNumber || '-'}
                         </Typography>
                       </TableCell>
@@ -321,14 +332,14 @@ export default function TicketList() {
                         />
                       </TableCell>
                       <TableCell>
-                        <Typography sx={{ color: 'white' }}>
+                        <Typography sx={(theme) => ({ color: theme.palette.primary.contrastText })}>
                           {ticket.description.length > 50
                             ? `${ticket.description.slice(0, 50)}...`
                             : ticket.description}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography sx={{ color: 'white' }}>
+                        <Typography sx={(theme) => ({ color: theme.palette.primary.contrastText })}>
                           {ticket.submitterEmail}
                         </Typography>
                       </TableCell>
@@ -376,6 +387,6 @@ export default function TicketList() {
           </TableContainer>
         </>
       )}
-    </Box>
+    </PageContainer>
   );
 }

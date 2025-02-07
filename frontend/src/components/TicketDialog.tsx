@@ -17,11 +17,13 @@ import {
   ListItemText,
   Tabs,
   Tab,
+  SelectChangeEvent,
 } from '@mui/material';
-import { Ticket, User, TicketHistory } from '../types';
+import { Ticket, User, TicketHistory, Nullable } from '../types';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/axios';
+import CommonSolutions from './CommonSolutions';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -66,9 +68,9 @@ export default function TicketDialog({
 }: TicketDialogProps) {
   const { user } = useAuth();
   const [status, setStatus] = useState<'open' | 'in_progress' | 'resolved'>('open');
-  const [assignedTo, setAssignedTo] = useState<number | undefined>(undefined);
-  const [solution, setSolution] = useState('');
-  const [notes, setNotes] = useState('');
+  const [assignedTo, setAssignedTo] = useState<Nullable<number>>(null);
+  const [solution, setSolution] = useState<string>('');
+  const [notes, setNotes] = useState<string>('');
   const [currentTab, setCurrentTab] = useState(0);
 
   const { data: users } = useQuery<{ data: User[] }>({
@@ -92,7 +94,7 @@ export default function TicketDialog({
   useEffect(() => {
     if (ticket) {
       setStatus(ticket.status);
-      setAssignedTo(ticket.assignedTo);
+      setAssignedTo(ticket.assignedTo ?? null);
       setSolution(ticket.solution || '');
       setNotes('');
     }
@@ -103,8 +105,8 @@ export default function TicketDialog({
 
     const updates: Partial<Ticket> = {
       status,
-      assignedTo,
-      solution,
+      assignedTo: assignedTo ?? null,
+      solution: status === 'resolved' ? solution || null : null,
     };
 
     onSave(updates);
@@ -119,15 +121,24 @@ export default function TicketDialog({
     return new Date(date).toLocaleString();
   };
 
+  const isResolved = status === 'resolved' || ticket?.status === 'resolved';
+
   if (!ticket) return null;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        Ticket {ticket.ticketNumber}
-        <Typography variant="subtitle2" color="textSecondary">
-          Submitted by {ticket.submitterEmail}
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <div>
+            Ticket {ticket.ticketNumber}
+            <Typography variant="subtitle2" color="textSecondary">
+              Submitted by {ticket.submitterEmail}
+            </Typography>
+          </div>
+          <Typography variant="caption" color="textSecondary">
+            Created: {formatDate(ticket.createdAt || new Date().toISOString())}
+          </Typography>
+        </Box>
       </DialogTitle>
       <DialogContent>
         <Box sx={{ width: '100%' }}>
@@ -135,6 +146,7 @@ export default function TicketDialog({
             <Tabs value={currentTab} onChange={handleTabChange}>
               <Tab label="Details" />
               <Tab label="History" />
+              {isResolved && <Tab label="Solutions" />}
             </Tabs>
           </Box>
 
@@ -143,7 +155,7 @@ export default function TicketDialog({
               <InputLabel>Status</InputLabel>
               <Select
                 value={status}
-                onChange={(e) => setStatus(e.target.value as 'open' | 'in_progress' | 'resolved')}
+                onChange={(e) => setStatus(e.target.value as typeof status)}
                 label="Status"
               >
                 <MenuItem value="open">Open</MenuItem>
@@ -156,13 +168,16 @@ export default function TicketDialog({
               <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel>Assign To</InputLabel>
                 <Select
-                  value={assignedTo || ''}
-                  onChange={(e) => setAssignedTo(e.target.value ? Number(e.target.value) : undefined)}
+                  value={assignedTo?.toString() || ''}
+                  onChange={(e: SelectChangeEvent<string>) => {
+                    const value = e.target.value;
+                    setAssignedTo(value ? Number(value) : null);
+                  }}
                   label="Assign To"
                 >
                   <MenuItem value="">Unassigned</MenuItem>
                   {users?.data?.map((user) => (
-                    <MenuItem key={user.id} value={user.id}>
+                    <MenuItem key={user.id} value={user.id?.toString()}>
                       {user.name}
                     </MenuItem>
                   ))}
@@ -182,15 +197,19 @@ export default function TicketDialog({
               sx={{ mb: 2 }}
             />
 
-            <TextField
-              fullWidth
-              label="Solution"
-              multiline
-              rows={4}
-              value={solution}
-              onChange={(e) => setSolution(e.target.value)}
-              sx={{ mb: 2 }}
-            />
+            {isResolved && (
+              <TextField
+                fullWidth
+                label="Solution"
+                multiline
+                rows={4}
+                value={solution}
+                onChange={(e) => setSolution(e.target.value)}
+                sx={{ mb: 2 }}
+                helperText="Please provide the solution that resolved this ticket"
+                required={status === 'resolved'}
+              />
+            )}
 
             <TextField
               fullWidth
@@ -226,11 +245,25 @@ export default function TicketDialog({
               ))}
             </List>
           </TabPanel>
+
+          {isResolved && (
+            <TabPanel value={currentTab} index={2}>
+              <CommonSolutions 
+                category={ticket.category}
+                email={ticket.submitterEmail}
+              />
+            </TabPanel>
+          )}
         </Box>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button onClick={handleSave} variant="contained" color="primary">
+        <Button 
+          onClick={handleSave} 
+          variant="contained" 
+          color="primary"
+          disabled={status === 'resolved' && !solution}
+        >
           Save Changes
         </Button>
       </DialogActions>

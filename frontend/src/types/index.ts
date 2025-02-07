@@ -5,31 +5,32 @@ export interface Ticket {
   description: string;
   submitterEmail: string;
   status: 'open' | 'in_progress' | 'resolved';
-  assignedTo?: number;
-  solution?: string;
-  resolvedBy?: number;
-  resolvedAt?: string;
+  assignedTo?: number | null;
+  solution?: string | null;
+  resolvedBy?: number | null;
+  resolvedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  solutions?: Solution[];
 }
 
 export interface TicketHistory {
   id: number;
   ticketId: number;
   action: string;
-  userId: number;
+  userId?: number | null;
   notes: string;
   createdAt: string;
 }
 
-export interface TicketSolution {
+export interface Solution {
   id: number;
   title: string;
   description: string;
   category: string;
-  createdBy: number;
   createdAt: string;
   updatedAt: string;
+  previouslyUsed?: boolean;
 }
 
 export interface Task {
@@ -40,7 +41,7 @@ export interface Task {
   status: 'todo' | 'in_progress' | 'done';
   createdBy: number;
   creator?: User;
-  assignedTo?: number;
+  assignedTo?: number | null;
   assignedUser?: User;
   createdAt?: string;
   updatedAt?: string;
@@ -79,3 +80,6 @@ export interface LoginCredentials {
 export interface RegisterCredentials extends LoginCredentials {
   name: string;
 }
+
+// Helper type for handling undefined and null values
+export type Nullable<T> = T | null | undefined;

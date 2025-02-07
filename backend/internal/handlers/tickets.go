@@ -3,6 +3,7 @@ package handlers
 import (
     "net/http"
     "time"
+    "strings"
 
     "github.com/gin-gonic/gin"
     "gorm.io/gorm"
@@ -73,16 +74,92 @@ func (h *TicketHandler) CreateTicket(c *gin.Context) {
         return
     }
 
+    // Search for and associate relevant solutions
+    var solutions []models.Solution
+    tx.Where("category = ?", ticket.Category).
+       Where("LOWER(description) LIKE ?", "%"+strings.ToLower(ticket.Description)+"%").
+       Limit(5).
+       Find(&solutions)
+
+    // Create email solution history entries for suggested solutions
+    for _, solution := range solutions {
+        emailHistory := models.EmailSolutionHistory{
+            Email:      ticket.SubmitterEmail,
+            TicketID:   ticket.ID,
+            SolutionID: solution.ID,
+        }
+        if err := tx.Create(&emailHistory).Error; err != nil {
+            tx.Rollback()
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create email solution history"})
+            return
+        }
+    }
+
     if err := tx.Commit().Error; err != nil {
         tx.Rollback()
         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
         return
     }
 
+    // Load related solutions for response
+    tx.Model(&ticket).Association("Solutions").Find(&ticket.Solutions)
+
     c.JSON(http.StatusCreated, gin.H{
         "message": "Ticket created successfully",
         "ticket":  ticket,
     })
+}
+
+// SearchSolutions searches for solutions based on keywords and category
+func (h *TicketHandler) SearchSolutions(c *gin.Context) {
+    var req struct {
+        Description string `json:"description" binding:"required"`
+        Category    string `json:"category" binding:"required"`
+        Email       string `json:"email,omitempty"`
+    }
+
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+
+    // Split description into keywords
+    keywords := strings.Fields(strings.ToLower(req.Description))
+    if len(keywords) == 0 {
+        c.JSON(http.StatusOK, gin.H{"data": []models.Solution{}})
+        return
+    }
+
+    // Build the query
+    query := h.db.Model(&models.Solution{}).Where("category = ?", req.Category)
+
+    // Add keyword search conditions
+    conditions := make([]string, len(keywords))
+    values := make([]interface{}, len(keywords))
+    for i, keyword := range keywords {
+        conditions[i] = "LOWER(title) LIKE ? OR LOWER(description) LIKE ?"
+        values[i] = "%" + keyword + "%"
+        values = append(values, "%" + keyword + "%")
+    }
+
+    query = query.Where(strings.Join(conditions, " OR "), values...)
+
+    // If email is provided, prioritize solutions that have worked for this email before
+    if req.Email != "" {
+        query = query.
+            Joins("LEFT JOIN email_solutions_history esh ON solutions.id = esh.solution_id").
+            Where("esh.email = ? OR esh.email IS NULL", req.Email).
+            Order("CASE WHEN esh.email IS NOT NULL THEN 0 ELSE 1 END")
+    }
+
+    // Execute the query
+    var solutions []models.Solution
+    if err := query.Order("created_at DESC").Limit(5).Find(&solutions).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search solutions"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"data": solutions})
 }
 
 // UpdateTicket handles ticket updates
@@ -182,7 +259,7 @@ func (h *TicketHandler) GetTicket(c *gin.Context) {
     ticketID := c.Param("id")
     var ticket models.Ticket
 
-    if err := h.db.First(&ticket, ticketID).Error; err != nil {
+    if err := h.db.Preload("Solutions").First(&ticket, ticketID).Error; err != nil {
         c.JSON(http.StatusNotFound, gin.H{"error": "Ticket not found"})
         return
     }
@@ -193,7 +270,7 @@ func (h *TicketHandler) GetTicket(c *gin.Context) {
 // ListTickets returns all tickets
 func (h *TicketHandler) ListTickets(c *gin.Context) {
     var tickets []models.Ticket
-    if err := h.db.Find(&tickets).Error; err != nil {
+    if err := h.db.Preload("Solutions").Find(&tickets).Error; err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tickets"})
         return
     }
@@ -235,10 +312,10 @@ func (h *TicketHandler) DeleteTicket(c *gin.Context) {
 // GetTicketStats returns ticket statistics
 func (h *TicketHandler) GetTicketStats(c *gin.Context) {
     var stats struct {
-        Total     int64 `json:"total"`
-        Open      int64 `json:"open"`
+        Total      int64 `json:"total"`
+        Open       int64 `json:"open"`
         InProgress int64 `json:"in_progress"`
-        Resolved  int64 `json:"resolved"`
+        Resolved   int64 `json:"resolved"`
     }
 
     h.db.Model(&models.Ticket{}).Count(&stats.Total)
@@ -249,10 +326,26 @@ func (h *TicketHandler) GetTicketStats(c *gin.Context) {
     c.JSON(http.StatusOK, gin.H{"data": stats})
 }
 
-// ListSolutions returns all ticket solutions
+// ListSolutions returns all solutions
 func (h *TicketHandler) ListSolutions(c *gin.Context) {
-    var solutions []models.TicketSolution
-    if err := h.db.Find(&solutions).Error; err != nil {
+    var solutions []models.Solution
+    category := c.Query("category")
+    email := c.Query("email")
+
+    query := h.db.Model(&models.Solution{})
+    
+    if category != "" {
+        query = query.Where("category = ?", category)
+    }
+
+    // If email is provided, include information about solutions used by this email
+    if email != "" {
+        query = query.
+            Select("solutions.*, CASE WHEN esh.email IS NOT NULL THEN true ELSE false END as previously_used").
+            Joins("LEFT JOIN email_solutions_history esh ON solutions.id = esh.solution_id AND esh.email = ?", email)
+    }
+
+    if err := query.Find(&solutions).Error; err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch solutions"})
         return
     }

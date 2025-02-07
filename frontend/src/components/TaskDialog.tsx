@@ -61,16 +61,24 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
+interface TaskFormData extends Omit<Partial<Task>, 'assignedTo'> {
+  title: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high';
+  status: 'todo' | 'in_progress' | 'done';
+  assignedTo: number | null;
+}
+
 export default function TaskDialog({ open, onClose, task, onSave, isNew, currentUser }: TaskDialogProps) {
-  const [editedTask, setEditedTask] = React.useState<Partial<Task>>({
+  const [editedTask, setEditedTask] = React.useState<TaskFormData>({
     title: '',
     description: '',
     priority: 'medium',
     status: 'todo',
-    assignedTo: undefined,
+    assignedTo: null,
   });
   const [reassignmentNotes, setReassignmentNotes] = React.useState('');
-  const [previousAssignee, setPreviousAssignee] = React.useState<number | undefined>();
+  const [previousAssignee, setPreviousAssignee] = React.useState<number | null>(null);
   const [tabValue, setTabValue] = React.useState(0);
 
   // Fetch users for assignment
@@ -100,14 +108,10 @@ export default function TaskDialog({ open, onClose, task, onSave, isNew, current
   React.useEffect(() => {
     if (task && !isNew) {
       setEditedTask({
-        id: task.id,
-        title: task.title,
-        description: task.description,
-        priority: task.priority,
-        status: task.status,
-        assignedTo: task.assignedTo,
+        ...task,
+        assignedTo: task.assignedTo ?? null,
       });
-      setPreviousAssignee(task.assignedTo);
+      setPreviousAssignee(task.assignedTo ?? null);
       setReassignmentNotes('');
     } else {
       setEditedTask({
@@ -115,22 +119,23 @@ export default function TaskDialog({ open, onClose, task, onSave, isNew, current
         description: '',
         priority: 'medium',
         status: 'todo',
-        assignedTo: undefined,
+        assignedTo: null,
       });
     }
   }, [task, isNew]);
 
-  const handleTextChange = (field: keyof Task) => (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTextChange = (field: keyof TaskFormData) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setEditedTask((prev) => ({
       ...prev,
       [field]: event.target.value,
     }));
   };
 
-  const handleSelectChange = (field: keyof Task) => (event: SelectChangeEvent) => {
+  const handleSelectChange = (field: keyof TaskFormData) => (event: SelectChangeEvent<string>) => {
+    const value = event.target.value;
     setEditedTask((prev) => ({
       ...prev,
-      [field]: event.target.value,
+      [field]: value,
     }));
   };
 
@@ -145,6 +150,7 @@ export default function TaskDialog({ open, onClose, task, onSave, isNew, current
 
     const taskToSave: Partial<Task> = {
       ...editedTask,
+      assignedTo: editedTask.assignedTo,
     };
     
     if (isNew && currentUser?.id) {
@@ -161,7 +167,7 @@ export default function TaskDialog({ open, onClose, task, onSave, isNew, current
     onClose();
   };
 
-  const canEdit = isNew || task;  // Allow all users to edit tasks
+  const canEdit = isNew || task;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -245,16 +251,16 @@ export default function TaskDialog({ open, onClose, task, onSave, isNew, current
               <FormControl fullWidth>
                 <InputLabel>Assigned To</InputLabel>
                 <Select
-                  value={editedTask.assignedTo?.toString() || ''}
-                  onChange={(e) => {
-                    const newAssignee = e.target.value ? Number(e.target.value) : undefined;
-                    if (previousAssignee !== undefined && newAssignee !== previousAssignee) {
-                      setReassignmentNotes('');
-                    }
+                  value={editedTask.assignedTo?.toString() ?? ''}
+                  onChange={(e: SelectChangeEvent<string>) => {
+                    const newAssignee = e.target.value ? Number(e.target.value) : null;
                     setEditedTask(prev => ({
                       ...prev,
                       assignedTo: newAssignee
                     }));
+                    if (previousAssignee !== newAssignee) {
+                      setReassignmentNotes('');
+                    }
                   }}
                   label="Assigned To"
                   disabled={!canEdit}
@@ -263,7 +269,7 @@ export default function TaskDialog({ open, onClose, task, onSave, isNew, current
                   {users
                     .sort((a, b) => a.name.localeCompare(b.name))
                     .map((user) => (
-                      <MenuItem key={user.id} value={user.id}>
+                      <MenuItem key={user.id} value={user.id?.toString() ?? ''}>
                         {user.name}
                       </MenuItem>
                     ))}
@@ -341,7 +347,12 @@ export default function TaskDialog({ open, onClose, task, onSave, isNew, current
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
         {canEdit && tabValue === 0 && (
-          <Button onClick={handleSave} variant="contained" color="primary">
+          <Button 
+            onClick={handleSave} 
+            variant="contained" 
+            color="primary"
+            disabled={!editedTask.title || !editedTask.description}
+          >
             {isNew ? 'Create' : 'Save Changes'}
           </Button>
         )}

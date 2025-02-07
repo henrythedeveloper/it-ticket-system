@@ -124,17 +124,29 @@ export default function PortalLayout() {
         }}
       >
         <Container maxWidth="lg">
-          <Toolbar disableGutters sx={{ justifyContent: 'flex-end' }}>
+          <Toolbar 
+            disableGutters 
+            sx={{ 
+              justifyContent: isMobile ? 'space-between' : 'flex-end',
+              minHeight: { xs: 56, sm: 64 } // Adjust toolbar height for mobile
+            }}
+          >
             {isMobile && (
               <IconButton
                 color="inherit"
-                edge="start"
                 onClick={handleDrawerToggle}
-                sx={{ mr: 2 }}
+                sx={{ ml: -1 }} // Align to the left edge
               >
                 <MenuIcon />
               </IconButton>
             )}
+            <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+              {isMobile && (
+                <Typography variant="h6" noWrap>
+                  Help Desk
+                </Typography>
+              )}
+            </Box>
             <IconButton onClick={toggleColorMode} color="inherit">
               {mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
             </IconButton>
@@ -152,6 +164,7 @@ export default function PortalLayout() {
         {isMobile ? (
           <Drawer
             variant="temporary"
+            anchor="left"
             open={mobileOpen}
             onClose={handleDrawerToggle}
             ModalProps={{ keepMounted: true }}
@@ -189,21 +202,29 @@ export default function PortalLayout() {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
-          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
-          mt: 8,
+          width: { xs: '100%', md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          mt: { xs: 7, sm: 8 }, // Adjust margin top for mobile
           backgroundColor: theme.palette.mode === 'light'
             ? 'grey.50'
             : 'grey.900',
+          transition: 'background-color 0.2s',
+          minHeight: '100vh',
         }}
       >
-        <Container maxWidth="lg">
+        <Container 
+          maxWidth="lg" 
+          sx={{ 
+            py: { xs: 2, sm: 3 },
+            px: { xs: 1, sm: 2, md: 3 }
+          }}
+        >
           <Box
             sx={{
               backgroundColor: theme.palette.background.paper,
-              borderRadius: 2,
+              borderRadius: { xs: 1, sm: 2 },
               boxShadow: theme.shadows[1],
-              p: { xs: 2, sm: 3 },
+              p: { xs: 1, sm: 2, md: 3 },
+              overflow: 'auto',
             }}
           >
             <Outlet />

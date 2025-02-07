@@ -122,10 +122,41 @@ CREATE TRIGGER update_ticket_solutions_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+-- Solutions table for common solutions
+CREATE TABLE IF NOT EXISTS solutions (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Email solutions history table
+CREATE TABLE IF NOT EXISTS email_solutions_history (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    ticket_id INTEGER REFERENCES tickets(id) ON DELETE CASCADE,
+    solution_id INTEGER REFERENCES solutions(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(email, ticket_id, solution_id)
+);
+
+-- Create indexes
+CREATE INDEX IF NOT EXISTS email_solutions_history_email_idx ON email_solutions_history(email);
+
+-- Create trigger for solutions updated_at
+CREATE TRIGGER update_solutions_updated_at
+    BEFORE UPDATE ON solutions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- Comments
 COMMENT ON TABLE ticket_solutions IS 'Reusable solutions for common ticket issues';
 COMMENT ON TABLE ticket_history IS 'Tracks all changes made to tickets';
 COMMENT ON TABLE task_history IS 'Tracks all changes made to tasks including status updates, assignments, and edits';
+COMMENT ON TABLE solutions IS 'Common solutions that can be suggested to users';
+COMMENT ON TABLE email_solutions_history IS 'Tracks which solutions have been suggested to which email addresses';
 COMMENT ON COLUMN ticket_history.action IS 'Type of change: created, updated, resolved, etc.';
 COMMENT ON COLUMN task_history.action IS 'Type of change: created, updated, status_changed, assigned, reassigned, etc.';
 COMMENT ON COLUMN task_history.notes IS 'Details about the change, including reassignment reasons';

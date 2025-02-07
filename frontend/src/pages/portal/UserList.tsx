@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   Box,
-  Paper,
   Typography,
   Button,
   Table,
@@ -25,13 +24,14 @@ import {
   Grid,
 } from '@mui/material';
 import {
-  PersonAdd as PersonAddIcon,
   Edit as EditIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../utils/axios';
+import PageContainer from '../../components/layout/PageContainer';
 
 type RoleColor = 'primary' | 'error' | 'default';
 
@@ -45,6 +45,7 @@ export default function UserList() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [dialogData, setDialogData] = useState<UserDialogData>({
     name: '',
@@ -52,7 +53,6 @@ export default function UserList() {
     role: 'staff',
   });
 
-  // Fetch users
   const { data, isLoading } = useQuery<{ data: User[] }>({
     queryKey: ['users'],
     queryFn: async () => {
@@ -61,14 +61,10 @@ export default function UserList() {
     },
   });
 
-  // Create/Update user mutation
   const userMutation = useMutation({
     mutationFn: async (userData: Partial<User>) => {
-      if (selectedUser) {
-        await api.patch(`/users/${selectedUser.id}`, userData);
-      } else {
-        await api.post('/users', userData);
-      }
+      if (!selectedUser?.id) throw new Error('No user selected');
+      await api.patch(`/users/${selectedUser.id}`, userData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -76,24 +72,41 @@ export default function UserList() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      await api.delete(`/users/${userId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      handleCloseDeleteDialog();
+    },
+  });
+
   const users = data?.data || [];
 
-  const handleOpenDialog = (user?: User) => {
-    if (user) {
-      setSelectedUser(user);
-      setDialogData({
-        name: user.name,
-        email: user.email,
-        role: user.role as 'admin' | 'staff',
-      });
-    } else {
-      setSelectedUser(null);
-      setDialogData({
-        name: '',
-        email: '',
-        role: 'staff',
-      });
+  const handleOpenDeleteDialog = (user: User) => {
+    setSelectedUser(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setSelectedUser(null);
+  };
+
+  const handleDelete = () => {
+    if (selectedUser?.id) {
+      deleteMutation.mutate(selectedUser.id);
     }
+  };
+
+  const handleOpenDialog = (user: User) => {
+    setSelectedUser(user);
+    setDialogData({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
     setDialogOpen(true);
   };
 
@@ -122,7 +135,8 @@ export default function UserList() {
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
     return new Date(dateString).toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'long',
@@ -135,7 +149,7 @@ export default function UserList() {
   }
 
   return (
-    <Box>
+    <PageContainer>
       <Stack
         direction="row"
         justifyContent="space-between"
@@ -143,26 +157,17 @@ export default function UserList() {
         sx={{ mb: 3 }}
       >
         <Typography variant="h4">IT Staff List</Typography>
-        {user?.role === 'admin' && (
-          <Button
-            variant="contained"
-            startIcon={<PersonAddIcon />}
-            onClick={() => handleOpenDialog()}
-          >
-            Invite User
-          </Button>
-        )}
       </Stack>
 
-      <TableContainer component={Paper}>
-        <Table>
+      <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)' }}>
+        <Table stickyHeader sx={{ tableLayout: 'fixed' }}>
           <TableHead>
             <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Role</TableCell>
-              <TableCell>Joined</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell sx={{ width: '20%' }}>Name</TableCell>
+              <TableCell sx={{ width: '30%' }}>Email</TableCell>
+              <TableCell sx={{ width: '15%' }}>Role</TableCell>
+              <TableCell sx={{ width: '20%' }}>Joined</TableCell>
+              <TableCell sx={{ width: '15%' }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -178,17 +183,27 @@ export default function UserList() {
                   />
                 </TableCell>
                 <TableCell>
-                  {userData.createdAt && formatDate(userData.createdAt)}
+                  {formatDate(userData.createdAt)}
                 </TableCell>
                 <TableCell>
                   {user?.role === 'admin' && (
-                    <IconButton
-                      size="small"
-                      disabled={userData.id === user?.id} // Can't edit yourself
-                      onClick={() => handleOpenDialog(userData)}
-                    >
-                      <EditIcon />
-                    </IconButton>
+                    <Stack direction="row" spacing={1}>
+                      <IconButton
+                        size="small"
+                        disabled={userData.id === user?.id}
+                        onClick={() => handleOpenDialog(userData)}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        disabled={userData.id === user?.id}
+                        onClick={() => handleOpenDeleteDialog(userData)}
+                        color="error"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Stack>
                   )}
                 </TableCell>
               </TableRow>
@@ -197,10 +212,12 @@ export default function UserList() {
         </Table>
       </TableContainer>
 
-      <Dialog open={dialogOpen} onClose={handleCloseDialog}>
-        <DialogTitle>
-          {selectedUser ? 'Edit User' : 'Invite New User'}
-        </DialogTitle>
+      <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
+        Note: Changes to user roles should be made with caution.
+      </Typography>
+
+      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit User</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
             <Grid container spacing={2}>
@@ -247,14 +264,25 @@ export default function UserList() {
             color="primary"
             disabled={!dialogData.name || !dialogData.email}
           >
-            {selectedUser ? 'Save Changes' : 'Send Invite'}
+            Save Changes
           </Button>
         </DialogActions>
       </Dialog>
 
-      <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
-        Note: Changes to user roles should be made with caution.
-      </Typography>
-    </Box>
+      <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog}>
+        <DialogTitle>Confirm Delete User</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete user {selectedUser?.name}? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteDialog}>Cancel</Button>
+          <Button onClick={handleDelete} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </PageContainer>
   );
 }
