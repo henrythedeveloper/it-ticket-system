@@ -53,11 +53,14 @@ export default function App() {
                 <Route path="users" element={<UserList />} />
               </Route>
 
-              {/* Redirect root to portal for authenticated users */}
-              <Route path="/" element={<Navigate to="/portal" replace />} />
+              {/* Default route goes to submit ticket */}
+              <Route path="/" element={<Navigate to="/submit-ticket" replace />} />
+              
+              {/* Catch invalid portal routes */}
+              <Route path="/portal/*" element={<Navigate to="/portal" replace />} />
               
               {/* Catch all other routes */}
-              <Route path="*" element={<Navigate to="/portal" replace />} />
+              <Route path="*" element={<Navigate to="/submit-ticket" replace />} />
             </Routes>
           </BrowserRouter>
         </AuthProvider>

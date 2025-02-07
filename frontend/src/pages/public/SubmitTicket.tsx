@@ -1,156 +1,126 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import React, { useState } from 'react';
 import {
   Box,
-  Button,
-  Container,
-  TextField,
   Typography,
-  Paper,
-  Alert,
+  TextField,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
   MenuItem,
+  Alert,
+  Paper,
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { isAxiosError } from 'axios';
 import api from '../../utils/axios';
 
-interface TicketSubmission {
+interface TicketFormData {
   category: string;
   description: string;
   submitterEmail: string;
 }
 
-const categories = [
-  { value: 'network', label: 'Network Issue' },
-  { value: 'hardware', label: 'Hardware Problem' },
-  { value: 'software', label: 'Software Issue' },
-  { value: 'access', label: 'Access/Permissions' },
-  { value: 'other', label: 'Other' },
-];
-
 export default function SubmitTicket() {
   const navigate = useNavigate();
-  const [error, setError] = React.useState('');
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<TicketSubmission>();
+  const [formData, setFormData] = useState<TicketFormData>({
+    category: '',
+    description: '',
+    submitterEmail: '',
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const onSubmit = async (data: TicketSubmission) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+
     try {
-      await api.post('/tickets', data);
-      navigate('/success', { 
-        state: { email: data.submitterEmail }
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        setError(error.message);
+      await api.post('/tickets', formData);
+      // Redirect to success page regardless of auth status
+      navigate('/ticket-success', { state: { email: formData.submitterEmail } });
+    } catch (err) {
+      if (isAxiosError(err)) {
+        setError(err.response?.data?.error || 'Failed to submit ticket');
       } else {
-        setError('Failed to submit ticket. Please try again.');
+        setError('An unexpected error occurred');
       }
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Container component="main" maxWidth="md">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Paper sx={{ p: 4, width: '100%' }}>
-          <Typography component="h1" variant="h4" align="center" gutterBottom>
-            Submit a Help Desk Ticket
-          </Typography>
+    <Box>
+      <Typography variant="h4" gutterBottom align="center">
+        Submit a Help Desk Ticket
+      </Typography>
+      <Typography variant="body1" gutterBottom align="center" sx={{ mb: 4 }}>
+        Please fill out the form below to submit your ticket
+      </Typography>
 
-          <Typography variant="body1" align="center" color="textSecondary" sx={{ mb: 4 }}>
-            Please provide details about your issue and we'll get back to you as soon as possible.
-          </Typography>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-            <TextField
-              select
-              margin="normal"
+      <Paper sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>
+        <form onSubmit={handleSubmit}>
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Category</InputLabel>
+            <Select
+              value={formData.category}
+              label="Category"
+              onChange={(e) =>
+                setFormData({ ...formData, category: e.target.value as string })
+              }
               required
-              fullWidth
-              id="category"
-              label="Issue Category"
-              {...register('category', {
-                required: 'Please select a category',
-              })}
-              error={!!errors.category}
-              helperText={errors.category?.message}
-              defaultValue=""
             >
-              {categories.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </TextField>
+              <MenuItem value="hardware">Hardware</MenuItem>
+              <MenuItem value="software">Software</MenuItem>
+              <MenuItem value="network">Network</MenuItem>
+              <MenuItem value="access">Access</MenuItem>
+              <MenuItem value="other">Other</MenuItem>
+            </Select>
+          </FormControl>
 
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="description"
-              label="Description"
-              multiline
-              rows={4}
-              {...register('description', {
-                required: 'Please describe your issue',
-                minLength: {
-                  value: 20,
-                  message: 'Please provide more detail (at least 20 characters)',
-                },
-              })}
-              error={!!errors.description}
-              helperText={errors.description?.message}
-            />
+          <TextField
+            fullWidth
+            label="Email"
+            type="email"
+            value={formData.submitterEmail}
+            onChange={(e) =>
+              setFormData({ ...formData, submitterEmail: e.target.value })
+            }
+            required
+            sx={{ mb: 2 }}
+          />
 
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Your Email Address"
-              type="email"
-              autoComplete="email"
-              {...register('submitterEmail', {
-                required: 'Email is required',
-                pattern: {
-                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: 'Invalid email address',
-                },
-              })}
-              error={!!errors.submitterEmail}
-              helperText={errors.submitterEmail?.message}
-            />
+          <TextField
+            fullWidth
+            label="Description"
+            multiline
+            rows={4}
+            value={formData.description}
+            onChange={(e) =>
+              setFormData({ ...formData, description: e.target.value })
+            }
+            required
+            sx={{ mb: 3 }}
+          />
 
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              size="large"
-              disabled={isSubmitting}
-              sx={{ mt: 3, mb: 2 }}
-            >
-              Submit Ticket
-            </Button>
-
-
-          </Box>
-        </Paper>
-      </Box>
-    </Container>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            fullWidth
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Submitting...' : 'Submit Ticket'}
+          </Button>
+        </form>
+      </Paper>
+    </Box>
   );
 }

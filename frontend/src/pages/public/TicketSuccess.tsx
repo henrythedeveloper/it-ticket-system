@@ -1,85 +1,68 @@
-import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
-  Container,
   Typography,
   Paper,
   Button,
 } from '@mui/material';
-import { CheckCircle as CheckCircleIcon } from '@mui/icons-material';
-import { green } from '@mui/material/colors';
-
-interface LocationState {
-  email?: string;
-}
+import { CheckCircleOutline as SuccessIcon } from '@mui/icons-material';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export default function TicketSuccess() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { email } = (location.state as LocationState) || {};
+  const email = location.state?.email;
 
   return (
-    <Container maxWidth="sm">
-      <Box
-        sx={{
-          mt: 8,
+    <Box sx={{ textAlign: 'center' }}>
+      <Paper 
+        sx={{ 
+          p: 4, 
+          maxWidth: 600, 
+          mx: 'auto',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
+          gap: 3
         }}
       >
-        <Paper
-          elevation={3}
-          sx={{
-            p: 4,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            width: '100%',
-          }}
-        >
-          <CheckCircleIcon
-            sx={{ fontSize: 64, color: green[500], mb: 2 }}
-          />
-          
-          <Typography variant="h4" component="h1" gutterBottom align="center">
-            Ticket Submitted Successfully!
+        <SuccessIcon 
+          color="success" 
+          sx={{ 
+            fontSize: 64,
+            mb: 2
+          }} 
+        />
+
+        <Typography variant="h4" gutterBottom>
+          Ticket Submitted Successfully
+        </Typography>
+
+        <Typography variant="body1" color="text.secondary" paragraph>
+          Thank you for submitting your ticket. We'll be reviewing it shortly.
+        </Typography>
+
+        {email && (
+          <Typography variant="body2" color="text.secondary">
+            We'll send updates to: {email}
           </Typography>
+        )}
 
-          <Typography variant="body1" align="center" sx={{ mb: 2 }}>
-            Thank you for submitting your help desk ticket. Our team will review it shortly.
-          </Typography>
-
-          {email && (
-            <Typography variant="body1" align="center" sx={{ mb: 2 }}>
-              A confirmation has been sent to: <strong>{email}</strong>
-            </Typography>
-          )}
-
-          <Typography variant="body2" color="textSecondary" align="center" sx={{ mb: 4 }}>
-            We will notify you of any updates regarding your ticket via email.
-          </Typography>
-
-          <Box sx={{ mt: 2, width: '100%' }}>
-            <Button
-              fullWidth
-              variant="contained"
-              onClick={() => navigate('/')}
-              sx={{ mb: 2 }}
-            >
-              Submit Another Ticket
-            </Button>
-
-            <Button
-              fullWidth
-              variant="text"
-              onClick={() => navigate('/login')}
-            >
-              IT Staff Login
-            </Button>
-          </Box>
-        </Paper>
-      </Box>
-    </Container>
+        <Box sx={{ mt: 4 }}>
+          <Button
+            variant="contained"
+            onClick={() => navigate('/submit-ticket')}
+            sx={{ mr: 2 }}
+          >
+            Submit Another Ticket
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => navigate('/')}
+          >
+            Return Home
+          </Button>
+        </Box>
+      </Paper>
+    </Box>
   );
 }

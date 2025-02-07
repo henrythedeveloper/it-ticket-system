@@ -25,37 +25,43 @@ export const useAuth = () => {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isVerifying, setIsVerifying] = useState(true);
 
   useEffect(() => {
-    const verifyAuth = async () => {
+    const init = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setIsVerifying(false);
+        // Check if we're running in Docker
+        const isDocker = import.meta.env.PROD;
+        
+        // Clear any stored tokens in production/Docker environment
+        if (isDocker) {
+          console.log('Running in production, clearing stored auth...');
+          localStorage.removeItem('token');
+          delete api.defaults.headers.common['Authorization'];
           setIsLoading(false);
           return;
         }
 
-        // Set the token in axios defaults
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setIsLoading(false);
+          return;
+        }
 
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         const response = await api.get('/auth/verify');
         setUser(response.data);
       } catch (error) {
         console.error('Auth verification failed:', error);
-        // Only remove token if it's an authentication error
         if (isAxiosError(error) && error.response?.status === 401) {
           localStorage.removeItem('token');
           delete api.defaults.headers.common['Authorization'];
         }
       } finally {
-        setIsVerifying(false);
         setIsLoading(false);
       }
     };
 
-    verifyAuth();
+    init();
   }, []);
 
   const login = async (credentials: LoginCredentials) => {
@@ -70,10 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Login error:', {
           status: err.response?.status,
           data: err.response?.data,
-          config: err.config
         });
-      } else {
-        console.error('Non-Axios error:', err);
       }
       throw err;
     }
@@ -98,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
-  if (isVerifying) {
+  if (isLoading) {
     return <div>Loading...</div>;
   }
 
