@@ -129,11 +129,13 @@ export default function TicketList() {
         onSave={handleSaveTicket}
         isAdmin={user?.role === 'admin'}
       />
-      <Box sx={{ width: '100%', mb: 3 }}>
-        <Typography variant="h4" sx={{ mb: { xs: 2, sm: 3 } }}>
-          Help Desk Tickets
-        </Typography>
-      </Box>
+      <Stack
+        direction="row"
+        alignItems="center"
+        sx={{ mb: 3 }}
+      >
+        <Typography variant="h4">Help Desk Tickets</Typography>
+      </Stack>
 
       <Stack
         direction={{ xs: 'column', sm: 'row' }}

@@ -150,11 +150,13 @@ export default function UserList() {
 
   return (
     <PageContainer>
-      <Box sx={{ width: '100%', mb: 3 }}>
-        <Typography variant="h4" sx={{ mb: { xs: 2, sm: 3 } }}>
-          IT Staff List
-        </Typography>
-      </Box>
+      <Stack
+        direction="row"
+        alignItems="center"
+        sx={{ mb: 3 }}
+      >
+        <Typography variant="h4">IT Staff List</Typography>
+      </Stack>
 
       <TableContainer sx={{
         maxHeight: { xs: 'calc(100vh - 250px)', sm: 'calc(100vh - 300px)' },
