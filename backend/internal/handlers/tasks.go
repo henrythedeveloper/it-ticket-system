@@ -1,13 +1,14 @@
 package handlers
 
 import (
-"net/http"
-"strconv"
+    "net/http"
+    "strconv"
+    "time"
 
-"github.com/gin-gonic/gin"
-"gorm.io/gorm"
-"helpdesk/internal/middleware"
-"helpdesk/internal/models"
+    "github.com/gin-gonic/gin"
+    "gorm.io/gorm"
+    "helpdesk/internal/middleware"
+    "helpdesk/internal/models"
 )
 
 type TaskHandler struct {
@@ -19,10 +20,13 @@ return &TaskHandler{db: db}
 }
 
 type CreateTaskRequest struct {
-Title       string `json:"title" binding:"required"`
-Description string `json:"description" binding:"required"`
-Priority    string `json:"priority" binding:"required,oneof=low medium high"`
-AssignedTo  *uint  `json:"assignedTo"`
+    Title          string     `json:"title" binding:"required"`
+    Description    string     `json:"description" binding:"required"`
+    Priority       string     `json:"priority" binding:"required,oneof=low medium high"`
+    AssignedTo     *uint      `json:"assignedTo"`
+    DueDate        *time.Time `json:"dueDate,omitempty"`
+    IsRecurring    bool       `json:"isRecurring"`
+    RecurringType  *string    `json:"recurringType,omitempty" binding:"omitempty,oneof=daily weekly monthly"`
 }
 
 // CreateTask handles creation of internal tasks
@@ -53,13 +57,32 @@ return
 }
 }
 
+// Calculate next occurrence if this is a recurring task
+var nextOccurrence *time.Time
+if req.IsRecurring && req.RecurringType != nil && req.DueDate != nil {
+    nextDate := *req.DueDate
+    switch *req.RecurringType {
+    case models.TaskRecurringDaily:
+        nextDate = nextDate.AddDate(0, 0, 1)
+    case models.TaskRecurringWeekly:
+        nextDate = nextDate.AddDate(0, 0, 7)
+    case models.TaskRecurringMonthly:
+        nextDate = nextDate.AddDate(0, 1, 0)
+    }
+    nextOccurrence = &nextDate
+}
+
 task := &models.Task{
-Title:       req.Title,
-Description: req.Description,
-Priority:    req.Priority,
-Status:      models.TaskStatusTodo,
-CreatedBy:   createdBy,
-AssignedTo:  req.AssignedTo,
+    Title:          req.Title,
+    Description:    req.Description,
+    Priority:       req.Priority,
+    Status:         models.TaskStatusTodo,
+    CreatedBy:      createdBy,
+    AssignedTo:     req.AssignedTo,
+    DueDate:        req.DueDate,
+    IsRecurring:    req.IsRecurring,
+    RecurringType:  req.RecurringType,
+    NextOccurrence: nextOccurrence,
 }
 
 if err := tx.Create(task).Error; err != nil {

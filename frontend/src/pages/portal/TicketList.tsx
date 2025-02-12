@@ -14,18 +14,23 @@ import {
   MenuItem,
   Box,
   Paper,
+  Button,
 } from '@mui/material';
 import {
   Edit as EditIcon,
   PlayArrow as StartIcon,
   Done as DoneIcon,
   Person as PersonIcon,
+  History as HistoryIcon,
+  Download as DownloadIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ticket } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../utils/axios';
 import TicketDialog from '../../components/TicketDialog';
+import SubmitterTicketsDialog from '../../components/SubmitterTicketsDialog';
+import TicketHistoryDialog from '../../components/TicketHistoryDialog';
 
 type StatusColor = 'error' | 'warning' | 'success' | 'default';
 
@@ -38,6 +43,9 @@ export default function TicketList() {
   const [selectedTicket, setSelectedTicket] = React.useState<Ticket | null>(null);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [expandedTicketId, setExpandedTicketId] = React.useState<number | null>(null);
+  const [submitterDialogOpen, setSubmitterDialogOpen] = React.useState(false);
+  const [selectedSubmitterEmail, setSelectedSubmitterEmail] = React.useState('');
+  const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
 
   const truncateDescription = (text: string, maxLength: number = 50) => {
     if (text.length <= maxLength) return text;
@@ -53,11 +61,9 @@ export default function TicketList() {
         const tickets = response.data.data;
         return {
           data: tickets.sort((a: Ticket, b: Ticket) => {
-            // Sort by due date if both tickets have due dates
             if (a.dueDate && b.dueDate) {
               return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
             }
-            // Put tickets with due dates before those without
             if (a.dueDate) return -1;
             if (b.dueDate) return 1;
             return 0;
@@ -87,6 +93,34 @@ export default function TicketList() {
       updateTicketMutation.mutate({ id: ticket.id, status: newStatus });
     }
   };
+
+  const handleExportTickets = async (format: 'csv' | 'pdf') => {
+    try {
+      const response = await api.get(`/tickets/export?format=${format}`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `tickets-export.${format}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error(`Error exporting tickets as ${format}:`, error);
+    }
+  };
+
+  const getDueToday = React.useMemo(() => {
+    return tickets.filter(ticket => {
+      if (!ticket.dueDate) return false;
+      const today = new Date();
+      const dueDate = new Date(ticket.dueDate);
+      return dueDate.getDate() === today.getDate() &&
+             dueDate.getMonth() === today.getMonth() &&
+             dueDate.getFullYear() === today.getFullYear();
+    });
+  }, [tickets]);
 
   const filteredTickets = React.useMemo(() => {
     if (!Array.isArray(tickets)) return [];
@@ -171,13 +205,89 @@ export default function TicketList() {
         ticket={selectedTicket}
         onSave={handleSaveTicket}
       />
+      <SubmitterTicketsDialog
+        open={submitterDialogOpen}
+        onClose={() => setSubmitterDialogOpen(false)}
+        email={selectedSubmitterEmail}
+        onTicketClick={(ticket) => {
+          setSelectedTicket(ticket);
+          setDialogOpen(true);
+          setSubmitterDialogOpen(false);
+        }}
+      />
+      {selectedTicket && (
+        <TicketHistoryDialog
+          open={historyDialogOpen}
+          onClose={() => setHistoryDialogOpen(false)}
+          ticketId={selectedTicket.id!}
+        />
+      )}
       <Stack
         direction="row"
         alignItems="center"
+        justifyContent="space-between"
         sx={{ mb: 3 }}
       >
         <Typography variant="h4">Help Desk Tickets</Typography>
+        {user?.role === 'admin' && (
+          <Stack direction="row" spacing={1}>
+            <Button
+              startIcon={<DownloadIcon />}
+              onClick={() => handleExportTickets('csv')}
+              variant="outlined"
+              size="small"
+            >
+              Export CSV
+            </Button>
+            <Button
+              startIcon={<DownloadIcon />}
+              onClick={() => handleExportTickets('pdf')}
+              variant="outlined"
+              size="small"
+            >
+              Export PDF
+            </Button>
+          </Stack>
+        )}
       </Stack>
+
+      {getDueToday.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" sx={{ mb: 1 }}>Due Today</Typography>
+          <Paper sx={{ p: 2, bgcolor: 'warning.light' }}>
+            <Stack spacing={1}>
+              {getDueToday.map(ticket => (
+                <Box
+                  key={ticket.id}
+                  sx={{
+                    p: 1,
+                    bgcolor: 'background.paper',
+                    borderRadius: 1,
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: 'action.hover' }
+                  }}
+                  onClick={() => {
+                    setSelectedTicket(ticket);
+                    setDialogOpen(true);
+                  }}
+                >
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                      {ticket.ticketNumber}
+                    </Typography>
+                    <Chip
+                      label={ticket.urgency}
+                      color={getUrgencyColor(ticket.urgency)}
+                      size="small"
+                    />
+                    <Typography>{truncateDescription(ticket.description)}</Typography>
+                  </Stack>
+                </Box>
+              ))}
+            </Stack>
+          </Paper>
+        </Box>
+      )}
 
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
@@ -220,22 +330,23 @@ export default function TicketList() {
           <MenuItem value="no_due_date">No Due Date</MenuItem>
         </TextField>
       </Stack>
-<TableContainer component={Paper} sx={{
-  maxHeight: { xs: 'calc(100vh - 250px)', sm: 'calc(100vh - 300px)' },
-  overflow: 'auto'
-}}>
-  <Table stickyHeader>
-    <TableHead>
-      <TableRow>
-        <TableCell sx={{ width: '10%' }}>Ticket #</TableCell>
-        <TableCell sx={{ width: '8%', display: { xs: 'none', sm: 'table-cell' } }}>Category</TableCell>
-        <TableCell sx={{ width: '25%' }}>Description</TableCell>
-        <TableCell sx={{ width: '12%', display: { xs: 'none', md: 'table-cell' } }}>Submitter</TableCell>
-        <TableCell sx={{ width: '8%' }}>Status</TableCell>
-        <TableCell sx={{ width: '8%', display: { xs: 'none', sm: 'table-cell' } }}>Urgency</TableCell>
-        <TableCell sx={{ width: '12%', display: { xs: 'none', sm: 'table-cell' } }}>Due Date</TableCell>
-        <TableCell sx={{ width: '10%', display: { xs: 'none', md: 'table-cell' } }}>Assigned To</TableCell>
-        <TableCell sx={{ width: '7%' }}>Actions</TableCell>
+
+      <TableContainer component={Paper} sx={{
+        maxHeight: { xs: 'calc(100vh - 250px)', sm: 'calc(100vh - 300px)' },
+        overflow: 'auto'
+      }}>
+        <Table stickyHeader>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ width: '10%' }}>Ticket #</TableCell>
+              <TableCell sx={{ width: '8%', display: { xs: 'none', sm: 'table-cell' } }}>Category</TableCell>
+              <TableCell sx={{ width: '25%' }}>Description</TableCell>
+              <TableCell sx={{ width: '12%', display: { xs: 'none', md: 'table-cell' } }}>Submitter</TableCell>
+              <TableCell sx={{ width: '8%' }}>Status</TableCell>
+              <TableCell sx={{ width: '8%', display: { xs: 'none', sm: 'table-cell' } }}>Urgency</TableCell>
+              <TableCell sx={{ width: '12%', display: { xs: 'none', sm: 'table-cell' } }}>Due Date</TableCell>
+              <TableCell sx={{ width: '10%', display: { xs: 'none', md: 'table-cell' } }}>Assigned To</TableCell>
+              <TableCell sx={{ width: '7%' }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -275,7 +386,22 @@ export default function TicketList() {
                 >
                   {expandedTicketId === ticket.id ? ticket.description : truncateDescription(ticket.description)}
                 </TableCell>
-                <TableCell sx={{ width: { xs: '20%', sm: '15%' }, display: { xs: 'none', md: 'table-cell' } }}>
+                <TableCell
+                  sx={{
+                    width: { xs: '20%', sm: '15%' },
+                    display: { xs: 'none', md: 'table-cell' },
+                    cursor: 'pointer',
+                    '&:hover': {
+                      textDecoration: 'underline',
+                      color: 'primary.main'
+                    }
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedSubmitterEmail(ticket.submitterEmail);
+                    setSubmitterDialogOpen(true);
+                  }}
+                >
                   {ticket.submitterEmail}
                 </TableCell>
                 <TableCell sx={{ width: '8%' }}>
@@ -326,6 +452,15 @@ export default function TicketList() {
                       disabled={ticket.status === 'resolved'}
                     >
                       <DoneIcon />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setSelectedTicket(ticket);
+                        setHistoryDialogOpen(true);
+                      }}
+                    >
+                      <HistoryIcon />
                     </IconButton>
                     <IconButton
                       size="small"
@@ -421,7 +556,21 @@ export default function TicketList() {
                             : ticket.description}
                         </Typography>
                       </TableCell>
-                      <TableCell sx={{ width: { xs: '20%', sm: '15%' }, display: { xs: 'none', md: 'table-cell' } }}>
+                      <TableCell
+                        sx={{
+                          width: { xs: '20%', sm: '15%' },
+                          display: { xs: 'none', md: 'table-cell' },
+                          cursor: 'pointer',
+                          '&:hover': {
+                            textDecoration: 'underline'
+                          }
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedSubmitterEmail(ticket.submitterEmail);
+                          setSubmitterDialogOpen(true);
+                        }}
+                      >
                         <Typography sx={(theme) => ({ color: theme.palette.primary.contrastText })}>
                           {ticket.submitterEmail}
                         </Typography>
@@ -462,6 +611,17 @@ export default function TicketList() {
                             sx={{ color: 'white' }}
                           >
                             <DoneIcon />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTicket(ticket);
+                              setHistoryDialogOpen(true);
+                            }}
+                            sx={{ color: 'white' }}
+                          >
+                            <HistoryIcon />
                           </IconButton>
                           <IconButton
                             size="small"

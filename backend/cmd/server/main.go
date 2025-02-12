@@ -127,6 +127,7 @@ func setupRouter(
             tickets.PATCH("/:id", ticketHandler.UpdateTicket)
             tickets.DELETE("/:id", middleware.RequireRole("admin"), ticketHandler.DeleteTicket)
             tickets.GET("/stats", ticketHandler.GetTicketStats)
+            tickets.GET("/export", middleware.RequireRole("admin"), ticketHandler.ExportTickets)
         }
 
         // Solutions management

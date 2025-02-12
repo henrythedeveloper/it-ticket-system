@@ -76,20 +76,32 @@ type TicketHistory struct {
 
 // Task represents an internal task for IT staff
 type Task struct {
-	ID           uint           `json:"id" gorm:"primaryKey"`
-	Title        string         `json:"title" gorm:"not null"`
-	Description  string         `json:"description" gorm:"type:text;not null"`
-	Priority     string         `json:"priority" gorm:"type:varchar(50);not null"`
-	Status       string         `json:"status" gorm:"type:varchar(50);not null;default:'todo'"`
-	CreatedBy    uint           `json:"createdBy" gorm:"not null"`
-	Creator      User           `json:"creator" gorm:"foreignKey:CreatedBy"`
-	AssignedTo   *uint          `json:"assignedTo,omitempty" gorm:"index"`
-	AssignedUser *User          `json:"assignedUser,omitempty" gorm:"foreignKey:AssignedTo"`
-	History      []TaskHistory  `json:"history,omitempty" gorm:"foreignKey:TaskID"`
-	CreatedAt    time.Time      `json:"createdAt"`
-	UpdatedAt    time.Time      `json:"updatedAt"`
-	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index"`
+    ID              uint           `json:"id" gorm:"primaryKey"`
+    Title           string         `json:"title" gorm:"not null"`
+    Description     string         `json:"description" gorm:"type:text;not null"`
+    Priority        string         `json:"priority" gorm:"type:varchar(50);not null"`
+    Status          string         `json:"status" gorm:"type:varchar(50);not null;default:'todo'"`
+    CreatedBy       uint           `json:"createdBy" gorm:"not null"`
+    Creator         User           `json:"creator" gorm:"foreignKey:CreatedBy"`
+    AssignedTo      *uint          `json:"assignedTo,omitempty" gorm:"index"`
+    AssignedUser    *User          `json:"assignedUser,omitempty" gorm:"foreignKey:AssignedTo"`
+    History         []TaskHistory  `json:"history,omitempty" gorm:"foreignKey:TaskID"`
+    DueDate         *time.Time     `json:"dueDate,omitempty"`
+    IsRecurring     bool           `json:"isRecurring" gorm:"default:false"`
+    RecurringType   *string        `json:"recurringType,omitempty" gorm:"type:varchar(20)"` // daily, weekly, monthly
+    RecurringParent *uint          `json:"recurringParent,omitempty" gorm:"index"`
+    NextOccurrence  *time.Time     `json:"nextOccurrence,omitempty"`
+    CreatedAt       time.Time      `json:"createdAt"`
+    UpdatedAt       time.Time      `json:"updatedAt"`
+    DeletedAt       gorm.DeletedAt `json:"-" gorm:"index"`
 }
+
+// Constants for recurring task types
+const (
+    TaskRecurringDaily = "daily"
+    TaskRecurringWeekly = "weekly"
+    TaskRecurringMonthly = "monthly"
+)
 
 // TaskHistory tracks changes to tasks
 type TaskHistory struct {
