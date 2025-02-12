@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeContextProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 // Layouts
 import PublicLayout from './components/layout/PublicLayout';
@@ -33,42 +35,44 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeContextProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <Routes>
-              {/* Auth Routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <ThemeContextProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <Routes>
+                {/* Auth Routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
 
-              {/* Public Routes */}
-              <Route element={<PublicLayout />}>
-                <Route path="/submit-ticket" element={<SubmitTicket />} />
-                <Route path="/ticket-success" element={<TicketSuccess />} />
-                <Route path="/solutions" element={<Solutions />} />
-                <Route path="/faq" element={<FAQ />} />
-              </Route>
+                {/* Public Routes */}
+                <Route element={<PublicLayout />}>
+                  <Route path="/submit-ticket" element={<SubmitTicket />} />
+                  <Route path="/ticket-success" element={<TicketSuccess />} />
+                  <Route path="/solutions" element={<Solutions />} />
+                  <Route path="/faq" element={<FAQ />} />
+                </Route>
 
-              {/* Portal Routes */}
-              <Route path="/portal" element={<PortalLayout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="tickets" element={<TicketList />} />
-                <Route path="tasks" element={<TaskList />} />
-                <Route path="users" element={<UserList />} />
-              </Route>
+                {/* Portal Routes */}
+                <Route path="/portal" element={<PortalLayout />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="tickets" element={<TicketList />} />
+                  <Route path="tasks" element={<TaskList />} />
+                  <Route path="users" element={<UserList />} />
+                </Route>
 
-              {/* Default route goes to submit ticket */}
-              <Route path="/" element={<Navigate to="/submit-ticket" replace />} />
-              
-              {/* Catch invalid portal routes */}
-              <Route path="/portal/*" element={<Navigate to="/portal" replace />} />
-              
-              {/* Catch all other routes */}
-              <Route path="*" element={<Navigate to="/submit-ticket" replace />} />
-            </Routes>
-          </BrowserRouter>
-        </AuthProvider>
-      </ThemeContextProvider>
+                {/* Default route goes to submit ticket */}
+                <Route path="/" element={<Navigate to="/submit-ticket" replace />} />
+                
+                {/* Catch invalid portal routes */}
+                <Route path="/portal/*" element={<Navigate to="/portal" replace />} />
+                
+                {/* Catch all other routes */}
+                <Route path="*" element={<Navigate to="/submit-ticket" replace />} />
+              </Routes>
+            </BrowserRouter>
+          </AuthProvider>
+        </ThemeContextProvider>
+      </LocalizationProvider>
     </QueryClientProvider>
   );
 }

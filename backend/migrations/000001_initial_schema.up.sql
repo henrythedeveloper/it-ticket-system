@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS tickets (
     solution TEXT,
     resolved_by INTEGER REFERENCES users(id),
     resolved_at TIMESTAMP WITH TIME ZONE,
+    urgency VARCHAR(50) NOT NULL DEFAULT 'normal',
+    due_date TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP WITH TIME ZONE
@@ -87,6 +89,7 @@ CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status);
 CREATE INDEX IF NOT EXISTS idx_tickets_assigned_to ON tickets(assigned_to);
 CREATE INDEX IF NOT EXISTS idx_tickets_number ON tickets(ticket_number);
+CREATE INDEX IF NOT EXISTS idx_tickets_due_date ON tickets(due_date);
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 CREATE INDEX IF NOT EXISTS idx_tasks_created_by ON tasks(created_by);
 CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to ON tasks(assigned_to);

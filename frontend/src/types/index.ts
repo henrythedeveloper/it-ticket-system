@@ -5,6 +5,8 @@ export interface Ticket {
   description: string;
   submitterEmail: string;
   status: 'open' | 'in_progress' | 'resolved';
+  urgency: 'low' | 'normal' | 'high' | 'critical';
+  dueDate?: string | null;
   assignedTo?: number | null;
   solution?: string | null;
   resolvedBy?: number | null;

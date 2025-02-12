@@ -19,9 +19,11 @@ func NewTicketHandler(db *gorm.DB) *TicketHandler {
 }
 
 type CreateTicketRequest struct {
-    Category       string `json:"category" binding:"required"`
-    Description    string `json:"description" binding:"required"`
-    SubmitterEmail string `json:"submitterEmail" binding:"required,email"`
+    Category       string     `json:"category" binding:"required"`
+    Description    string     `json:"description" binding:"required"`
+    SubmitterEmail string     `json:"submitterEmail" binding:"required,email"`
+    Urgency        string     `json:"urgency" binding:"required,oneof=low normal high critical"`
+    DueDate        *time.Time `json:"dueDate,omitempty"`
 }
 
 // CreateTicket handles public ticket submissions
@@ -47,12 +49,30 @@ func (h *TicketHandler) CreateTicket(c *gin.Context) {
         return
     }
 
+    // Determine urgency based on due date if not explicitly set
+    urgency := req.Urgency
+    if urgency == "" && req.DueDate != nil {
+        daysUntilDue := time.Until(*req.DueDate).Hours() / 24
+        switch {
+        case daysUntilDue <= 1:
+            urgency = "critical"
+        case daysUntilDue <= 3:
+            urgency = "high"
+        case daysUntilDue <= 7:
+            urgency = "normal"
+        default:
+            urgency = "low"
+        }
+    }
+
     ticket := &models.Ticket{
         TicketNumber:   ticketNumber,
         Category:       req.Category,
         Description:    req.Description,
         SubmitterEmail: req.SubmitterEmail,
         Status:         models.TicketStatusOpen,
+        Urgency:        urgency,
+        DueDate:        req.DueDate,
     }
 
     if err := tx.Create(ticket).Error; err != nil {
@@ -165,9 +185,11 @@ func (h *TicketHandler) SearchSolutions(c *gin.Context) {
 // UpdateTicket handles ticket updates
 func (h *TicketHandler) UpdateTicket(c *gin.Context) {
     var req struct {
-        Status     string `json:"status"`
-        AssignedTo *uint  `json:"assignedTo"`
-        Solution   *string `json:"solution"`
+        Status     string     `json:"status"`
+        AssignedTo *uint      `json:"assignedTo"`
+        Solution   *string    `json:"solution"`
+        Urgency    string     `json:"urgency" binding:"omitempty,oneof=low normal high critical"`
+        DueDate    *time.Time `json:"dueDate,omitempty"`
     }
 
     if err := c.ShouldBindJSON(&req); err != nil {
@@ -219,6 +241,20 @@ func (h *TicketHandler) UpdateTicket(c *gin.Context) {
         historyNotes += "Added solution. "
     }
 
+    if req.Urgency != "" && req.Urgency != ticket.Urgency {
+        changes["urgency"] = req.Urgency
+        historyNotes += "Urgency changed to " + req.Urgency + ". "
+    }
+
+    if req.DueDate != ticket.DueDate {
+        changes["due_date"] = req.DueDate
+        if req.DueDate != nil {
+            historyNotes += "Due date set to " + req.DueDate.Format("2006-01-02 15:04") + ". "
+        } else {
+            historyNotes += "Due date removed. "
+        }
+    }
+
     if len(changes) > 0 {
         if err := tx.Model(&ticket).Updates(changes).Error; err != nil {
             tx.Rollback()
@@ -267,10 +303,37 @@ func (h *TicketHandler) GetTicket(c *gin.Context) {
     c.JSON(http.StatusOK, gin.H{"data": ticket})
 }
 
-// ListTickets returns all tickets
+// ListTickets returns all tickets with optional filtering
 func (h *TicketHandler) ListTickets(c *gin.Context) {
     var tickets []models.Ticket
-    if err := h.db.Preload("Solutions").Find(&tickets).Error; err != nil {
+    query := h.db.Preload("Solutions")
+
+    // Filter by due date
+    dueDateFilter := c.Query("dueDate")
+    if dueDateFilter != "" {
+        switch dueDateFilter {
+        case "today":
+            query = query.Where("due_date >= ? AND due_date < ?",
+                time.Now().Truncate(24*time.Hour),
+                time.Now().Truncate(24*time.Hour).Add(24*time.Hour))
+        case "week":
+            query = query.Where("due_date >= ? AND due_date < ?",
+                time.Now().Truncate(24*time.Hour),
+                time.Now().Truncate(24*time.Hour).Add(7*24*time.Hour))
+        case "overdue":
+            query = query.Where("due_date < ? AND status != ?",
+                time.Now(), models.TicketStatusResolved)
+        case "no_due_date":
+            query = query.Where("due_date IS NULL")
+        }
+    }
+
+    // Order by due date if it's being filtered
+    if dueDateFilter != "" && dueDateFilter != "no_due_date" {
+        query = query.Order("due_date ASC")
+    }
+
+    if err := query.Find(&tickets).Error; err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tickets"})
         return
     }

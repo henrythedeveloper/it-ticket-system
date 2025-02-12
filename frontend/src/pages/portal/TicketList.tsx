@@ -33,6 +33,7 @@ export default function TicketList() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = React.useState('all');
+  const [dueDateFilter, setDueDateFilter] = React.useState('all');
   const [searchQuery, setSearchQuery] = React.useState('');
   const [selectedTicket, setSelectedTicket] = React.useState<Ticket | null>(null);
   const [dialogOpen, setDialogOpen] = React.useState(false);
@@ -44,10 +45,28 @@ export default function TicketList() {
   };
 
   const { data, isLoading } = useQuery<{ data: Ticket[] }>({
-    queryKey: ['tickets'],
+    queryKey: ['tickets', dueDateFilter],
     queryFn: async () => {
-      const response = await api.get('/tickets');
-      return response.data;
+      const params = dueDateFilter !== 'all' ? { dueDate: dueDateFilter } : {};
+      try {
+        const response = await api.get('/tickets', { params });
+        const tickets = response.data.data;
+        return {
+          data: tickets.sort((a: Ticket, b: Ticket) => {
+            // Sort by due date if both tickets have due dates
+            if (a.dueDate && b.dueDate) {
+              return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+            }
+            // Put tickets with due dates before those without
+            if (a.dueDate) return -1;
+            if (b.dueDate) return 1;
+            return 0;
+          })
+        };
+      } catch (error) {
+        console.error('Error fetching tickets:', error);
+        return { data: [] };
+      }
     },
   });
 
@@ -95,6 +114,30 @@ export default function TicketList() {
       default:
         return 'default';
     }
+  };
+
+  const getUrgencyColor = (urgency: string): StatusColor => {
+    switch (urgency) {
+      case 'critical':
+        return 'error';
+      case 'high':
+        return 'warning';
+      case 'low':
+        return 'success';
+      default:
+        return 'default';
+    }
+  };
+
+  const formatDueDate = (dueDate: string | null | undefined) => {
+    if (!dueDate) return '-';
+    const date = new Date(dueDate);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const getCategoryLabel = (category: string): string => {
@@ -162,6 +205,20 @@ export default function TicketList() {
           <MenuItem value="in_progress">In Progress</MenuItem>
           <MenuItem value="resolved">Resolved</MenuItem>
         </TextField>
+        <TextField
+          select
+          label="Due Date"
+          value={dueDateFilter}
+          onChange={(e) => setDueDateFilter(e.target.value)}
+          size="small"
+          sx={{ width: 150 }}
+        >
+          <MenuItem value="all">All Due Dates</MenuItem>
+          <MenuItem value="today">Due Today</MenuItem>
+          <MenuItem value="week">Due This Week</MenuItem>
+          <MenuItem value="overdue">Overdue</MenuItem>
+          <MenuItem value="no_due_date">No Due Date</MenuItem>
+        </TextField>
       </Stack>
 <TableContainer component={Paper} sx={{
   maxHeight: { xs: 'calc(100vh - 250px)', sm: 'calc(100vh - 300px)' },
@@ -170,13 +227,15 @@ export default function TicketList() {
   <Table stickyHeader>
     <TableHead>
       <TableRow>
-        <TableCell sx={{ width: { xs: '20%', sm: '12%' } }}>Ticket #</TableCell>
-        <TableCell sx={{ width: { xs: '20%', sm: '10%' }, display: { xs: 'none', sm: 'table-cell' } }}>Category</TableCell>
-        <TableCell sx={{ width: { xs: '40%', sm: '30%' } }}>Description</TableCell>
-        <TableCell sx={{ width: { xs: '20%', sm: '15%' }, display: { xs: 'none', md: 'table-cell' } }}>Submitter</TableCell>
-        <TableCell sx={{ width: { xs: '20%', sm: '10%' } }}>Status</TableCell>
-        <TableCell sx={{ width: { xs: '20%', sm: '13%' }, display: { xs: 'none', md: 'table-cell' } }}>Assigned To</TableCell>
-        <TableCell sx={{ width: { xs: '20%', sm: '10%' } }}>Actions</TableCell>
+        <TableCell sx={{ width: '10%' }}>Ticket #</TableCell>
+        <TableCell sx={{ width: '8%', display: { xs: 'none', sm: 'table-cell' } }}>Category</TableCell>
+        <TableCell sx={{ width: '25%' }}>Description</TableCell>
+        <TableCell sx={{ width: '12%', display: { xs: 'none', md: 'table-cell' } }}>Submitter</TableCell>
+        <TableCell sx={{ width: '8%' }}>Status</TableCell>
+        <TableCell sx={{ width: '8%', display: { xs: 'none', sm: 'table-cell' } }}>Urgency</TableCell>
+        <TableCell sx={{ width: '12%', display: { xs: 'none', sm: 'table-cell' } }}>Due Date</TableCell>
+        <TableCell sx={{ width: '10%', display: { xs: 'none', md: 'table-cell' } }}>Assigned To</TableCell>
+        <TableCell sx={{ width: '7%' }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -219,14 +278,24 @@ export default function TicketList() {
                 <TableCell sx={{ width: { xs: '20%', sm: '15%' }, display: { xs: 'none', md: 'table-cell' } }}>
                   {ticket.submitterEmail}
                 </TableCell>
-                <TableCell sx={{ width: { xs: '20%', sm: '10%' } }}>
+                <TableCell sx={{ width: '8%' }}>
                   <Chip
                     label={ticket.status}
                     color={getStatusColor(ticket.status)}
                     size="small"
                   />
                 </TableCell>
-                <TableCell sx={{ width: { xs: '20%', sm: '13%' }, display: { xs: 'none', md: 'table-cell' } }}>
+                <TableCell sx={{ width: '8%', display: { xs: 'none', sm: 'table-cell' } }}>
+                  <Chip
+                    label={ticket.urgency}
+                    color={getUrgencyColor(ticket.urgency)}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell sx={{ width: '12%', display: { xs: 'none', sm: 'table-cell' } }}>
+                  {formatDueDate(ticket.dueDate)}
+                </TableCell>
+                <TableCell sx={{ width: '10%', display: { xs: 'none', md: 'table-cell' } }}>
                   {ticket.assignedTo ? (
                     <Chip
                       icon={<PersonIcon />}
@@ -289,12 +358,14 @@ export default function TicketList() {
             <Table stickyHeader>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ width: { xs: '20%', sm: '12%' } }}>Ticket #</TableCell>
-                  <TableCell sx={{ width: { xs: '20%', sm: '10%' }, display: { xs: 'none', sm: 'table-cell' } }}>Category</TableCell>
-                  <TableCell sx={{ width: { xs: '40%', sm: '30%' } }}>Description</TableCell>
-                  <TableCell sx={{ width: { xs: '20%', sm: '15%' }, display: { xs: 'none', md: 'table-cell' } }}>Submitter</TableCell>
-                  <TableCell sx={{ width: { xs: '20%', sm: '10%' } }}>Status</TableCell>
-                  <TableCell sx={{ width: { xs: '20%', sm: '23%' } }}>Actions</TableCell>
+                  <TableCell sx={{ width: '10%' }}>Ticket #</TableCell>
+                  <TableCell sx={{ width: '8%', display: { xs: 'none', sm: 'table-cell' } }}>Category</TableCell>
+                  <TableCell sx={{ width: '25%' }}>Description</TableCell>
+                  <TableCell sx={{ width: '12%', display: { xs: 'none', md: 'table-cell' } }}>Submitter</TableCell>
+                  <TableCell sx={{ width: '8%' }}>Status</TableCell>
+                  <TableCell sx={{ width: '8%', display: { xs: 'none', sm: 'table-cell' } }}>Urgency</TableCell>
+                  <TableCell sx={{ width: '12%', display: { xs: 'none', sm: 'table-cell' } }}>Due Date</TableCell>
+                  <TableCell sx={{ width: '10%' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -355,14 +426,26 @@ export default function TicketList() {
                           {ticket.submitterEmail}
                         </Typography>
                       </TableCell>
-                      <TableCell sx={{ width: { xs: '20%', sm: '10%' } }}>
+                      <TableCell sx={{ width: '8%' }}>
                         <Chip
                           label={ticket.status}
                           color={getStatusColor(ticket.status)}
                           size="small"
                         />
                       </TableCell>
-                      <TableCell sx={{ width: { xs: '20%', sm: '23%' } }}>
+                      <TableCell sx={{ width: '8%', display: { xs: 'none', sm: 'table-cell' } }}>
+                        <Chip
+                          label={ticket.urgency}
+                          color={getUrgencyColor(ticket.urgency)}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell sx={{ width: '12%', display: { xs: 'none', sm: 'table-cell' } }}>
+                        <Typography sx={(theme) => ({ color: theme.palette.primary.contrastText })}>
+                          {formatDueDate(ticket.dueDate)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ width: '10%' }}>
                         <Box onClick={(e) => e.stopPropagation()}>
                           <IconButton
                             size="small"

@@ -20,21 +20,23 @@ type User struct {
 
 // Ticket represents a help desk ticket submitted by end users
 type Ticket struct {
-	ID             uint           `json:"id" gorm:"primaryKey"`
-	TicketNumber   string         `json:"ticketNumber" gorm:"unique"`
-	Category       string         `json:"category"`
-	Description    string         `json:"description"`
-	Status         string         `json:"status"`
-	SubmitterEmail string         `json:"submitterEmail"`
-	AssignedTo     *uint          `json:"assignedTo,omitempty" gorm:"index"`
-	Solution       *string        `json:"solution,omitempty"`
-	ResolvedBy     *uint          `json:"resolvedBy,omitempty" gorm:"index"`
-	ResolvedAt     *time.Time     `json:"resolvedAt,omitempty"`
-	CreatedAt      time.Time      `json:"createdAt"`
-	UpdatedAt      time.Time      `json:"updatedAt"`
-	DeletedAt      gorm.DeletedAt `json:"-" gorm:"index"`
-	History        []TicketHistory `json:"history,omitempty" gorm:"foreignKey:TicketID"`
-	Solutions      []Solution      `json:"solutions,omitempty" gorm:"many2many:ticket_solutions_map;"`
+ID             uint           `json:"id" gorm:"primaryKey"`
+TicketNumber   string         `json:"ticketNumber" gorm:"unique"`
+Category       string         `json:"category"`
+Description    string         `json:"description"`
+Status         string         `json:"status"`
+Urgency        string         `json:"urgency" gorm:"type:varchar(50);not null;default:'normal'"`
+DueDate        *time.Time     `json:"dueDate,omitempty"`
+SubmitterEmail string         `json:"submitterEmail"`
+AssignedTo     *uint          `json:"assignedTo,omitempty" gorm:"index"`
+Solution       *string        `json:"solution,omitempty"`
+ResolvedBy     *uint          `json:"resolvedBy,omitempty" gorm:"index"`
+ResolvedAt     *time.Time     `json:"resolvedAt,omitempty"`
+CreatedAt      time.Time      `json:"createdAt"`
+UpdatedAt      time.Time      `json:"updatedAt"`
+DeletedAt      gorm.DeletedAt `json:"-" gorm:"index"`
+History        []TicketHistory `json:"history,omitempty" gorm:"foreignKey:TicketID"`
+Solutions      []Solution      `json:"solutions,omitempty" gorm:"many2many:ticket_solutions_map;"`
 }
 
 // Solution represents a reusable solution for tickets
@@ -145,10 +147,27 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 
 // BeforeCreate hook for Ticket
 func (t *Ticket) BeforeCreate(tx *gorm.DB) error {
-	if t.Status == "" {
-		t.Status = "open"
-	}
-	return nil
+    if t.Status == "" {
+        t.Status = "open"
+    }
+    if t.Urgency == "" {
+        t.Urgency = "normal"
+    }
+    // Set urgency based on due date if not explicitly set
+    if t.DueDate != nil {
+        daysUntilDue := time.Until(*t.DueDate).Hours() / 24
+        switch {
+        case daysUntilDue <= 1:
+            t.Urgency = TicketUrgencyCritical
+        case daysUntilDue <= 3:
+            t.Urgency = TicketUrgencyHigh
+        case daysUntilDue <= 7:
+            t.Urgency = TicketUrgencyNormal
+        default:
+            t.Urgency = TicketUrgencyLow
+        }
+    }
+    return nil
 }
 
 // BeforeCreate hook for Task
@@ -175,7 +194,13 @@ const (
 	TaskPriorityLow    = "low"
 	TaskPriorityMedium = "medium"
 	TaskPriorityHigh   = "high"
-
+	
+	// Ticket urgency levels
+	TicketUrgencyLow      = "low"
+	TicketUrgencyNormal   = "normal"
+	TicketUrgencyHigh     = "high"
+	TicketUrgencyCritical = "critical"
+	
 	// User roles
 	UserRoleAdmin = "admin"
 	UserRoleStaff = "staff"

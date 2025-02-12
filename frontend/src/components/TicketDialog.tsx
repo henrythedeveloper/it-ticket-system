@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import {
   Dialog,
   DialogTitle,
@@ -64,6 +68,8 @@ export default function TicketDialog({
   onSave,
 }: TicketDialogProps) {
   const [status, setStatus] = useState<'open' | 'in_progress' | 'resolved'>('open');
+  const [urgency, setUrgency] = useState<'low' | 'normal' | 'high' | 'critical'>('normal');
+  const [dueDate, setDueDate] = useState<string | null>(null);
   const [assignedTo, setAssignedTo] = useState<Nullable<number>>(null);
   const [solution, setSolution] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
@@ -90,6 +96,8 @@ export default function TicketDialog({
   useEffect(() => {
     if (ticket) {
       setStatus(ticket.status);
+      setUrgency(ticket.urgency || 'normal');
+      setDueDate(ticket.dueDate || null);
       setAssignedTo(ticket.assignedTo ?? null);
       setSolution(ticket.solution || '');
       setNotes('');
@@ -101,6 +109,8 @@ export default function TicketDialog({
 
     const updates: Partial<Ticket> = {
       status,
+      urgency,
+      dueDate,
       assignedTo: assignedTo ?? null,
       solution: status === 'resolved' ? solution || null : null,
     };
@@ -159,6 +169,37 @@ export default function TicketDialog({
                 <MenuItem value="resolved">Resolved</MenuItem>
               </Select>
             </FormControl>
+
+            <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+              <FormControl fullWidth>
+                <InputLabel>Urgency</InputLabel>
+                <Select
+                  value={urgency}
+                  onChange={(e) => setUrgency(e.target.value as typeof urgency)}
+                  label="Urgency"
+                >
+                  <MenuItem value="low">Low</MenuItem>
+                  <MenuItem value="normal">Normal</MenuItem>
+                  <MenuItem value="high">High</MenuItem>
+                  <MenuItem value="critical">Critical</MenuItem>
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth>
+                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                  <DateTimePicker
+                    label="Due Date"
+                    value={dueDate ? dayjs(dueDate) : null}
+                    onChange={(date) => setDueDate(date ? date.toISOString() : null)}
+                    slotProps={{
+                      textField: {
+                        fullWidth: true
+                      }
+                    }}
+                  />
+                </LocalizationProvider>
+              </FormControl>
+            </Box>
 
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Assign To</InputLabel>

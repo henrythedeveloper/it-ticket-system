@@ -1,15 +1,12 @@
-- admin can delete users
-- center containers in public, login, register,
-- remove the invite user (maybe leave, just need to implement mail)
-- public display add a faq as a menu on the side 
-  - when they submit a ticket they can see bottom container that contains solutions based on their description, looking for keywords they can try
-- create a common solutions menu that you can view based on the category? 
-- when you create a ticket, or reassign, it shows a solution box, I only want that to show when the ticket is resolved either from the ticket dialog or the resolve button on the ticket list
-- the ticket list is too big that it is scrolling past also there is a lot of space on the right of each container, expand so it fits the full width of the screen
-- fix the colors for light and dark on the ticket cause it is bright when it is assigned to you, 
-- when in dark mode make sure the root background also changes to black
-- when in mobile mode mke sure it is mobile responsive, when I make the window smaller the content on the page does not resize
-- also when in mobile view the menu hamber icon should be on the left side
-- maybe create another table to add the emails of users who submit tickets so there can be implementation of a way to see solutions based on the email address of the user who submitted the ticket. Its possible to that the user who submitted the ticket will run into the same problem so it can be nice to see a track record of that
-- when not in full screen the dashboard view expands and there is not limit it keeps going, those containers need a fixed width
-- on the dashboard view you should be able to click on the tasks and tickets, maybe just add the ticket dialog and task dialog to the dashboard view when clicked
+- a way to have scheduled tasks auto create themselves (reoccuring)
+  - Our team might want to have a task that needs to be completed daily
+- be able to click on the sender email and show a list of tickets from that sender
+  - and be able to click on those ticket history
+- be able to export the ticket hirstory in it's entirety by csv or pdf (admin)
+- on the dashboard it needs to be wider and show more details on whats assigned to you from tickets and tasks
+  - maybe another container that shows any urgent ones that are due today
+  - you should also be able to click on those tickets and have the dialog pop up from there.
+- there should be a ticket container on ticket list at the top showing ones that are due today or tomorrow
+  - same with tasks
+- When you click open a ticket there should be suggestions or another dialog showing previous solutions that might be applicable to the new ticket. There can be an automatic scrubbing on the description of the problem and the dialog would show up with possible solutions from the past. You can then choose the solution and it will automatically apply that solution to the ticket, you can then add any additional things to the solution and/or close the ticket when you are done. We might need to change the rule where the solution will only show if the ticket is marked as resolved.
+- On the ticketlist page the tickets assigned to you should be above the tickets assigned to others. same with taskslist page

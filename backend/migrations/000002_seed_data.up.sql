@@ -28,11 +28,11 @@ INSERT INTO solutions (title, description, category) VALUES
 ('Update Drivers', 'Download and install the latest drivers for your hardware devices.', 'hardware');
 
 -- Insert sample tickets
-INSERT INTO tickets (category, description, status, submitter_email, assigned_to)
+INSERT INTO tickets (category, description, status, submitter_email, assigned_to, urgency, due_date)
 VALUES
-    ('Hardware', 'My laptop won''t turn on', 'open', 'employee@company.com', 2),
-    ('Software', 'Need Microsoft Office installed', 'in_progress', 'manager@company.com', 3),
-    ('Network', 'Cannot connect to WiFi', 'resolved', 'user@company.com', 2);
+    ('Hardware', 'My laptop won''t turn on', 'open', 'employee@company.com', 2, 'critical', NOW() + INTERVAL '1 day'),
+    ('Software', 'Need Microsoft Office installed', 'in_progress', 'manager@company.com', 3, 'normal', NOW() + INTERVAL '3 days'),
+    ('Network', 'Cannot connect to WiFi', 'resolved', 'user@company.com', 2, 'high', NOW() - INTERVAL '1 day');
 
 -- Insert comprehensive ticket solutions
 INSERT INTO ticket_solutions (category, title, description, created_by)

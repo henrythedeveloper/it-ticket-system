@@ -16,17 +16,23 @@ import {
   Collapse,
   CircularProgress,
 } from '@mui/material';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { useNavigate } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import { LightbulbOutlined as LightbulbIcon } from '@mui/icons-material';
 import api from '../../utils/axios';
 import debounce from 'lodash/debounce';
 import PageContainer from '../../components/layout/PageContainer';
+import dayjs from 'dayjs';
 
 interface TicketFormData {
   category: string;
   description: string;
   submitterEmail: string;
+  urgency: 'low' | 'normal' | 'high' | 'critical';
+  dueDate: string | null;
 }
 
 interface Solution {
@@ -42,6 +48,8 @@ export default function SubmitTicket() {
     category: '',
     description: '',
     submitterEmail: '',
+    urgency: 'normal',
+    dueDate: null,
   });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -130,6 +138,43 @@ export default function SubmitTicket() {
             <MenuItem value="other">Other</MenuItem>
           </Select>
         </FormControl>
+
+        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+          <FormControl fullWidth>
+            <InputLabel>Urgency</InputLabel>
+            <Select
+              value={formData.urgency}
+              label="Urgency"
+              onChange={(e) =>
+                setFormData({ ...formData, urgency: e.target.value as 'low' | 'normal' | 'high' | 'critical' })
+              }
+              required
+            >
+              <MenuItem value="low">Low</MenuItem>
+              <MenuItem value="normal">Normal</MenuItem>
+              <MenuItem value="high">High</MenuItem>
+              <MenuItem value="critical">Critical</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DateTimePicker
+                label="Due Date"
+                value={formData.dueDate ? dayjs(formData.dueDate) : null}
+                onChange={(date) =>
+                  setFormData({ ...formData, dueDate: date ? date.toISOString() : null })
+                }
+                sx={{ width: '100%' }}
+                slotProps={{
+                  textField: {
+                    fullWidth: true
+                  }
+                }}
+              />
+            </LocalizationProvider>
+          </FormControl>
+        </Box>
 
         <TextField
           fullWidth
