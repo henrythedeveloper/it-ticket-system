@@ -10,18 +10,35 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Button,
+  alpha,
+  useTheme,
 } from '@mui/material';
-import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
+import {
+  ExpandMore as ExpandMoreIcon,
+  Add as AddIcon,
+  Check as CheckIcon,
+} from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { Solution } from '../types';
 import api from '../utils/axios';
+import { colors, shadows, chipStyles } from '../styles/common';
 
 interface CommonSolutionsProps {
   category?: string;
   email?: string;
+  onApplySolution?: (solution: Solution) => void;
+  appliedSolutionId?: number | null;
 }
 
-export default function CommonSolutions({ category, email }: CommonSolutionsProps) {
+export default function CommonSolutions({ 
+  category, 
+  email,
+  onApplySolution,
+  appliedSolutionId
+}: CommonSolutionsProps) {
+  const theme = useTheme();
+
   const { data: solutions, isLoading } = useQuery<{ data: Solution[] }>({
     queryKey: ['solutions', category, email],
     queryFn: async () => {
@@ -31,7 +48,7 @@ export default function CommonSolutions({ category, email }: CommonSolutionsProp
       const response = await api.get(`/ticket-solutions?${params.toString()}`);
       return response.data;
     },
-    enabled: Boolean(category), // Only run query if category is provided
+    enabled: Boolean(category),
   });
 
   const groupedSolutions = React.useMemo(() => {
@@ -48,7 +65,7 @@ export default function CommonSolutions({ category, email }: CommonSolutionsProp
 
   if (isLoading) {
     return (
-      <Box sx={{ p: 2 }}>
+      <Box sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
         <Typography>Loading solutions...</Typography>
       </Box>
     );
@@ -56,7 +73,13 @@ export default function CommonSolutions({ category, email }: CommonSolutionsProp
 
   if (!solutions?.data?.length) {
     return (
-      <Box sx={{ p: 2 }}>
+      <Box sx={{ 
+        p: 3,
+        textAlign: 'center',
+        color: 'text.secondary',
+        backgroundColor: alpha(theme.palette.background.paper, 0.6),
+        borderRadius: 2,
+      }}>
         <Typography>No solutions found for this category.</Typography>
       </Box>
     );
@@ -65,60 +88,141 @@ export default function CommonSolutions({ category, email }: CommonSolutionsProp
   return (
     <Box>
       {Object.entries(groupedSolutions).map(([category, categorySolutions]) => (
-        <Accordion key={category} defaultExpanded={true}>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="h6" sx={{ textTransform: 'capitalize' }}>
+        <Accordion 
+          key={category} 
+          defaultExpanded={true}
+          elevation={0}
+          sx={{
+            backgroundColor: 'transparent',
+            '&:before': { display: 'none' },
+            '&:not(:last-child)': { mb: 2 },
+          }}
+        >
+          <AccordionSummary 
+            expandIcon={<ExpandMoreIcon />}
+            sx={{
+              backgroundColor: alpha(theme.palette.background.paper, 0.6),
+              borderRadius: 2,
+              '&.Mui-expanded': {
+                borderBottomLeftRadius: 0,
+                borderBottomRightRadius: 0,
+              },
+            }}
+          >
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                textTransform: 'capitalize',
+                fontWeight: 600,
+                letterSpacing: '-0.01em',
+              }}
+            >
               {category.replace('_', ' ')}
             </Typography>
           </AccordionSummary>
-          <AccordionDetails>
+          <AccordionDetails sx={{ pt: 2 }}>
             <Grid container spacing={2}>
-              {categorySolutions.map((solution) => (
-                <Grid item xs={12} key={solution.id}>
-                  <Card 
-                    variant="outlined"
-                    sx={{
-                      borderColor: solution.previouslyUsed 
-                        ? 'primary.main' 
-                        : 'divider',
-                    }}
-                  >
-                    <CardContent>
-                      <Stack spacing={1}>
-                        <Box 
-                          sx={{ 
+              {categorySolutions.map((solution) => {
+                const isApplied = solution.id === appliedSolutionId;
+                return (
+                  <Grid item xs={12} key={solution.id}>
+                    <Card 
+                      elevation={0}
+                      sx={{
+                        borderRadius: 2,
+                        backgroundColor: isApplied 
+                          ? alpha(colors.successGreen, 0.1)
+                          : solution.previouslyUsed
+                          ? alpha(colors.primaryBlue, 0.05)
+                          : theme.palette.background.paper,
+                        boxShadow: shadows.subtle,
+                        transition: 'all 0.2s ease-in-out',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: shadows.medium,
+                        },
+                      }}
+                    >
+                      <CardContent>
+                        <Stack spacing={2}>
+                          <Box sx={{ 
                             display: 'flex', 
                             justifyContent: 'space-between',
-                            alignItems: 'flex-start' 
-                          }}
-                        >
-                          <Typography variant="h6" gutterBottom>
-                            {solution.title}
+                            alignItems: 'flex-start',
+                            gap: 2,
+                          }}>
+                            <Box>
+                              <Typography 
+                                variant="h6" 
+                                sx={{ 
+                                  fontWeight: 600,
+                                  mb: 0.5,
+                                  color: isApplied 
+                                    ? colors.successGreen 
+                                    : theme.palette.text.primary,
+                                }}
+                              >
+                                {solution.title}
+                              </Typography>
+                              <Stack direction="row" spacing={1}>
+                                {solution.previouslyUsed && (
+                                  <Chip
+                                    label="Previously Used"
+                                    size="small"
+                                    sx={{
+                                      ...chipStyles,
+                                      backgroundColor: alpha(colors.primaryBlue, 0.1),
+                                      color: colors.primaryBlue,
+                                    }}
+                                  />
+                                )}
+                                {isApplied && (
+                                  <Chip
+                                    icon={<CheckIcon />}
+                                    label="Applied"
+                                    size="small"
+                                    sx={{
+                                      ...chipStyles,
+                                      backgroundColor: alpha(colors.successGreen, 0.1),
+                                      color: colors.successGreen,
+                                    }}
+                                  />
+                                )}
+                              </Stack>
+                            </Box>
+                            {onApplySolution && !isApplied && (
+                              <Button
+                                startIcon={<AddIcon />}
+                                onClick={() => onApplySolution(solution)}
+                                sx={{
+                                  ...chipStyles,
+                                  backgroundColor: alpha(colors.primaryBlue, 0.1),
+                                  color: colors.primaryBlue,
+                                  '&:hover': {
+                                    backgroundColor: alpha(colors.primaryBlue, 0.2),
+                                  },
+                                }}
+                              >
+                                Apply Solution
+                              </Button>
+                            )}
+                          </Box>
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              color: theme.palette.text.secondary,
+                              whiteSpace: 'pre-wrap',
+                              lineHeight: 1.6,
+                            }}
+                          >
+                            {solution.description}
                           </Typography>
-                          {solution.previouslyUsed && (
-                            <Chip
-                              label="Previously Used"
-                              color="primary"
-                              size="small"
-                              sx={{ ml: 1 }}
-                            />
-                          )}
-                        </Box>
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary"
-                          sx={{ 
-                            whiteSpace: 'pre-wrap',
-                            mb: 1 
-                          }}
-                        >
-                          {solution.description}
-                        </Typography>
-                      </Stack>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
+                        </Stack>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                );
+              })}
             </Grid>
           </AccordionDetails>
         </Accordion>

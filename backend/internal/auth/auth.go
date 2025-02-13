@@ -1,172 +1,132 @@
 package auth
 
 import (
-	"errors"
-	"log"
-	"time"
+"database/sql"
+"net/http"
+"os"
+"time"
 
-	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
-
-	"helpdesk/internal/models"
+"github.com/gin-gonic/gin"
+"github.com/golang-jwt/jwt/v5"
+"golang.org/x/crypto/bcrypt"
 )
 
-var (
-	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrUserExists         = errors.New("user already exists")
-	ErrInvalidToken       = errors.New("invalid token")
-)
-
-type Service struct {
-	db        *gorm.DB
-	jwtSecret []byte
-	tokenExp  time.Duration
+type LoginRequest struct {
+Email    string `json:"email" binding:"required"`
+Password string `json:"password" binding:"required"`
 }
 
-type Claims struct {
-	UserID uint   `json:"user_id"`
-	Role   string `json:"role"`
-	jwt.RegisteredClaims
+type RegisterRequest struct {
+Name     string `json:"name" binding:"required"`
+Email    string `json:"email" binding:"required"`
+Password string `json:"password" binding:"required"`
 }
 
-func NewService(db *gorm.DB, jwtSecret string, tokenExp time.Duration) *Service {
-	return &Service{
-		db:        db,
-		jwtSecret: []byte(jwtSecret),
-		tokenExp:  tokenExp,
-	}
+func LoginHandler(db *sql.DB) gin.HandlerFunc {
+return func(c *gin.Context) {
+var req LoginRequest
+if err := c.ShouldBindJSON(&req); err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+return
 }
 
-// RegisterUser creates a new user account
-func (s *Service) RegisterUser(email, password, name string) (*models.User, error) {
-	// Check if user exists
-	var existingUser models.User
-	result := s.db.Where("email = ?", email).First(&existingUser)
-	if result.Error == nil {
-		return nil, ErrUserExists
-	}
-	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, result.Error
-	}
-
-	// Hash password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create user
-	user := &models.User{
-		Email:    email,
-		Password: string(hashedPassword),
-		Name:     name,
-		Role:     models.UserRoleStaff, // Default role
-	}
-
-	if err := s.db.Create(user).Error; err != nil {
-		return nil, err
-	}
-
-	return user, nil
+var user struct {
+ID       int
+Password string
+Role     string
 }
 
-// Login authenticates a user and returns a JWT token
-func (s *Service) Login(email, password string) (string, *models.User, error) {
-	log.Printf("Login attempt for email: %s", email)
+err := db.QueryRow(`
+SELECT id, password, role
+FROM users
+WHERE email = $1 AND deleted_at IS NULL
+`, req.Email).Scan(&user.ID, &user.Password, &user.Role)
 
-	var user models.User
-	if err := s.db.Where("email = ?", email).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", nil, ErrInvalidCredentials
-		}
-		return "", nil, err
-	}
-
-	log.Printf("Stored hash: %s", user.Password)
-	// Verify password
-	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
-	// Add this debug log
-	log.Printf("Password comparison result: %v", err)
-
-	if err != nil {
-		return "", nil, ErrInvalidCredentials
-	}
-
-	// Generate token
-	token, err := s.GenerateToken(user)
-	if err != nil {
-		return "", nil, err
-	}
-
-	return token, &user, nil
+if err != nil {
+c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+return
 }
 
-// GenerateToken creates a new JWT token for a user
-func (s *Service) GenerateToken(user models.User) (string, error) {
-	claims := Claims{
-		UserID: user.ID,
-		Role:   user.Role,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.tokenExp)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(s.jwtSecret)
+// Compare password with hash
+if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+return
 }
 
-// ValidateToken verifies a JWT token and returns the claims
-func (s *Service) ValidateToken(tokenString string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, ErrInvalidToken
-		}
-		return s.jwtSecret, nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
-		return claims, nil
-	}
-
-	return nil, ErrInvalidToken
+// Get JWT secret from environment
+jwtSecret := os.Getenv("JWT_SECRET")
+if jwtSecret == "" {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "JWT secret not configured"})
+return
 }
 
-// GetUserByID retrieves a user by their ID
-func (s *Service) GetUserByID(id uint) (*models.User, error) {
-	var user models.User
-	if err := s.db.First(&user, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &user, nil
+// Create token
+token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+"user_id": user.ID,
+"role":    user.Role,
+"exp":     time.Now().Add(24 * time.Hour).Unix(),
+})
+
+// Sign and get the complete encoded token as a string
+tokenString, err := token.SignedString([]byte(jwtSecret))
+if err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create token"})
+return
 }
 
-// ChangePassword updates a user's password
-func (s *Service) ChangePassword(userID uint, oldPassword, newPassword string) error {
-	var user models.User
-	if err := s.db.First(&user, userID).Error; err != nil {
-		return err
-	}
+c.JSON(http.StatusOK, gin.H{
+"token": tokenString,
+"user": gin.H{
+"id":   user.ID,
+"role": user.Role,
+},
+})
+}
+}
 
-	// Verify old password
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPassword)); err != nil {
-		return ErrInvalidCredentials
-	}
+func RegisterHandler(db *sql.DB) gin.HandlerFunc {
+return func(c *gin.Context) {
+var req RegisterRequest
+if err := c.ShouldBindJSON(&req); err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+return
+}
 
-	// Hash new password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
+// Check if email already exists
+var exists bool
+err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)", req.Email).Scan(&exists)
+if err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+return
+}
+if exists {
+c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
+return
+}
 
-	// Update password
-	return s.db.Model(&user).Update("password", string(hashedPassword)).Error
+// Hash password
+hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+if err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+return
+}
+
+// Insert new user
+var userID int
+err = db.QueryRow(`
+INSERT INTO users (name, email, password, role, created_at, updated_at)
+VALUES ($1, $2, $3, 'user', NOW(), NOW())
+RETURNING id
+`, req.Name, req.Email, string(hashedPassword)).Scan(&userID)
+
+if err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+return
+}
+
+c.JSON(http.StatusCreated, gin.H{
+"message": "User registered successfully",
+"id":      userID,
+})
+}
 }

@@ -9,17 +9,50 @@ import {
   Chip,
   Button,
   useTheme,
+  alpha,
+  Stack,
 } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Task, Ticket } from '../../types';
+import { Task, Ticket, isTicket } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../utils/axios';
+import {
+  cardStyles,
+  listItemStyles,
+  headerContainerStyles,
+  truncatedTextStyles,
+  chipStyles,
+  chipContainerStyles,
+  sectionTitleStyles,
+  ticketNumberStyles,
+  colors,
+  shadows,
+} from '../../styles/common';
+import { useState } from 'react';
+import TicketDialog from '../../components/TicketDialog';
+import TaskDialog from '../../components/TaskDialog';
+import { 
+  CalendarToday as CalendarIcon,
+  ArrowForward as ArrowIcon,
+  Error as UrgentIcon,
+  Assignment as TaskIcon,
+  ConfirmationNumber as TicketIcon,
+} from '@mui/icons-material';
 
 export default function Dashboard() {
-  const { user } = useAuth();
   const theme = useTheme();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const queryClient = useQueryClient();
+
+  // Get today's date at midnight for comparison
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
 
   const { data: tickets } = useQuery<{ data: Ticket[] }>({
     queryKey: ['tickets'],
@@ -45,82 +78,381 @@ export default function Dashboard() {
     (task) => task.assignedTo === user?.id && task.status !== 'done'
   ) || [];
 
+  const dueTodayTickets = assignedTickets.filter(ticket => 
+    ticket.dueDate && new Date(ticket.dueDate).getDate() === today.getDate()
+  );
+
+  const dueTomorrowTickets = assignedTickets.filter(ticket => 
+    ticket.dueDate && new Date(ticket.dueDate).getDate() === tomorrow.getDate()
+  );
+
+  const dueTodayTasks = assignedTasks.filter(task => 
+    task.dueDate && new Date(task.dueDate).getDate() === today.getDate()
+  );
+
+  const dueTomorrowTasks = assignedTasks.filter(task => 
+    task.dueDate && new Date(task.dueDate).getDate() === tomorrow.getDate()
+  );
+
+  const urgentItems = [
+    ...assignedTickets.filter(ticket => 
+      ticket.urgency === 'critical' || 
+      (ticket.dueDate && new Date(ticket.dueDate) <= tomorrow)
+    ),
+    ...assignedTasks.filter(task => 
+      task.priority === 'high' && 
+      task.dueDate && new Date(task.dueDate) <= tomorrow
+    )
+  ];
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open':
       case 'todo':
-        return 'error';
+        return colors.primaryBlue;
       case 'in_progress':
-        return 'warning';
+        return colors.warningYellow;
       case 'resolved':
       case 'done':
-        return 'success';
+        return colors.successGreen;
       default:
-        return 'default';
+        return colors.secondaryGray;
     }
   };
 
-  return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        Welcome back, {user?.name}
-      </Typography>
+  const handleTaskSave = async (updatedTask: Partial<Task>) => {
+    if (!selectedTask?.id) return;
+    try {
+      await api.patch(`/tasks/${selectedTask.id}`, updatedTask);
+      await queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setSelectedTask(null);
+    } catch (error) {
+      console.error('Failed to update task:', error);
+    }
+  };
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Paper
+  const handleTicketSave = async (updatedTicket: Partial<Ticket>) => {
+    if (!selectedTicket?.id) return;
+    try {
+      await api.patch(`/tickets/${selectedTicket.id}`, updatedTicket);
+      await queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      setSelectedTicket(null);
+    } catch (error) {
+      console.error('Failed to update ticket:', error);
+    }
+  };
+
+  const ItemCard = ({ item }: { item: Ticket | Task }) => (
+    <Box
+      onClick={() => {
+        if (isTicket(item)) {
+          setSelectedTicket(item);
+        } else {
+          setSelectedTask(item);
+        }
+      }}
+      sx={{
+        p: 2,
+        borderRadius: 2,
+        backgroundColor: alpha(theme.palette.background.paper, 0.6),
+        backdropFilter: 'blur(10px)',
+        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+        boxShadow: shadows.subtle,
+        cursor: 'pointer',
+        transition: 'all 0.2s ease-in-out',
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: shadows.medium,
+          backgroundColor: alpha(theme.palette.background.paper, 0.8),
+        },
+      }}
+    >
+      <Stack spacing={2}>
+        <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+          <Stack direction="row" spacing={1} alignItems="center">
+            {isTicket(item) ? (
+              <Typography sx={ticketNumberStyles}>
+                {item.ticketNumber}
+              </Typography>
+            ) : (
+              <Typography sx={{
+                ...sectionTitleStyles,
+                fontSize: '1rem',
+              }}>
+                {item.title}
+              </Typography>
+            )}
+          </Stack>
+          <Stack direction="row" spacing={1}>
+            <Chip
+              size="small"
+              label={item.status}
+              sx={{
+                ...chipStyles,
+                backgroundColor: `${getStatusColor(item.status)}15`,
+                color: getStatusColor(item.status),
+              }}
+            />
+            {isTicket(item) ? (
+              <Chip
+                size="small"
+                label={item.urgency}
+                sx={{
+                  ...chipStyles,
+                  backgroundColor: `${colors.errorRed}15`,
+                  color: colors.errorRed,
+                }}
+              />
+            ) : (
+              <Chip
+                size="small"
+                label={item.priority}
+                sx={{
+                  ...chipStyles,
+                  backgroundColor:
+                    item.priority === 'high'
+                      ? `${colors.errorRed}15`
+                      : item.priority === 'medium'
+                      ? `${colors.warningYellow}15`
+                      : `${colors.secondaryGray}15`,
+                  color:
+                    item.priority === 'high'
+                      ? colors.errorRed
+                      : item.priority === 'medium'
+                      ? colors.warningYellow
+                      : colors.secondaryGray,
+                }}
+              />
+            )}
+          </Stack>
+        </Stack>
+        <Typography 
+          sx={{
+            ...truncatedTextStyles,
+            color: alpha(theme.palette.text.primary, 0.7),
+          }}
+        >
+          {item.description}
+        </Typography>
+      </Stack>
+    </Box>
+  );
+
+  const DueSection = ({ title, icon, tickets, tasks }: { 
+    title: string;
+    icon: React.ReactNode;
+    tickets: Ticket[];
+    tasks: Task[];
+  }) => (
+    tickets.length > 0 || tasks.length > 0 ? (
+      <Box sx={{ mb: 4 }}>
+        <Stack 
+          direction="row" 
+          spacing={1} 
+          alignItems="center" 
+          sx={{ mb: 2 }}
+        >
+          {icon}
+          <Typography sx={{
+            ...sectionTitleStyles,
+            fontSize: '1.25rem',
+          }}>
+            {title}
+          </Typography>
+        </Stack>
+        <Grid container spacing={2}>
+          {[...tickets, ...tasks].map((item) => (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={isTicket(item) ? item.ticketNumber : item.id}>
+              <ItemCard item={item} />
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+    ) : null
+  );
+
+  return (
+    <Box sx={{ maxWidth: '100%', mx: 'auto', p: { xs: 2, sm: 3 } }}>
+      {/* Welcome Section */}
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{ mb: 4 }}
+      >
+        <Typography variant="h4" sx={sectionTitleStyles}>
+          Welcome back, {user?.name}
+        </Typography>
+        <Stack direction="row" spacing={2}>
+          <Button
+            startIcon={<TicketIcon />}
+            onClick={() => navigate('/portal/tickets')}
             sx={{
-              p: 2,
-              height: '100%',
-              backgroundColor: theme.palette.background.paper,
+              ...chipStyles,
+              backgroundColor: alpha(colors.primaryBlue, 0.1),
+              color: colors.primaryBlue,
+              '&:hover': {
+                backgroundColor: alpha(colors.primaryBlue, 0.2),
+              },
             }}
           >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-              <Typography variant="h6">Assigned Tickets</Typography>
+            All Tickets
+          </Button>
+          <Button
+            startIcon={<TaskIcon />}
+            onClick={() => navigate('/portal/tasks')}
+            sx={{
+              ...chipStyles,
+              backgroundColor: alpha(colors.successGreen, 0.1),
+              color: colors.successGreen,
+              '&:hover': {
+                backgroundColor: alpha(colors.successGreen, 0.2),
+              },
+            }}
+          >
+            All Tasks
+          </Button>
+        </Stack>
+      </Stack>
+
+      {/* Due Today Section */}
+      <DueSection
+        title="Due Today"
+        icon={<CalendarIcon sx={{ color: colors.warningYellow }} />}
+        tickets={dueTodayTickets}
+        tasks={dueTodayTasks}
+      />
+
+      {/* Due Tomorrow Section */}
+      <DueSection
+        title="Due Tomorrow"
+        icon={<ArrowIcon sx={{ color: colors.primaryBlue }} />}
+        tickets={dueTomorrowTickets}
+        tasks={dueTomorrowTasks}
+      />
+
+      {/* Urgent Items Section */}
+      {urgentItems.length > 0 && (
+        <Box sx={{ mb: 4 }}>
+          <Stack 
+            direction="row" 
+            spacing={1} 
+            alignItems="center" 
+            sx={{ mb: 2 }}
+          >
+            <UrgentIcon sx={{ color: colors.errorRed }} />
+            <Typography sx={{
+              ...sectionTitleStyles,
+              fontSize: '1.25rem',
+              color: colors.errorRed,
+            }}>
+              Urgent Items
+            </Typography>
+          </Stack>
+          <Grid container spacing={2}>
+            {urgentItems.map((item) => (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={isTicket(item) ? item.ticketNumber : item.id}>
+                <ItemCard item={item} />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
+
+      {/* Main Content Grid */}
+      <Grid container spacing={3}>
+        {/* Assigned Tickets */}
+        <Grid item xs={12} lg={6}>
+          <Paper 
+            sx={{
+              ...cardStyles,
+              height: '100%',
+              backgroundColor: alpha(theme.palette.background.paper, 0.6),
+              backdropFilter: 'blur(10px)',
+              border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+            }} 
+            elevation={0}
+          >
+            <Box sx={headerContainerStyles}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <TicketIcon sx={{ color: colors.primaryBlue }} />
+                <Typography variant="h6" sx={sectionTitleStyles}>
+                  Assigned Tickets
+                </Typography>
+              </Stack>
               <Button
                 color="primary"
                 size="small"
                 onClick={() => navigate('/portal/tickets')}
+                sx={chipStyles}
               >
                 View All
               </Button>
             </Box>
             <List>
               {assignedTickets.length === 0 ? (
-                <ListItem>
-                  <ListItemText primary="No tickets assigned" />
-                </ListItem>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    color: alpha(theme.palette.text.primary, 0.6),
+                    textAlign: 'center',
+                    py: 4,
+                  }}
+                >
+                  No tickets assigned
+                </Typography>
               ) : (
                 assignedTickets.map((ticket) => (
                   <ListItem
                     key={ticket.id}
                     sx={{
-                      border: `1px solid ${theme.palette.divider}`,
-                      borderRadius: 1,
-                      mb: 1,
+                      ...listItemStyles,
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': {
+                        backgroundColor: alpha(theme.palette.action.hover, 0.1),
+                        transform: 'translateX(6px)',
+                      },
                     }}
+                    onClick={() => setSelectedTicket(ticket)}
                   >
                     <ListItemText
                       primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography
-                            variant="subtitle2"
-                            sx={{ fontFamily: 'monospace' }}
-                          >
+                        <Box sx={chipContainerStyles}>
+                          <Typography sx={ticketNumberStyles}>
                             {ticket.ticketNumber}
                           </Typography>
-                          <Chip
-                            size="small"
-                            label={ticket.status}
-                            color={getStatusColor(ticket.status)}
-                          />
+                          <Stack direction="row" spacing={1}>
+                            <Chip
+                              size="small"
+                              label={ticket.status}
+                              sx={{
+                                ...chipStyles,
+                                backgroundColor: `${getStatusColor(ticket.status)}15`,
+                                color: getStatusColor(ticket.status),
+                              }}
+                            />
+                            <Chip
+                              size="small"
+                              label={ticket.urgency}
+                              sx={{
+                                ...chipStyles,
+                                backgroundColor: `${colors.primaryBlue}15`,
+                                color: colors.primaryBlue,
+                              }}
+                            />
+                          </Stack>
                         </Box>
                       }
-                      secondary={ticket.description}
-                      secondaryTypographyProps={{
-                        noWrap: true,
-                        style: { maxWidth: '100%' },
-                      }}
+                      secondary={
+                        <Typography 
+                          sx={{
+                            ...truncatedTextStyles,
+                            color: alpha(theme.palette.text.primary, 0.7),
+                          }}
+                        >
+                          {ticket.description}
+                        </Typography>
+                      }
                     />
                   </ListItem>
                 ))
@@ -129,67 +461,111 @@ export default function Dashboard() {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={6}>
-          <Paper
+        {/* Assigned Tasks */}
+        <Grid item xs={12} lg={6}>
+          <Paper 
             sx={{
-              p: 2,
+              ...cardStyles,
               height: '100%',
-              backgroundColor: theme.palette.background.paper,
-            }}
+              backgroundColor: alpha(theme.palette.background.paper, 0.6),
+              backdropFilter: 'blur(10px)',
+              border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+            }} 
+            elevation={0}
           >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-              <Typography variant="h6">Assigned Tasks</Typography>
+            <Box sx={headerContainerStyles}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <TaskIcon sx={{ color: colors.successGreen }} />
+                <Typography variant="h6" sx={sectionTitleStyles}>
+                  Assigned Tasks
+                </Typography>
+              </Stack>
               <Button
                 color="primary"
                 size="small"
                 onClick={() => navigate('/portal/tasks')}
+                sx={chipStyles}
               >
                 View All
               </Button>
             </Box>
             <List>
               {assignedTasks.length === 0 ? (
-                <ListItem>
-                  <ListItemText primary="No tasks assigned" />
-                </ListItem>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    color: alpha(theme.palette.text.primary, 0.6),
+                    textAlign: 'center',
+                    py: 4,
+                  }}
+                >
+                  No tasks assigned
+                </Typography>
               ) : (
                 assignedTasks.map((task) => (
                   <ListItem
                     key={task.id}
                     sx={{
-                      border: `1px solid ${theme.palette.divider}`,
-                      borderRadius: 1,
-                      mb: 1,
+                      ...listItemStyles,
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': {
+                        backgroundColor: alpha(theme.palette.action.hover, 0.1),
+                        transform: 'translateX(6px)',
+                      },
                     }}
+                    onClick={() => setSelectedTask(task)}
                   >
                     <ListItemText
                       primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="subtitle2">{task.title}</Typography>
-                          <Chip
-                            size="small"
-                            label={task.status}
-                            color={getStatusColor(task.status)}
-                          />
-                          <Chip
-                            size="small"
-                            label={task.priority}
-                            color={
-                              task.priority === 'high'
-                                ? 'error'
-                                : task.priority === 'medium'
-                                ? 'warning'
-                                : 'default'
-                            }
-                            variant="outlined"
-                          />
+                        <Box sx={chipContainerStyles}>
+                          <Typography sx={{
+                            ...sectionTitleStyles,
+                            fontSize: '1rem',
+                          }}>
+                            {task.title}
+                          </Typography>
+                          <Stack direction="row" spacing={1}>
+                            <Chip
+                              size="small"
+                              label={task.status}
+                              sx={{
+                                ...chipStyles,
+                                backgroundColor: `${getStatusColor(task.status)}15`,
+                                color: getStatusColor(task.status),
+                              }}
+                            />
+                            <Chip
+                              size="small"
+                              label={task.priority}
+                              sx={{
+                                ...chipStyles,
+                                backgroundColor:
+                                  task.priority === 'high'
+                                    ? `${colors.errorRed}15`
+                                    : task.priority === 'medium'
+                                    ? `${colors.warningYellow}15`
+                                    : `${colors.secondaryGray}15`,
+                                color:
+                                  task.priority === 'high'
+                                    ? colors.errorRed
+                                    : task.priority === 'medium'
+                                    ? colors.warningYellow
+                                    : colors.secondaryGray,
+                              }}
+                            />
+                          </Stack>
                         </Box>
                       }
-                      secondary={task.description}
-                      secondaryTypographyProps={{
-                        noWrap: true,
-                        style: { maxWidth: '100%' },
-                      }}
+                      secondary={
+                        <Typography 
+                          sx={{
+                            ...truncatedTextStyles,
+                            color: alpha(theme.palette.text.primary, 0.7),
+                          }}
+                        >
+                          {task.description}
+                        </Typography>
+                      }
                     />
                   </ListItem>
                 ))
@@ -198,6 +574,25 @@ export default function Dashboard() {
           </Paper>
         </Grid>
       </Grid>
+
+      {selectedTicket && (
+        <TicketDialog
+          open={Boolean(selectedTicket)}
+          onClose={() => setSelectedTicket(null)}
+          ticket={selectedTicket}
+          onSave={handleTicketSave}
+        />
+      )}
+
+      {selectedTask && (
+        <TaskDialog 
+          open={Boolean(selectedTask)}
+          onClose={() => setSelectedTask(null)}
+          task={selectedTask}
+          onSave={handleTaskSave}
+          currentUser={user!}
+        />
+      )}
     </Box>
   );
 }

@@ -19,10 +19,28 @@ import {
   NetworkCheckOutlined,
   BuildOutlined,
   SettingsOutlined,
+  SvgIconComponent,
 } from '@mui/icons-material';
+import { 
+  colors, 
+  shadows, 
+  sectionTitleStyles 
+} from '../../styles/common';
 
-// Static solutions data
-const solutions = [
+interface Solution {
+  id: number;
+  category: string;
+  title: string;
+  description: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  icon: SvgIconComponent;
+}
+
+const solutions: Solution[] = [
   {
     id: 1,
     category: 'hardware',
@@ -73,7 +91,7 @@ const solutions = [
   }
 ];
 
-const categories = [
+const categories: Category[] = [
   { id: 'hardware', name: 'Hardware', icon: ComputerOutlined },
   { id: 'software', name: 'Software', icon: BuildOutlined },
   { id: 'network', name: 'Network', icon: NetworkCheckOutlined },
@@ -91,32 +109,48 @@ export default function Solutions() {
     const matchesSearch = searchQuery === '' || 
       solution.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       solution.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
     const matchesCategory = !selectedCategory || solution.category === selectedCategory;
-    
     return matchesSearch && matchesCategory;
   });
 
   return (
-    <Box sx={{ pb: 8 }}>
+    <Box>
       {/* Hero Section */}
       <Box
         sx={{
           position: 'relative',
-          bgcolor: 'primary.main',
-          color: 'primary.contrastText',
-          py: { xs: 6, md: 10 },
+          background: `linear-gradient(120deg, ${alpha(colors.primaryBlue, 0.95)}, ${alpha(colors.primaryBlue, 0.8)})`,
+          color: 'white',
+          py: { xs: 8, md: 12 },
           mb: 6,
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'url(/path/to/pattern.png) repeat',
+            opacity: 0.1,
+            zIndex: 0,
+          },
         }}
       >
-        <Container maxWidth="lg">
+        <Container 
+          maxWidth="lg"
+          sx={{
+            position: 'relative',
+            zIndex: 1,
+          }}
+        >
           <Typography
-            variant="h2"
             sx={{
-              fontWeight: 'bold',
-              fontSize: { xs: '2rem', md: '3rem' },
+              ...sectionTitleStyles,
+              color: 'white',
+              fontSize: { xs: '2.5rem', md: '3.5rem' },
               textAlign: 'center',
-              mb: 2,
+              mb: 3,
+              textShadow: '0 2px 4px rgba(0,0,0,0.1)',
             }}
           >
             Find Solutions
@@ -125,10 +159,12 @@ export default function Solutions() {
             variant="h6"
             sx={{
               textAlign: 'center',
-              mb: 4,
+              mb: 5,
               fontWeight: 'normal',
               maxWidth: '600px',
               mx: 'auto',
+              color: alpha('#fff', 0.9),
+              fontSize: { xs: '1rem', md: '1.25rem' },
             }}
           >
             Browse our collection of solutions and guides to help resolve common issues quickly.
@@ -143,17 +179,25 @@ export default function Solutions() {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon />
+                    <SearchIcon sx={{ color: alpha(theme.palette.text.primary, 0.5) }} />
                   </InputAdornment>
                 ),
                 sx: {
-                  bgcolor: 'background.paper',
+                  bgcolor: alpha(theme.palette.background.paper, 0.9),
+                  backdropFilter: 'blur(10px)',
                   borderRadius: 2,
+                  boxShadow: shadows.medium,
+                  transition: 'all 0.2s ease-in-out',
                   '& fieldset': {
                     borderColor: 'transparent',
                   },
-                  '&:hover fieldset': {
-                    borderColor: 'transparent',
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.background.paper, 0.95),
+                    boxShadow: shadows.strong,
+                  },
+                  '&.Mui-focused': {
+                    bgcolor: theme.palette.background.paper,
+                    boxShadow: shadows.strong,
                   },
                 }
               }}
@@ -164,16 +208,7 @@ export default function Solutions() {
 
       {/* Categories Grid */}
       <Container maxWidth="lg">
-        <Grid
-          container
-          spacing={3}
-          sx={{
-            mb: 6,
-            '& .MuiGrid-item': {
-              display: 'flex',
-            }
-          }}
-        >
+        <Grid container spacing={3} sx={{ mb: 6 }}>
           {categories.map((category) => {
             const Icon = category.icon;
             const isSelected = selectedCategory === category.id;
@@ -183,19 +218,23 @@ export default function Solutions() {
                   onClick={() => setSelectedCategory(isSelected ? null : category.id)}
                   sx={{
                     cursor: 'pointer',
-                    width: '100%',
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    transition: 'all 0.3s',
-                    bgcolor: isSelected ? 'primary.main' : 'background.paper',
-                    color: isSelected ? 'primary.contrastText' : 'text.primary',
+                    transition: 'all 0.3s ease-in-out',
+                    bgcolor: isSelected 
+                      ? alpha(colors.primaryBlue, 0.1)
+                      : theme.palette.background.paper,
+                    border: `1px solid ${isSelected 
+                      ? alpha(colors.primaryBlue, 0.2)
+                      : alpha(theme.palette.divider, 0.1)}`,
+                    boxShadow: isSelected ? shadows.subtle : 'none',
                     '&:hover': {
                       transform: 'translateY(-4px)',
-                      boxShadow: theme.shadows[4],
+                      boxShadow: shadows.medium,
                       bgcolor: isSelected
-                        ? 'primary.dark'
-                        : alpha(theme.palette.primary.main, 0.1),
+                        ? alpha(colors.primaryBlue, 0.15)
+                        : alpha(theme.palette.background.paper, 0.9),
                     },
                   }}
                 >
@@ -203,7 +242,6 @@ export default function Solutions() {
                     sx={{
                       textAlign: 'center',
                       p: 3,
-                      minHeight: 120,
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'center',
@@ -216,9 +254,10 @@ export default function Solutions() {
                       sx={{
                         fontSize: 48,
                         mb: 2,
-                        transition: 'transform 0.2s',
+                        color: isSelected ? colors.primaryBlue : colors.secondaryGray,
+                        transition: 'all 0.2s ease-in-out',
                         '&:hover': {
-                          transform: 'scale(1.1)'
+                          transform: 'scale(1.1)',
                         }
                       }}
                     />
@@ -226,8 +265,8 @@ export default function Solutions() {
                       variant="subtitle2"
                       sx={{
                         fontSize: '0.875rem',
-                        fontWeight: 'medium',
-                        letterSpacing: '0.01em'
+                        fontWeight: 500,
+                        color: isSelected ? colors.primaryBlue : theme.palette.text.primary,
                       }}
                     >
                       {category.name}
@@ -240,45 +279,35 @@ export default function Solutions() {
         </Grid>
 
         {/* Solutions Grid */}
-        <Grid
-          container
-          spacing={3}
-          sx={{
-            '& .MuiGrid-item': {
-              display: 'flex',
-            }
-          }}
-        >
+        <Grid container spacing={3}>
           {filteredSolutions.map((solution) => (
-            <Grid item xs={12} md={6} key={solution.id} sx={{ minHeight: '100%' }}>
+            <Grid item xs={12} md={6} key={solution.id}>
               <Card
                 sx={{
+                  height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
-                  width: '100%',
-                  height: '100%',
-                  transition: 'all 0.3s',
+                  transition: 'all 0.3s ease-in-out',
+                  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                  boxShadow: 'none',
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: theme.shadows[4],
+                    boxShadow: shadows.medium,
+                    bgcolor: alpha(theme.palette.background.paper, 0.9),
+                    borderColor: alpha(colors.primaryBlue, 0.1),
                   },
                 }}
               >
-                <CardContent
-                  sx={{
-                    minHeight: '200px',
-                    p: 3,
-                    '&:last-child': { pb: 3 }
-                  }}
-                >
+                <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
                   <Typography
                     variant="subtitle2"
-                    color="primary"
                     sx={{
                       mb: 1,
+                      color: colors.primaryBlue,
                       textTransform: 'uppercase',
                       fontSize: '0.75rem',
-                      letterSpacing: '0.1em'
+                      letterSpacing: '0.1em',
+                      fontWeight: 600,
                     }}
                   >
                     {solution.category}
@@ -287,24 +316,25 @@ export default function Solutions() {
                     variant="h6"
                     gutterBottom
                     sx={{
-                      fontSize: '1.1rem',
-                      fontWeight: 'medium',
-                      mb: 2
+                      fontSize: '1.25rem',
+                      fontWeight: 500,
+                      mb: 2,
+                      color: theme.palette.text.primary,
                     }}
                   >
                     {solution.title}
                   </Typography>
                   <Typography
                     variant="body2"
-                    color="text.secondary"
                     sx={{
+                      color: alpha(theme.palette.text.primary, 0.7),
+                      lineHeight: 1.7,
+                      fontSize: '0.875rem',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       display: '-webkit-box',
                       WebkitLineClamp: 3,
                       WebkitBoxOrient: 'vertical',
-                      lineHeight: 1.6,
-                      fontSize: '0.875rem'
                     }}
                   >
                     {solution.description}
@@ -316,17 +346,37 @@ export default function Solutions() {
         </Grid>
 
         {/* Empty State */}
-        {(!filteredSolutions || filteredSolutions.length === 0) && (
+        {filteredSolutions.length === 0 && (
           <Box
             sx={{
               textAlign: 'center',
               py: 8,
+              px: 2,
+              backgroundColor: alpha(theme.palette.background.paper, 0.6),
+              backdropFilter: 'blur(10px)',
+              borderRadius: 3,
+              border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+              maxWidth: 600,
+              mx: 'auto',
             }}
           >
-            <Typography variant="h6" color="text.secondary">
+            <Typography 
+              variant="h6" 
+              sx={{
+                color: theme.palette.text.primary,
+                mb: 1,
+                fontWeight: 500,
+              }}
+            >
               No solutions found
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography 
+              variant="body2" 
+              sx={{
+                color: alpha(theme.palette.text.primary, 0.7),
+                fontSize: '0.875rem',
+              }}
+            >
               Try adjusting your search or category filters
             </Typography>
           </Box>

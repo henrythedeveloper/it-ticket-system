@@ -22,11 +22,18 @@ import {
   Tabs,
   Tab,
   SelectChangeEvent,
+  useTheme,
+  alpha,
 } from '@mui/material';
-import { Ticket, User, TicketHistory, Nullable } from '../types';
+import { 
+  LightbulbOutlined as SolutionIcon,
+  Check as CheckIcon
+} from '@mui/icons-material';
+import { Ticket, User, TicketHistory, Nullable, Solution } from '../types';
 import { useQuery } from '@tanstack/react-query';
 import api from '../utils/axios';
 import CommonSolutions from './CommonSolutions';
+import { colors, shadows, chipStyles, sectionTitleStyles } from '../styles/common';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -36,21 +43,24 @@ interface TabPanelProps {
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
+  const theme = useTheme();
 
   return (
-    <div
+    <Box
       role="tabpanel"
       hidden={value !== index}
       id={`ticket-tabpanel-${index}`}
       aria-labelledby={`ticket-tab-${index}`}
       {...other}
+      sx={{
+        p: { xs: 2, sm: 3 },
+        backgroundColor: alpha(theme.palette.background.paper, 0.6),
+        borderRadius: 2,
+        mt: 2,
+      }}
     >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
-    </div>
+      {value === index && children}
+    </Box>
   );
 }
 
@@ -67,6 +77,7 @@ export default function TicketDialog({
   ticket,
   onSave,
 }: TicketDialogProps) {
+  const theme = useTheme();
   const [status, setStatus] = useState<'open' | 'in_progress' | 'resolved'>('open');
   const [urgency, setUrgency] = useState<'low' | 'normal' | 'high' | 'critical'>('normal');
   const [dueDate, setDueDate] = useState<string | null>(null);
@@ -74,6 +85,7 @@ export default function TicketDialog({
   const [solution, setSolution] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [currentTab, setCurrentTab] = useState(0);
+  const [appliedSolution, setAppliedSolution] = useState<Solution | null>(null);
 
   const { data: users } = useQuery<{ data: User[] }>({
     queryKey: ['users'],
@@ -101,6 +113,9 @@ export default function TicketDialog({
       setAssignedTo(ticket.assignedTo ?? null);
       setSolution(ticket.solution || '');
       setNotes('');
+      // Show solutions tab by default for non-resolved tickets
+      setCurrentTab(ticket.status !== 'resolved' ? 2 : 0);
+      setAppliedSolution(null);
     }
   }, [ticket]);
 
@@ -112,11 +127,17 @@ export default function TicketDialog({
       urgency,
       dueDate,
       assignedTo: assignedTo ?? null,
-      solution: status === 'resolved' ? solution || null : null,
+      solution: solution || appliedSolution?.description || null,
     };
 
     onSave(updates);
     onClose();
+  };
+
+  const handleApplySolution = (selectedSolution: Solution) => {
+    setAppliedSolution(selectedSolution);
+    setSolution(selectedSolution.description);
+    setCurrentTab(0);
   };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -127,34 +148,71 @@ export default function TicketDialog({
     return new Date(date).toLocaleString();
   };
 
-  const isResolved = status === 'resolved' || ticket?.status === 'resolved';
+  const isResolved = status === 'resolved';
 
   if (!ticket) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <div>
-            Ticket {ticket.ticketNumber}
-            <Typography variant="subtitle2" color="textSecondary">
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="lg" 
+      fullWidth
+      PaperProps={{
+        elevation: 0,
+        sx: {
+          borderRadius: 3,
+          backgroundColor: theme.palette.background.default,
+          boxShadow: shadows.strong,
+        }
+      }}
+    >
+      <DialogTitle sx={{ p: 3, pb: 2 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'baseline',
+        }}>
+          <Box>
+            <Typography 
+              sx={sectionTitleStyles}
+              gutterBottom
+            >
+              Ticket {ticket.ticketNumber}
+            </Typography>
+            <Typography color="text.secondary" variant="body2">
               Submitted by {ticket.submitterEmail}
             </Typography>
-          </div>
-          <Typography variant="caption" color="textSecondary">
+          </Box>
+          <Typography variant="caption" color="text.secondary">
             Created: {formatDate(ticket.createdAt || new Date().toISOString())}
           </Typography>
         </Box>
       </DialogTitle>
-      <DialogContent>
+
+      <DialogContent sx={{ px: 3 }}>
         <Box sx={{ width: '100%' }}>
-          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={currentTab} onChange={handleTabChange}>
-              <Tab label="Details" />
-              <Tab label="History" />
-              {isResolved && <Tab label="Solutions" />}
-            </Tabs>
-          </Box>
+          <Tabs 
+            value={currentTab} 
+            onChange={handleTabChange}
+            variant="fullWidth"
+            sx={{
+              mb: 2,
+              '& .MuiTab-root': {
+                textTransform: 'none',
+                minHeight: 48,
+                fontWeight: 500,
+              }
+            }}
+          >
+            <Tab label="Details" />
+            <Tab label="History" />
+            <Tab 
+              icon={appliedSolution ? <CheckIcon /> : <SolutionIcon />}
+              iconPosition="start"
+              label={appliedSolution ? "Solution Applied" : "Suggested Solutions"}
+            />
+          </Tabs>
 
           <TabPanel value={currentTab} index={0}>
             <FormControl fullWidth sx={{ mb: 2 }}>
@@ -232,19 +290,17 @@ export default function TicketDialog({
               sx={{ mb: 2 }}
             />
 
-            {isResolved && (
-              <TextField
-                fullWidth
-                label="Solution"
-                multiline
-                rows={4}
-                value={solution}
-                onChange={(e) => setSolution(e.target.value)}
-                sx={{ mb: 2 }}
-                helperText="Please provide the solution that resolved this ticket"
-                required={status === 'resolved'}
-              />
-            )}
+            <TextField
+              fullWidth
+              label="Solution"
+              multiline
+              rows={4}
+              value={solution}
+              onChange={(e) => setSolution(e.target.value)}
+              sx={{ mb: 2 }}
+              helperText={isResolved ? "Please provide the solution that resolved this ticket" : "Draft your solution here"}
+              required={isResolved}
+            />
 
             <TextField
               fullWidth
@@ -260,7 +316,15 @@ export default function TicketDialog({
           <TabPanel value={currentTab} index={1}>
             <List>
               {historyData?.data?.map((entry) => (
-                <ListItem key={entry.id} divider>
+                <ListItem 
+                  key={entry.id}
+                  sx={{
+                    mb: 1,
+                    backgroundColor: theme.palette.background.paper,
+                    borderRadius: 2,
+                    boxShadow: shadows.subtle,
+                  }}
+                >
                   <ListItemText
                     primary={entry.notes}
                     secondary={
@@ -281,23 +345,42 @@ export default function TicketDialog({
             </List>
           </TabPanel>
 
-          {isResolved && (
-            <TabPanel value={currentTab} index={2}>
-              <CommonSolutions 
-                category={ticket.category}
-                email={ticket.submitterEmail}
-              />
-            </TabPanel>
-          )}
+          <TabPanel value={currentTab} index={2}>
+            <CommonSolutions 
+              category={ticket.category}
+              email={ticket.submitterEmail}
+              onApplySolution={handleApplySolution}
+              appliedSolutionId={appliedSolution?.id ?? null}
+            />
+          </TabPanel>
         </Box>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+
+      <DialogActions sx={{ p: 3, pt: 2 }}>
+        <Button 
+          onClick={onClose}
+          sx={{
+            ...chipStyles,
+            color: theme.palette.text.primary,
+            '&:hover': {
+              backgroundColor: alpha(theme.palette.text.primary, 0.1),
+            }
+          }}
+        >
+          Cancel
+        </Button>
         <Button 
           onClick={handleSave} 
-          variant="contained" 
-          color="primary"
-          disabled={status === 'resolved' && !solution}
+          variant="contained"
+          disabled={isResolved && !solution}
+          sx={{
+            ...chipStyles,
+            backgroundColor: colors.primaryBlue,
+            color: 'white',
+            '&:hover': {
+              backgroundColor: alpha(colors.primaryBlue, 0.9),
+            }
+          }}
         >
           Save Changes
         </Button>

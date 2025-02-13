@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import TaskDialog from '../../components/TaskDialog';
 import {
   Box,
-  Paper,
   Typography,
   Button,
   Table,
@@ -17,21 +16,30 @@ import {
   TextField,
   MenuItem,
   Tooltip,
+  useTheme,
+  alpha,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   PlayArrow as StartIcon,
   Done as DoneIcon,
+  Person as PersonIcon,
+  CalendarToday as CalendarTodayIcon,
+  ArrowForward as ArrowForwardIcon,
+  Flag as PriorityIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Task } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../utils/axios';
+import { 
+  colors, 
+  shadows, 
+  chipStyles, 
+  sectionTitleStyles 
+} from '../../styles/common';
 
-type ChipColor = 'error' | 'warning' | 'success' | 'default';
-
-// TaskWithAssignee is not needed anymore since Task already includes full User objects
 type TaskWithAssignee = Task;
 
 const truncateDescription = (description: string, limit: number = 100) => {
@@ -39,13 +47,223 @@ const truncateDescription = (description: string, limit: number = 100) => {
   return `${description.slice(0, limit)}...`;
 };
 
+// Due Tasks Section Component
+const DueTasksSection = ({ 
+  title, 
+  tasks, 
+  icon: Icon, 
+  color,
+  onTaskClick,
+}: { 
+  title: string;
+  tasks: TaskWithAssignee[];
+  icon: React.ElementType;
+  color: string;
+  onTaskClick: (task: TaskWithAssignee) => void;
+}) => {
+  const theme = useTheme();
+  
+  if (tasks.length === 0) return null;
+
+  return (
+    <Box sx={{ mb: 4 }}>
+      <Stack 
+        direction="row" 
+        spacing={1} 
+        alignItems="center" 
+        sx={{ mb: 2 }}
+      >
+        <Icon sx={{ color }} />
+        <Typography sx={{
+          ...sectionTitleStyles,
+          fontSize: '1.25rem',
+          color,
+        }}>
+          {title}
+        </Typography>
+        <Typography 
+          sx={{ 
+            ml: 'auto',
+            color: alpha(theme.palette.text.primary, 0.6),
+            fontSize: '0.875rem',
+          }}
+        >
+          {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
+        </Typography>
+      </Stack>
+      <TableContainer 
+        sx={{
+          borderRadius: 3,
+          boxShadow: shadows.subtle,
+          backgroundColor: alpha(theme.palette.background.paper, 0.6),
+          backdropFilter: 'blur(10px)',
+          border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+          overflow: 'hidden',
+          '& .MuiTableCell-root': {
+            borderColor: alpha(theme.palette.divider, 0.1),
+          },
+        }}
+      >
+        <Table>
+          <TableHead>
+            <TableRow
+              sx={{
+                '& .MuiTableCell-root': {
+                  backgroundColor: alpha(theme.palette.background.paper, 0.8),
+                  backdropFilter: 'blur(8px)',
+                  fontWeight: 600,
+                }
+              }}
+            >
+              <TableCell>Title</TableCell>
+              <TableCell>Description</TableCell>
+              <TableCell>Priority</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Assigned To</TableCell>
+              <TableCell>Due</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {tasks.map((task) => (
+              <TableRow 
+                key={task.id}
+                onClick={() => onTaskClick(task)}
+                sx={{
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': { 
+                    backgroundColor: alpha(theme.palette.action.hover, 0.7),
+                    transform: 'translateX(6px)',
+                  },
+                }}
+              >
+                <TableCell>{task.title}</TableCell>
+                <TableCell>
+                  {task.description.length > 100 ? (
+                    <Tooltip title={task.description}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ cursor: 'pointer' }}
+                      >
+                        {truncateDescription(task.description)}
+                      </Typography>
+                    </Tooltip>
+                  ) : (
+                    task.description
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={task.priority}
+                    size="small"
+                    icon={<PriorityIcon />}
+                    sx={{
+                      ...chipStyles,
+                      backgroundColor: alpha(getPriorityColor(task.priority), 0.1),
+                      color: getPriorityColor(task.priority),
+                      textTransform: 'capitalize',
+                    }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={task.status}
+                    size="small"
+                    sx={{
+                      ...chipStyles,
+                      backgroundColor: alpha(getStatusColor(task.status), 0.1),
+                      color: getStatusColor(task.status),
+                      textTransform: 'capitalize',
+                    }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    icon={<PersonIcon />}
+                    label={task.assignedUser?.name || 'Unassigned'}
+                    size="small"
+                    sx={{
+                      ...chipStyles,
+                      backgroundColor: task.assignedUser
+                        ? alpha(colors.primaryBlue, 0.1)
+                        : alpha(colors.secondaryGray, 0.1),
+                      color: task.assignedUser
+                        ? colors.primaryBlue
+                        : colors.secondaryGray,
+                    }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Typography
+                    variant="body2"
+                    sx={{ 
+                      color: theme.palette.text.secondary,
+                      fontWeight: 500,
+                    }}
+                  >
+                    {formatDueDate(task.dueDate)}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
+  );
+};
+
+const formatDueDate = (dueDate: string | null | undefined) => {
+  if (!dueDate) return '-';
+  const date = new Date(dueDate);
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+const getPriorityColor = (priority: string): string => {
+  switch (priority) {
+    case 'high':
+      return colors.errorRed;
+    case 'medium':
+      return colors.warningYellow;
+    case 'low':
+      return colors.successGreen;
+    default:
+      return colors.secondaryGray;
+  }
+};
+
+const getStatusColor = (status: string): string => {
+  switch (status) {
+    case 'todo':
+      return colors.errorRed;
+    case 'in_progress':
+      return colors.warningYellow;
+    case 'done':
+      return colors.successGreen;
+    default:
+      return colors.secondaryGray;
+  }
+};
+
 export default function TaskList() {
+  const theme = useTheme();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [statusFilter, setStatusFilter] = React.useState('all');
-  const [priorityFilter, setPriorityFilter] = React.useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskWithAssignee | null>(null);
+
+  // Get today's date at midnight for comparison
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
 
   const { data, isLoading, error } = useQuery<{ data: TaskWithAssignee[] }>({
     queryKey: ['tasks'],
@@ -100,56 +318,75 @@ export default function TaskList() {
   };
 
   const filteredTasks = React.useMemo(() => {
-    if (!Array.isArray(tasks)) {
-      console.error('Tasks is not an array:', tasks);
-      return [];
-    }
-    try {
-      return tasks.filter((task) => {
-        if (!task) return false;
-        const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
-        const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
-        return matchesStatus && matchesPriority;
-      });
-    } catch (err) {
-      console.error('Error filtering tasks:', err);
-      return [];
-    }
+    if (!Array.isArray(tasks)) return [];
+    return tasks.filter((task) => {
+      if (!task) return false;
+      const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
+      const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
+      return matchesStatus && matchesPriority;
+    });
   }, [tasks, statusFilter, priorityFilter]);
 
-  const getPriorityColor = (priority: string): ChipColor => {
-    switch (priority) {
-      case 'high':
-        return 'error';
-      case 'medium':
-        return 'warning';
-      case 'low':
-        return 'success';
-      default:
-        return 'default';
-    }
-  };
+  const dueTodayTasks = filteredTasks.filter(task => 
+    task.dueDate && new Date(task.dueDate).getDate() === today.getDate()
+  );
 
-  const getStatusColor = (status: string): ChipColor => {
-    switch (status) {
-      case 'todo':
-        return 'error';
-      case 'in_progress':
-        return 'warning';
-      case 'done':
-        return 'success';
-      default:
-        return 'default';
-    }
+  const dueTomorrowTasks = filteredTasks.filter(task => 
+    task.dueDate && new Date(task.dueDate).getDate() === tomorrow.getDate()
+  );
+
+  const myTasks = filteredTasks.filter(task => task.assignedTo === user?.id);
+
+  const handleTaskClick = (task: TaskWithAssignee) => {
+    setSelectedTask(task);
+    setDialogOpen(true);
   };
 
   if (error) {
-    console.error('Error fetching tasks:', error);
-    return <Typography color="error">Error loading tasks. Please try again later.</Typography>;
+    return (
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: 200,
+          p: 3,
+          backgroundColor: alpha(colors.errorRed, 0.1),
+          borderRadius: 2,
+        }}
+      >
+        <Typography 
+          sx={{ 
+            color: colors.errorRed,
+            fontWeight: 500,
+          }}
+        >
+          Error loading tasks. Please try again later.
+        </Typography>
+      </Box>
+    );
   }
 
   if (isLoading) {
-    return <Typography>Loading tasks...</Typography>;
+    return (
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: 200,
+        }}
+      >
+        <Typography 
+          sx={{ 
+            color: theme.palette.text.secondary,
+            fontWeight: 500,
+          }}
+        >
+          Loading tasks...
+        </Typography>
+      </Box>
+    );
   }
 
   return (
@@ -170,9 +407,11 @@ export default function TaskList() {
         direction="row"
         justifyContent="space-between"
         alignItems="center"
-        sx={{ mb: 3 }}
+        sx={{ mb: 4 }}
       >
-        <Typography variant="h4">Internal Tasks</Typography>
+        <Typography sx={sectionTitleStyles}>
+          Internal Tasks
+        </Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -180,18 +419,56 @@ export default function TaskList() {
             setSelectedTask(null);
             setDialogOpen(true);
           }}
+          sx={{
+            ...chipStyles,
+            backgroundColor: colors.primaryBlue,
+            color: 'white',
+            transition: 'all 0.2s ease-in-out',
+            transform: 'translateY(0)',
+            '&:hover': {
+              backgroundColor: alpha(colors.primaryBlue, 0.9),
+              transform: 'translateY(-2px)',
+              boxShadow: shadows.medium,
+            },
+          }}
         >
           New Task
         </Button>
       </Stack>
 
-      <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+      <Stack 
+        direction={{ xs: 'column', sm: 'row' }} 
+        spacing={2} 
+        sx={{
+          mb: 4,
+          p: 3,
+          backgroundColor: alpha(theme.palette.background.paper, 0.6),
+          backdropFilter: 'blur(10px)',
+          borderRadius: 2,
+          boxShadow: shadows.subtle,
+          border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+        }}
+      >
         <TextField
           select
           label="Status"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          sx={{ width: 200 }}
+          sx={{
+            width: { xs: '100%', sm: 200 },
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+              backgroundColor: theme.palette.background.paper,
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                backgroundColor: alpha(theme.palette.background.paper, 0.8),
+              },
+              '&.Mui-focused': {
+                backgroundColor: alpha(theme.palette.background.paper, 0.9),
+                boxShadow: shadows.subtle,
+              },
+            },
+          }}
           size="small"
         >
           <MenuItem value="all">All Status</MenuItem>
@@ -205,7 +482,21 @@ export default function TaskList() {
           label="Priority"
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value)}
-          sx={{ width: 200 }}
+          sx={{
+            width: { xs: '100%', sm: 200 },
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+              backgroundColor: theme.palette.background.paper,
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                backgroundColor: alpha(theme.palette.background.paper, 0.8),
+              },
+              '&.Mui-focused': {
+                backgroundColor: alpha(theme.palette.background.paper, 0.9),
+                boxShadow: shadows.subtle,
+              },
+            },
+          }}
           size="small"
         >
           <MenuItem value="all">All Priority</MenuItem>
@@ -215,10 +506,58 @@ export default function TaskList() {
         </TextField>
       </Stack>
 
-      <TableContainer component={Paper}>
+      <DueTasksSection 
+        title="Due Today"
+        tasks={dueTodayTasks}
+        icon={CalendarTodayIcon}
+        color={colors.warningYellow}
+        onTaskClick={handleTaskClick}
+      />
+
+      <DueTasksSection 
+        title="Due Tomorrow"
+        tasks={dueTomorrowTasks}
+        icon={ArrowForwardIcon}
+        color={colors.primaryBlue}
+        onTaskClick={handleTaskClick}
+      />
+
+      {user && myTasks.length > 0 && (
+        <Box sx={{ mb: 6 }}>
+          <DueTasksSection 
+            title="My Tasks"
+            tasks={myTasks}
+            icon={PersonIcon}
+            color={colors.successGreen}
+            onTaskClick={handleTaskClick}
+          />
+        </Box>
+      )}
+
+      <TableContainer
+        sx={{
+          borderRadius: 3,
+          boxShadow: shadows.subtle,
+          backgroundColor: alpha(theme.palette.background.paper, 0.6),
+          backdropFilter: 'blur(10px)',
+          border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+          overflow: 'hidden',
+          '& .MuiTableCell-root': {
+            borderColor: alpha(theme.palette.divider, 0.1),
+          },
+        }}
+      >
         <Table>
           <TableHead>
-            <TableRow>
+            <TableRow
+              sx={{
+                '& .MuiTableCell-root': {
+                  backgroundColor: alpha(theme.palette.background.paper, 0.8),
+                  backdropFilter: 'blur(8px)',
+                  fontWeight: 600,
+                }
+              }}
+            >
               <TableCell>Title</TableCell>
               <TableCell>Description</TableCell>
               <TableCell>Priority</TableCell>
@@ -229,12 +568,27 @@ export default function TaskList() {
           </TableHead>
           <TableBody>
             {filteredTasks.map((task) => (
-              <TableRow key={task.id}>
+              <TableRow
+                key={task.id}
+                sx={{
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': { 
+                    backgroundColor: alpha(theme.palette.action.hover, 0.7),
+                    transform: 'translateX(6px)',
+                  },
+                }}
+              >
                 <TableCell>{task.title}</TableCell>
                 <TableCell>
                   {task.description.length > 100 ? (
                     <Tooltip title={task.description}>
-                      <span>{truncateDescription(task.description)}</span>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ cursor: 'pointer' }}
+                      >
+                        {truncateDescription(task.description)}
+                      </Typography>
                     </Tooltip>
                   ) : (
                     task.description
@@ -243,133 +597,139 @@ export default function TaskList() {
                 <TableCell>
                   <Chip
                     label={task.priority}
-                    color={getPriorityColor(task.priority)}
                     size="small"
+                    icon={<PriorityIcon />}
+                    sx={{
+                      ...chipStyles,
+                      backgroundColor: alpha(getPriorityColor(task.priority), 0.1),
+                      color: getPriorityColor(task.priority),
+                      textTransform: 'capitalize',
+                    }}
                   />
                 </TableCell>
                 <TableCell>
                   <Chip
                     label={task.status}
-                    color={getStatusColor(task.status)}
                     size="small"
+                    sx={{
+                      ...chipStyles,
+                      backgroundColor: alpha(getStatusColor(task.status), 0.1),
+                      color: getStatusColor(task.status),
+                      textTransform: 'capitalize',
+                    }}
                   />
                 </TableCell>
                 <TableCell>
-                  {task.assignedUser?.name || 'Unassigned'}
+                  <Chip
+                    icon={<PersonIcon />}
+                    label={task.assignedUser?.name || 'Unassigned'}
+                    size="small"
+                    sx={{
+                      ...chipStyles,
+                      backgroundColor: task.assignedUser
+                        ? alpha(colors.primaryBlue, 0.1)
+                        : alpha(colors.secondaryGray, 0.1),
+                      color: task.assignedUser
+                        ? colors.primaryBlue
+                        : colors.secondaryGray,
+                    }}
+                  />
                 </TableCell>
                 <TableCell>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleStatusChange(task, 'in_progress')}
-                    disabled={task.status !== 'todo'}
-                  >
-                    <StartIcon />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleStatusChange(task, 'done')}
-                    disabled={task.status === 'done'}
-                  >
-                    <DoneIcon />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    disabled={task.createdBy !== user?.id && user?.role !== 'admin'}
-                    onClick={() => {
-                      setSelectedTask(task);
-                      setDialogOpen(true);
-                    }}
-                  >
-                    <EditIcon />
-                  </IconButton>
+                  <Stack direction="row" spacing={1}>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStatusChange(task, 'in_progress');
+                      }}
+                      disabled={task.status !== 'todo'}
+                      sx={{
+                        ...chipStyles,
+                        backgroundColor: task.status === 'todo'
+                          ? alpha(colors.warningYellow, 0.1)
+                          : undefined,
+                        color: colors.warningYellow,
+                        '&:hover': {
+                          backgroundColor: alpha(colors.warningYellow, 0.2),
+                        },
+                        '&:disabled': {
+                          backgroundColor: alpha(theme.palette.action.disabledBackground, 0.3),
+                          color: theme.palette.action.disabled,
+                        },
+                      }}
+                    >
+                      <StartIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStatusChange(task, 'done');
+                      }}
+                      disabled={task.status === 'done'}
+                      sx={{
+                        ...chipStyles,
+                        backgroundColor: alpha(colors.successGreen, 0.1),
+                        color: colors.successGreen,
+                        '&:hover': {
+                          backgroundColor: alpha(colors.successGreen, 0.2),
+                        },
+                        '&:disabled': {
+                          backgroundColor: alpha(theme.palette.action.disabledBackground, 0.3),
+                          color: theme.palette.action.disabled,
+                        },
+                      }}
+                    >
+                      <DoneIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTask(task);
+                        setDialogOpen(true);
+                      }}
+                      sx={{
+                        ...chipStyles,
+                        backgroundColor: alpha(colors.primaryBlue, 0.1),
+                        color: colors.primaryBlue,
+                        '&:hover': {
+                          backgroundColor: alpha(colors.primaryBlue, 0.2),
+                        },
+                      }}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
                 </TableCell>
               </TableRow>
             ))}
+            {filteredTasks.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6}>
+                  <Box 
+                    sx={{ 
+                      textAlign: 'center',
+                      py: 4,
+                    }}
+                  >
+                    <Typography 
+                      variant="body1"
+                      sx={{ 
+                        color: theme.palette.text.secondary,
+                        fontWeight: 500,
+                      }}
+                    >
+                      No tasks found
+                    </Typography>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </TableContainer>
-
-      {user && (
-        <>
-          <Typography variant="h5" sx={{ mt: 4, mb: 2 }}>
-            Tasks Assigned to You
-          </Typography>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Title</TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell>Priority</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredTasks
-                  .filter(task => task.assignedTo === user.id)
-                  .map((task) => (
-                    <TableRow
-                      key={task.id}
-                      sx={{ backgroundColor: 'rgba(25, 118, 210, 0.08)' }}
-                    >
-                      <TableCell>{task.title}</TableCell>
-                      <TableCell>
-                        {task.description.length > 100 ? (
-                          <Tooltip title={task.description}>
-                            <span>{truncateDescription(task.description)}</span>
-                          </Tooltip>
-                        ) : (
-                          task.description
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={task.priority}
-                          color={getPriorityColor(task.priority)}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={task.status}
-                          color={getStatusColor(task.status)}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleStatusChange(task, 'in_progress')}
-                          disabled={task.status !== 'todo'}
-                        >
-                          <StartIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleStatusChange(task, 'done')}
-                          disabled={task.status === 'done'}
-                        >
-                          <DoneIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          disabled={task.createdBy !== user.id && user.role !== 'admin'}
-                          onClick={() => {
-                            setSelectedTask(task);
-                            setDialogOpen(true);
-                          }}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </>
-      )}
     </Box>
   );
 }

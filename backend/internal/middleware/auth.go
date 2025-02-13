@@ -1,123 +1,145 @@
 package middleware
 
 import (
-	"net/http"
-	"strings"
+"net/http"
+"strings"
 
-	"github.com/gin-gonic/gin"
-	"helpdesk/internal/auth"
+"github.com/gin-gonic/gin"
+"github.com/golang-jwt/jwt/v5"
 )
 
-// AuthMiddleware creates middleware for authenticating JWT tokens
-func AuthMiddleware(authService *auth.Service) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		header := c.GetHeader("Authorization")
-		if header == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is missing"})
-			c.Abort()
-			return
-		}
-
-		// Extract token from "Bearer <token>"
-		parts := strings.Split(header, " ")
-		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization header format"})
-			c.Abort()
-			return
-		}
-
-		claims, err := authService.ValidateToken(parts[1])
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-			c.Abort()
-			return
-		}
-
-		// Add claims to context
-		c.Set("userID", claims.UserID)
-		c.Set("userRole", claims.Role)
-		c.Next()
-	}
+type AuthMiddleware struct {
+jwtSecret string
 }
 
-// RequireRole creates middleware for role-based authorization
-func RequireRole(roles ...string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		userRole, exists := c.Get("userRole")
-		if !exists {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "User role not found"})
-			c.Abort()
-			return
-		}
-
-		role := userRole.(string)
-		allowed := false
-		for _, r := range roles {
-			if r == role {
-				allowed = true
-				break
-			}
-		}
-
-		if !allowed {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
-			c.Abort()
-			return
-		}
-
-		c.Next()
-	}
+func NewAuthMiddleware(jwtSecret string) *AuthMiddleware {
+if jwtSecret == "" {
+panic("JWT secret is required")
+}
+return &AuthMiddleware{jwtSecret: jwtSecret}
 }
 
-// GetUserID retrieves the authenticated user's ID from the context
-func GetUserID(c *gin.Context) uint {
-	userID, _ := c.Get("userID")
-	return userID.(uint)
+// AuthRequired is a middleware that validates JWT tokens
+func (m *AuthMiddleware) AuthRequired() gin.HandlerFunc {
+return func(c *gin.Context) {
+authHeader := c.GetHeader("Authorization")
+if authHeader == "" {
+c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+c.Abort()
+return
 }
 
-// GetUserRole retrieves the authenticated user's role from the context
-func GetUserRole(c *gin.Context) string {
-	userRole, _ := c.Get("userRole")
-	return userRole.(string)
+// Check Bearer token format
+bearerToken := strings.Split(authHeader, " ")
+if len(bearerToken) != 2 || bearerToken[0] != "Bearer" {
+c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization format"})
+c.Abort()
+return
 }
 
-// IsAdmin checks if the current user has admin role
-func IsAdmin(c *gin.Context) bool {
-	return GetUserRole(c) == "admin"
+tokenString := bearerToken[1]
+claims := jwt.MapClaims{}
+
+// Parse and validate token
+token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+return nil, jwt.ErrSignatureInvalid
+}
+return []byte(m.jwtSecret), nil
+})
+
+if err != nil {
+c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+c.Abort()
+return
 }
 
-// IsResourceOwner checks if the current user is the owner of a resource
-func IsResourceOwner(c *gin.Context, ownerID uint) bool {
-	userID := GetUserID(c)
-	return userID == ownerID || IsAdmin(c)
+if !token.Valid {
+c.JSON(http.StatusUnauthorized, gin.H{"error": "Token is not valid"})
+c.Abort()
+return
 }
 
-// CORSMiddleware handles Cross-Origin Resource Sharing (CORS)
-func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		origin := c.Request.Header.Get("Origin")
-		
-		// Check if the origin is allowed
-		allowed := false
-		for _, allowedOrigin := range allowedOrigins {
-			if origin == allowedOrigin {
-				allowed = true
-				break
-			}
-		}
+// Get user info from claims
+userID, ok := claims["user_id"].(float64)
+if !ok {
+c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID in token"})
+c.Abort()
+return
+}
 
-		if allowed {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-			c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-			c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
-		}
+userRole, ok := claims["role"].(string)
+if !ok {
+c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user role in token"})
+c.Abort()
+return
+}
 
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
+// Set user info in context
+c.Set("userID", int(userID))
+c.Set("userRole", userRole)
 
-		c.Next()
-	}
+c.Next()
+}
+}
+
+// Optional returns a middleware that attempts to validate JWT but doesn't require it
+func (m *AuthMiddleware) Optional() gin.HandlerFunc {
+return func(c *gin.Context) {
+authHeader := c.GetHeader("Authorization")
+if authHeader == "" {
+c.Next()
+return
+}
+
+bearerToken := strings.Split(authHeader, " ")
+if len(bearerToken) != 2 || bearerToken[0] != "Bearer" {
+c.Next()
+return
+}
+
+tokenString := bearerToken[1]
+claims := jwt.MapClaims{}
+
+token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+return nil, jwt.ErrSignatureInvalid
+}
+return []byte(m.jwtSecret), nil
+})
+
+if err != nil || !token.Valid {
+c.Next()
+return
+}
+
+if userID, ok := claims["user_id"].(float64); ok {
+c.Set("userID", int(userID))
+}
+if userRole, ok := claims["role"].(string); ok {
+c.Set("userRole", userRole)
+}
+
+c.Next()
+}
+}
+
+// RequireRole returns a middleware that requires a specific role
+func (m *AuthMiddleware) RequireRole(role string) gin.HandlerFunc {
+return func(c *gin.Context) {
+userRole, exists := c.Get("userRole")
+if !exists {
+c.JSON(http.StatusUnauthorized, gin.H{"error": "User role not found"})
+c.Abort()
+return
+}
+
+if userRole != role {
+c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
+c.Abort()
+return
+}
+
+c.Next()
+}
 }

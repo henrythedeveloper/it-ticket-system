@@ -9,7 +9,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Chip,
   IconButton,
   Stack,
@@ -23,17 +22,24 @@ import {
   Select,
   MenuItem,
   Grid,
+  useTheme,
+  alpha,
 } from '@mui/material';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Person as PersonIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../utils/axios';
-
-type RoleColor = 'primary' | 'error' | 'default';
+import { 
+  colors, 
+  shadows, 
+  chipStyles, 
+  sectionTitleStyles 
+} from '../../styles/common';
 
 interface UserDialogData {
   name: string;
@@ -41,7 +47,8 @@ interface UserDialogData {
   role: 'admin' | 'staff';
 }
 
-export default function UserList() {
+export default function UserList(): JSX.Element {
+  const theme = useTheme();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -124,14 +131,14 @@ export default function UserList() {
     userMutation.mutate(dialogData);
   };
 
-  const getRoleColor = (role: string): RoleColor => {
+  const getRoleColor = (role: string): string => {
     switch (role) {
       case 'admin':
-        return 'error';
+        return colors.errorRed;
       case 'staff':
-        return 'primary';
+        return colors.primaryBlue;
       default:
-        return 'default';
+        return colors.secondaryGray;
     }
   };
 
@@ -145,7 +152,23 @@ export default function UserList() {
   };
 
   if (isLoading) {
-    return <Typography>Loading users...</Typography>;
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: 200,
+      }}>
+        <Typography 
+          sx={{ 
+            color: theme.palette.text.secondary,
+            fontWeight: 500,
+          }}
+        >
+          Loading users...
+        </Typography>
+      </Box>
+    );
   }
 
   return (
@@ -153,17 +176,39 @@ export default function UserList() {
       <Stack
         direction="row"
         alignItems="center"
-        sx={{ mb: 3 }}
+        justifyContent="space-between"
+        sx={{ mb: 4 }}
       >
-        <Typography variant="h4">IT Staff List</Typography>
+        <Typography sx={sectionTitleStyles}>
+          IT Staff List
+        </Typography>
       </Stack>
-<TableContainer component={Paper} sx={{
-  maxHeight: { xs: 'calc(100vh - 250px)', sm: 'calc(100vh - 300px)' },
-  overflow: 'auto'
-}}>
+      
+      <TableContainer 
+        sx={{
+          borderRadius: 3,
+          boxShadow: shadows.subtle,
+          backgroundColor: alpha(theme.palette.background.paper, 0.6),
+          backdropFilter: 'blur(10px)',
+          border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+          overflow: 'hidden',
+          maxHeight: { xs: 'calc(100vh - 250px)', sm: 'calc(100vh - 300px)' },
+          '& .MuiTableCell-root': {
+            borderColor: alpha(theme.palette.divider, 0.1),
+          },
+        }}
+      >
         <Table stickyHeader>
           <TableHead>
-            <TableRow>
+            <TableRow
+              sx={{
+                '& .MuiTableCell-root': {
+                  backgroundColor: alpha(theme.palette.background.paper, 0.8),
+                  backdropFilter: 'blur(8px)',
+                  fontWeight: 600,
+                }
+              }}
+            >
               <TableCell sx={{ width: { xs: '25%', sm: '20%' } }}>Name</TableCell>
               <TableCell sx={{ width: { xs: '35%', sm: '30%' }, display: { xs: 'none', sm: 'table-cell' } }}>Email</TableCell>
               <TableCell sx={{ width: { xs: '20%', sm: '15%' } }}>Role</TableCell>
@@ -173,116 +218,334 @@ export default function UserList() {
           </TableHead>
           <TableBody>
             {users.map((userData) => (
-              <TableRow key={userData.id}>
-                <TableCell sx={{ width: { xs: '25%', sm: '20%' } }}>{userData.name}</TableCell>
+              <TableRow 
+                key={userData.id}
+                sx={{
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': { 
+                    backgroundColor: alpha(theme.palette.action.hover, 0.7),
+                    transform: 'translateX(6px)',
+                  },
+                }}
+              >
+                <TableCell sx={{ width: { xs: '25%', sm: '20%' } }}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <PersonIcon sx={{ 
+                      color: getRoleColor(userData.role),
+                      fontSize: '1.2rem',
+                      opacity: 0.8,
+                    }} />
+                    <Typography sx={{ fontWeight: 500 }}>
+                      {userData.name}
+                    </Typography>
+                  </Stack>
+                </TableCell>
                 <TableCell sx={{ width: { xs: '35%', sm: '30%' }, display: { xs: 'none', sm: 'table-cell' } }}>
-                  {userData.email}
+                  <Typography sx={{ color: theme.palette.text.secondary }}>
+                    {userData.email}
+                  </Typography>
                 </TableCell>
                 <TableCell sx={{ width: { xs: '20%', sm: '15%' } }}>
                   <Chip
                     label={userData.role}
-                    color={getRoleColor(userData.role)}
                     size="small"
+                    sx={{
+                      ...chipStyles,
+                      backgroundColor: alpha(getRoleColor(userData.role), 0.1),
+                      color: getRoleColor(userData.role),
+                      textTransform: 'capitalize',
+                    }}
                   />
                 </TableCell>
                 <TableCell sx={{ width: { xs: '25%', sm: '20%' }, display: { xs: 'none', md: 'table-cell' } }}>
-                  {formatDate(userData.createdAt)}
+                  <Typography 
+                    variant="body2"
+                    sx={{ 
+                      color: theme.palette.text.secondary,
+                      fontWeight: 500,
+                    }}
+                  >
+                    {formatDate(userData.createdAt)}
+                  </Typography>
                 </TableCell>
                 <TableCell sx={{ width: { xs: '30%', sm: '15%' } }}>
-                  <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-start' }}>
+                  <Stack direction="row" spacing={1}>
                     <IconButton
                       size="small"
                       disabled={userData.id === user?.id}
                       onClick={() => handleOpenDialog(userData)}
+                      sx={{
+                        ...chipStyles,
+                        backgroundColor: alpha(colors.primaryBlue, 0.1),
+                        color: colors.primaryBlue,
+                        '&:hover': {
+                          backgroundColor: alpha(colors.primaryBlue, 0.2),
+                        },
+                        '&:disabled': {
+                          backgroundColor: alpha(theme.palette.action.disabledBackground, 0.3),
+                          color: theme.palette.action.disabled,
+                        },
+                      }}
                     >
-                      <EditIcon />
+                      <EditIcon fontSize="small" />
                     </IconButton>
                     {user?.role === 'admin' && (
                       <IconButton
                         size="small"
                         disabled={userData.id === user?.id}
                         onClick={() => handleOpenDeleteDialog(userData)}
-                        color="error"
+                        sx={{
+                          ...chipStyles,
+                          backgroundColor: alpha(colors.errorRed, 0.1),
+                          color: colors.errorRed,
+                          '&:hover': {
+                            backgroundColor: alpha(colors.errorRed, 0.2),
+                          },
+                          '&:disabled': {
+                            backgroundColor: alpha(theme.palette.action.disabledBackground, 0.3),
+                            color: theme.palette.action.disabled,
+                          },
+                        }}
                       >
-                        <DeleteIcon />
+                        <DeleteIcon fontSize="small" />
                       </IconButton>
                     )}
                   </Stack>
                 </TableCell>
               </TableRow>
             ))}
+            {users.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5}>
+                  <Box 
+                    sx={{ 
+                      textAlign: 'center',
+                      py: 4,
+                    }}
+                  >
+                    <Typography 
+                      variant="body1"
+                      sx={{ 
+                        color: theme.palette.text.secondary,
+                        fontWeight: 500,
+                      }}
+                    >
+                      No users found
+                    </Typography>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </TableContainer>
 
-      <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
+      <Typography 
+        variant="body2" 
+        sx={{ 
+          mt: 2,
+          color: alpha(theme.palette.text.secondary, 0.8),
+          backgroundColor: alpha(colors.warningYellow, 0.1),
+          border: `1px solid ${alpha(colors.warningYellow, 0.2)}`,
+          borderRadius: 1,
+          p: 1,
+          display: 'inline-block',
+        }}
+      >
         Note: Changes to user roles should be made with caution.
       </Typography>
 
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit User</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Name"
-                  value={dialogData.name}
-                  onChange={(e) => setDialogData((prev) => ({ ...prev, name: e.target.value }))}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  type="email"
-                  value={dialogData.email}
-                  onChange={(e) => setDialogData((prev) => ({ ...prev, email: e.target.value }))}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <FormControl fullWidth>
-                    <InputLabel>Role</InputLabel>
-                    <Select
-                      value={dialogData.role}
-                      onChange={(e) => setDialogData((prev) => ({ ...prev, role: e.target.value as 'admin' | 'staff' }))}
-                      label="Role"
-                      disabled={user?.role !== 'admin'}
-                    >
-                      <MenuItem value="staff">Staff</MenuItem>
-                      <MenuItem value="admin">Admin</MenuItem>
-                    </Select>
-                  </FormControl>
-              </Grid>
+      <Dialog 
+        open={dialogOpen} 
+        onClose={handleCloseDialog} 
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{
+          elevation: 0,
+          sx: {
+            borderRadius: 3,
+            backgroundColor: theme.palette.background.default,
+            boxShadow: shadows.strong,
+          }
+        }}
+      >
+        <DialogTitle sx={{ p: 3, pb: 2 }}>
+          <Typography sx={sectionTitleStyles}>
+            Edit User
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Name"
+                value={dialogData.name}
+                onChange={(e) => setDialogData((prev) => ({ ...prev, name: e.target.value }))}
+                required
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    backgroundColor: theme.palette.background.paper,
+                    transition: 'all 0.2s ease-in-out',
+                    '&:hover': {
+                      backgroundColor: alpha(theme.palette.background.paper, 0.8),
+                    },
+                    '&.Mui-focused': {
+                      backgroundColor: alpha(theme.palette.background.paper, 0.9),
+                      boxShadow: shadows.subtle,
+                    },
+                  },
+                }}
+              />
             </Grid>
-          </Box>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Email"
+                type="email"
+                value={dialogData.email}
+                onChange={(e) => setDialogData((prev) => ({ ...prev, email: e.target.value }))}
+                required
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    backgroundColor: theme.palette.background.paper,
+                    transition: 'all 0.2s ease-in-out',
+                    '&:hover': {
+                      backgroundColor: alpha(theme.palette.background.paper, 0.8),
+                    },
+                    '&.Mui-focused': {
+                      backgroundColor: alpha(theme.palette.background.paper, 0.9),
+                      boxShadow: shadows.subtle,
+                    },
+                  },
+                }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Role</InputLabel>
+                <Select
+                  value={dialogData.role}
+                  onChange={(e) => setDialogData((prev) => ({ ...prev, role: e.target.value as 'admin' | 'staff' }))}
+                  label="Role"
+                  disabled={user?.role !== 'admin'}
+                  sx={{
+                    borderRadius: 2,
+                    backgroundColor: theme.palette.background.paper,
+                    transition: 'all 0.2s ease-in-out',
+                    '&:hover': {
+                      backgroundColor: alpha(theme.palette.background.paper, 0.8),
+                    },
+                    '&.Mui-focused': {
+                      backgroundColor: alpha(theme.palette.background.paper, 0.9),
+                      boxShadow: shadows.subtle,
+                    },
+                  }}
+                >
+                  <MenuItem value="staff">Staff</MenuItem>
+                  <MenuItem value="admin">Admin</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
+        <DialogActions sx={{ p: 3, pt: 2 }}>
+          <Button 
+            onClick={handleCloseDialog}
+            sx={{
+              ...chipStyles,
+              color: theme.palette.text.primary,
+              '&:hover': {
+                backgroundColor: alpha(theme.palette.text.primary, 0.1),
+              },
+            }}
+          >
+            Cancel
+          </Button>
           <Button
             onClick={handleSave}
-            variant="contained"
-            color="primary"
             disabled={!dialogData.name || !dialogData.email}
+            sx={{
+              ...chipStyles,
+              backgroundColor: colors.primaryBlue,
+              color: 'white',
+              '&:hover': {
+                backgroundColor: alpha(colors.primaryBlue, 0.9),
+              },
+              '&:disabled': {
+                backgroundColor: alpha(colors.primaryBlue, 0.5),
+              },
+            }}
           >
             Save Changes
           </Button>
         </DialogActions>
       </Dialog>
 
-      <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog}>
-        <DialogTitle>Confirm Delete User</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete user {selectedUser?.name}? This action cannot be undone.
+      <Dialog 
+        open={deleteDialogOpen} 
+        onClose={handleCloseDeleteDialog}
+        PaperProps={{
+          elevation: 0,
+          sx: {
+            borderRadius: 3,
+            backgroundColor: theme.palette.background.default,
+            boxShadow: shadows.strong,
+          }
+        }}
+      >
+        <DialogTitle sx={{ p: 3, pb: 2 }}>
+          <Typography sx={sectionTitleStyles}>
+            Confirm Delete User
           </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Box sx={{
+            p: 2,
+            backgroundColor: alpha(colors.errorRed, 0.1),
+            borderRadius: 2,
+            border: `1px solid ${alpha(colors.errorRed, 0.2)}`,
+          }}>
+            <Typography>
+              Are you sure you want to delete user <strong>{selectedUser?.name}</strong>?
+            </Typography>
+            <Typography 
+              sx={{ 
+                mt: 1,
+                color: alpha(colors.errorRed, 0.8),
+                fontSize: '0.875rem',
+              }}
+            >
+              This action cannot be undone.
+            </Typography>
+          </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDeleteDialog}>Cancel</Button>
-          <Button onClick={handleDelete} color="error" variant="contained">
+        <DialogActions sx={{ p: 3, pt: 2 }}>
+          <Button 
+            onClick={handleCloseDeleteDialog}
+            sx={{
+              ...chipStyles,
+              color: theme.palette.text.primary,
+              '&:hover': {
+                backgroundColor: alpha(theme.palette.text.primary, 0.1),
+              },
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDelete}
+            sx={{
+              ...chipStyles,
+              backgroundColor: colors.errorRed,
+              color: 'white',
+              '&:hover': {
+                backgroundColor: alpha(colors.errorRed, 0.9),
+              },
+            }}
+          >
             Delete
           </Button>
         </DialogActions>

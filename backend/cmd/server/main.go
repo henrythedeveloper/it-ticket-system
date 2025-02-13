@@ -1,167 +1,134 @@
 package main
 
 import (
-    "log"
-    "os"
+"database/sql"
+"log"
+"os"
+"os/signal"
+"syscall"
+"time"
 
-    "github.com/gin-gonic/gin"
-    "github.com/joho/godotenv"
-    "gorm.io/driver/postgres"
-    "gorm.io/gorm"
+"github.com/gin-contrib/cors"
+"github.com/gin-gonic/gin"
+"github.com/joho/godotenv"
+_ "github.com/lib/pq"
 
-    "helpdesk/internal/auth"
-    "helpdesk/internal/config"
-    "helpdesk/internal/handlers"
-    "helpdesk/internal/middleware"
-    "helpdesk/internal/models"
+"helpdesk/internal/auth"
+"helpdesk/internal/handlers"
+"helpdesk/internal/middleware"
+"helpdesk/internal/scheduler"
 )
 
 func main() {
-    // Load environment variables from .env file
-    if err := godotenv.Load(); err != nil {
-        log.Println("Warning: .env file not found")
-    }
-
-    // Load configuration
-    cfg, err := config.LoadConfig()
-    if err != nil {
-        log.Fatalf("Failed to load config: %v", err)
-    }
-
-    // Validate configuration
-    if err := cfg.Validate(); err != nil {
-        log.Fatalf("Invalid configuration: %v", err)
-    }
-
-    // Connect to database
-    db, err := gorm.Open(postgres.Open(cfg.Database.GetDSN()), &gorm.Config{})
-    if err != nil {
-        log.Fatalf("Failed to connect to database: %v", err)
-    }
-
-    // Auto-migrate database schemas
-    if err := autoMigrate(db); err != nil {
-        log.Fatalf("Failed to auto-migrate database: %v", err)
-    }
-    
-    // Initialize database connection
-    log.Println("Database connected successfully")
-
-    // Initialize services and handlers
-    authService := auth.NewService(db, cfg.JWT.Secret, cfg.JWT.TokenExpiry)
-    authHandler := handlers.NewAuthHandler(authService)
-    ticketHandler := handlers.NewTicketHandler(db)
-    taskHandler := handlers.NewTaskHandler(db)
-    userHandler := handlers.NewUserHandler(db, authService)
-
-    // Set up Gin router
-    router := setupRouter(cfg, authService, authHandler, ticketHandler, taskHandler, userHandler)
-
-    // Start server
-    addr := os.Getenv("PORT")
-    if addr == "" {
-        addr = "8080"
-    }
-    log.Printf("Server starting on :%s", addr)
-    if err := router.Run(":" + addr); err != nil {
-        log.Fatalf("Failed to start server: %v", err)
-    }
+// Load environment variables
+if err := godotenv.Load(); err != nil {
+log.Printf("Warning: .env file not found")
 }
 
-func autoMigrate(db *gorm.DB) error {
-    return db.AutoMigrate(
-        &models.User{},
-        &models.Ticket{},
-        &models.Task{},
-        &models.Solution{},
-        &models.EmailSolutionHistory{},
-        &models.TicketHistory{},
-        &models.TaskHistory{},
-    )
+// Check required environment variables
+jwtSecret := os.Getenv("JWT_SECRET")
+if jwtSecret == "" {
+log.Fatal("JWT_SECRET environment variable is required")
 }
 
-func setupRouter(
-    cfg *config.Config,
-    authService *auth.Service,
-    authHandler *handlers.AuthHandler,
-    ticketHandler *handlers.TicketHandler,
-    taskHandler *handlers.TaskHandler,
-    userHandler *handlers.UserHandler,
-) *gin.Engine {
-    router := gin.Default()
+// Database connection
+db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+if err != nil {
+log.Fatal("Error connecting to database:", err)
+}
+defer db.Close()
 
-    // CORS middleware
-    router.Use(middleware.CORSMiddleware(cfg.Server.AllowedOrigins))
+// Test database connection
+if err := db.Ping(); err != nil {
+log.Fatal("Error pinging database:", err)
+}
 
-    // Public routes
-    public := router.Group("/api/v1")
-    {
-        // Health check
-        public.GET("/health", func(c *gin.Context) {
-            c.JSON(200, gin.H{"status": "healthy"})
-        })
+// Initialize components
+handler := handlers.NewHandler(db)
+authMiddleware := middleware.NewAuthMiddleware(jwtSecret)
 
-        // Auth endpoints
-        public.POST("/auth/login", authHandler.Login)
-        public.POST("/auth/register", authHandler.Register)
+// Initialize and start task scheduler and cleanup service
+taskScheduler := scheduler.NewTaskScheduler(db)
+cleanupService := scheduler.NewCleanupService(db)
 
-        // Public ticket and solution endpoints
-        public.POST("/tickets", ticketHandler.CreateTicket)
-        public.POST("/solutions/search", ticketHandler.SearchSolutions)
-    }
+// Start background services
+log.Println("Starting background services...")
+taskScheduler.Start()
+cleanupService.Start()
+log.Println("Background services started successfully")
 
-    // Protected routes
-    protected := router.Group("/api/v1")
-    protected.Use(middleware.AuthMiddleware(authService))
-    {
-        // Auth endpoints
-        protected.GET("/auth/verify", authHandler.VerifyToken)
-        protected.POST("/auth/change-password", authHandler.ChangePassword)
+// Set up Gin router
+r := gin.Default()
 
-        // Tickets management
-        tickets := protected.Group("/tickets")
-        {
-            tickets.GET("", ticketHandler.ListTickets)
-            tickets.GET("/:id", ticketHandler.GetTicket)
-            tickets.GET("/:id/history", ticketHandler.GetTicketHistory)
-            tickets.PATCH("/:id", ticketHandler.UpdateTicket)
-            tickets.DELETE("/:id", middleware.RequireRole("admin"), ticketHandler.DeleteTicket)
-            tickets.GET("/stats", ticketHandler.GetTicketStats)
-            tickets.GET("/export", middleware.RequireRole("admin"), ticketHandler.ExportTickets)
-        }
+// CORS configuration
+r.Use(cors.New(cors.Config{
+AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000"},
+AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+AllowHeaders:     []string{"Origin", "Authorization", "Content-Type"},
+ExposeHeaders:    []string{"Content-Length"},
+AllowCredentials: true,
+MaxAge:          12 * time.Hour,
+}))
 
-        // Solutions management
-        solutions := protected.Group("/ticket-solutions")
-        {
-            solutions.GET("", ticketHandler.ListSolutions)
-            solutions.GET("/by-category", ticketHandler.ListSolutions) // With category query param
-            solutions.GET("/by-email", ticketHandler.ListSolutions)   // With email query param
-        }
+// Public routes
+r.POST("/api/auth/login", auth.LoginHandler(db))
+r.POST("/api/auth/register", auth.RegisterHandler(db))
+r.POST("/api/tickets", handler.CreateTicket)
+r.GET("/api/solutions", handler.GetSolutions)
+r.POST("/api/solutions/search", handler.SearchSolutions)
 
-        // Tasks management
-        tasks := protected.Group("/tasks")
-        {
-            tasks.POST("", taskHandler.CreateTask)
-            tasks.GET("", taskHandler.ListTasks)
-            tasks.GET("/:id", taskHandler.GetTask)
-            tasks.GET("/:id/history", taskHandler.GetTaskHistory)
-            tasks.PATCH("/:id", taskHandler.UpdateTask)
-            tasks.DELETE("/:id", taskHandler.DeleteTask)
-            tasks.GET("/stats", taskHandler.GetTaskStats)
-        }
+// Protected routes
+protected := r.Group("/api")
+protected.Use(authMiddleware.AuthRequired())
+{
+// User routes
+protected.GET("/users", handler.GetUsers)
+protected.GET("/users/:id", handler.GetUser)
+protected.PATCH("/users/:id", handler.UpdateUser)
+protected.DELETE("/users/:id", handler.DeleteUser)
 
-        // User management
-        users := protected.Group("/users")
-        {
-            users.GET("", userHandler.ListUsers)
-            users.PATCH("/:id", userHandler.UpdateUser)
-            users.DELETE("/:id", middleware.RequireRole("admin"), userHandler.DeleteUser)
-            users.GET("/stats", middleware.RequireRole("admin"), userHandler.GetUserStats)
-        }
+// Ticket routes
+protected.GET("/tickets", handler.GetTickets)
+protected.GET("/tickets/:id", handler.GetTicket)
+protected.PATCH("/tickets/:id", handler.UpdateTicket)
+protected.DELETE("/tickets/:id", handler.DeleteTicket)
+protected.GET("/tickets/export", handler.ExportTickets)
+protected.GET("/tickets/:id/history", handler.GetTicketHistory)
 
-        // User profile
-        protected.GET("/profile", userHandler.GetUserProfile)
-    }
+// Task routes
+protected.POST("/tasks", handler.CreateTask)
+protected.GET("/tasks", handler.GetTasks)
+protected.GET("/tasks/:id", handler.GetTask)
+protected.PATCH("/tasks/:id", handler.UpdateTask)
+protected.DELETE("/tasks/:id", handler.DeleteTask)
 
-    return router
+// Solution routes
+protected.POST("/solutions", handler.CreateSolution)
+protected.PATCH("/solutions/:id", handler.UpdateSolution)
+protected.DELETE("/solutions/:id", handler.DeleteSolution)
+}
+
+// Set up graceful shutdown
+signalChan := make(chan os.Signal, 1)
+signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+
+go func() {
+<-signalChan
+log.Println("Received shutdown signal")
+log.Println("Performing final cleanup before shutdown...")
+cleanupService.CleanupOldTasks()
+log.Println("Cleanup complete, shutting down...")
+os.Exit(0)
+}()
+
+// Start server
+port := os.Getenv("PORT")
+if port == "" {
+port = "8080"
+}
+
+log.Printf("Server starting on port %s", port)
+if err := r.Run(":" + port); err != nil {
+log.Fatal("Error starting server:", err)
+}
 }

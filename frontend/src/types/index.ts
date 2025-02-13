@@ -1,28 +1,57 @@
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: 'admin' | 'user';
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Ticket {
-  id?: number;
-  ticketNumber?: string;
+  id: number;
+  ticketNumber: string;
   category: string;
   description: string;
-  submitterEmail: string;
   status: 'open' | 'in_progress' | 'resolved';
   urgency: 'low' | 'normal' | 'high' | 'critical';
-  dueDate?: string | null;
-  assignedTo?: number | null;
-  solution?: string | null;
-  resolvedBy?: number | null;
-  resolvedAt?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
-  solutions?: Solution[];
+  createdBy: number;
+  assignedTo: number | null;
+  submitterEmail: string;
+  dueDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+  assignedUser?: User;
+  type?: 'ticket';
+}
+
+export interface Task {
+  id: number;
+  title: string;
+  description: string;
+  status: 'todo' | 'in_progress' | 'done';
+  priority: 'low' | 'medium' | 'high';
+  createdBy: number;
+  assignedTo: number | null;
+  dueDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+  assignedUser?: User;
+  recurrenceType: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+  recurrenceInterval: number;
+  recurrenceEndDate: string | null;
+  parentTaskId?: number | null;
+  nextOccurrence?: string | null;
+  type?: 'task';
 }
 
 export interface TicketHistory {
   id: number;
   ticketId: number;
-  action: string;
-  userId?: number | null;
-  notes: string;
+  updatedBy: number;
+  status: string;
+  comment: string;
   createdAt: string;
+  updatedByUser?: User;
 }
 
 export interface Solution {
@@ -30,48 +59,9 @@ export interface Solution {
   title: string;
   description: string;
   category: string;
+  createdBy: number;
   createdAt: string;
   updatedAt: string;
-  previouslyUsed?: boolean;
-}
-
-export interface Task {
-  id?: number;
-  title: string;
-  description: string;
-  priority: 'low' | 'medium' | 'high';
-  status: 'todo' | 'in_progress' | 'done';
-  createdBy: number;
-  creator?: User;
-  assignedTo?: number | null;
-  assignedUser?: User;
-  createdAt?: string;
-  updatedAt?: string;
-  history?: TaskHistory[];
-}
-
-export interface TaskHistory {
-  id: number;
-  taskId: number;
-  action: string;
-  userId: number;
-  user?: User;
-  notes: string;
-  createdAt: string;
-}
-
-export interface User {
-  id?: number;
-  email: string;
-  name: string;
-  role: 'admin' | 'staff';
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface AuthResponse {
-  token: string;
-  user: User;
 }
 
 export interface LoginCredentials {
@@ -79,9 +69,17 @@ export interface LoginCredentials {
   password: string;
 }
 
-export interface RegisterCredentials extends LoginCredentials {
+export interface RegisterCredentials {
   name: string;
+  email: string;
+  password: string;
 }
 
-// Helper type for handling undefined and null values
-export type Nullable<T> = T | null | undefined;
+// Type guard functions
+export const isTicket = (item: Ticket | Task): item is Ticket => {
+  return (item as Ticket).ticketNumber !== undefined;
+};
+
+export const isTask = (item: Ticket | Task): item is Task => {
+  return (item as Task).title !== undefined;
+};
