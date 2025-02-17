@@ -1,81 +1,63 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
-  Table,
-  TableBody,
-  TableCell,
   TableContainer,
+  Table,
   TableHead,
   TableRow,
-  IconButton,
-  Box,
+  TableCell,
+  TableBody,
+  Paper,
   Typography,
-  Chip,
-  DialogActions,
-  Button,
-  useTheme,
-  alpha,
+  CircularProgress,
+  Box,
 } from '@mui/material';
-import { Close as CloseIcon } from '@mui/icons-material';
-import { useQuery } from '@tanstack/react-query';
+import { useTheme } from '../contexts/ThemeContext';
 import { Ticket } from '../types';
-import api from '../utils/axios';
-import { 
-  colors, 
-  shadows, 
-  chipStyles, 
-  sectionTitleStyles,
-} from '../styles/common';
+import { getCommonDialogStyles } from '../contexts/ThemeContext';
+import axios from '../utils/axios';
 
-interface SubmitterTicketsDialogProps {
+interface Props {
   open: boolean;
   onClose: () => void;
   email: string;
-  onTicketClick: (ticket: Ticket) => void;
 }
 
-export default function SubmitterTicketsDialog({
-  open,
-  onClose,
-  email,
-  onTicketClick,
-}: SubmitterTicketsDialogProps) {
-  const theme = useTheme();
-  
-  const { data: tickets } = useQuery<{ data: Ticket[] }>({
-    queryKey: ['tickets', 'submitter', email],
-    queryFn: async () => {
-      const response = await api.get('/tickets', {
-        params: { submitterEmail: email }
-      });
-      return response.data;
-    },
-    enabled: open
-  });
+const SubmitterTicketsDialog: React.FC<Props> = ({ open, onClose, email }) => {
+  const { theme } = useTheme();
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const formatDueDate = (dueDate: string | null | undefined) => {
-    if (!dueDate) return '-';
-    const date = new Date(dueDate);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  useEffect(() => {
+    if (open && email) {
+      fetchTickets();
+    }
+  }, [open, email]);
+
+  const fetchTickets = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`/api/tickets?submitterEmail=${email}`);
+      setTickets(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching tickets:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'open':
-        return colors.errorRed;
-      case 'in_progress':
-        return colors.warningYellow;
-      case 'resolved':
-        return colors.successGreen;
+  const getUrgencyColor = (urgency: string) => {
+    switch (urgency) {
+      case 'critical':
+        return theme.colors.errorRed;
+      case 'high':
+        return theme.colors.warningYellow;
+      case 'low':
+        return theme.colors.successGreen;
       default:
-        return colors.secondaryGray;
+        return theme.colors.secondaryGray;
     }
   };
 
@@ -85,162 +67,62 @@ export default function SubmitterTicketsDialog({
       onClose={onClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{
-        elevation: 0,
-        sx: {
-          borderRadius: 3,
-          backgroundColor: theme.palette.background.default,
-          boxShadow: shadows.strong,
-        }
-      }}
+      sx={getCommonDialogStyles(theme)}
     >
-      <DialogTitle sx={{ p: 3, pb: 2 }}>
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between' 
-          }}
+      <DialogTitle>
+        <Typography
+          variant="h6"
+          sx={{ fontSize: theme.typography.medium }}
         >
-          <Typography sx={sectionTitleStyles}>
-            Tickets from {email}
-          </Typography>
-          <IconButton 
-            onClick={onClose} 
-            size="small"
-            sx={{
-              ...chipStyles,
-              backgroundColor: alpha(theme.palette.text.primary, 0.1),
-              '&:hover': {
-                backgroundColor: alpha(theme.palette.text.primary, 0.2),
-              }
-            }}
-          >
-            <CloseIcon sx={{ color: theme.palette.text.primary }} />
-          </IconButton>
-        </Box>
+          Tickets submitted by {email}
+        </Typography>
       </DialogTitle>
-      <DialogContent sx={{ px: 3 }}>
-        <TableContainer
-          sx={{
-            mt: 2,
-            backgroundColor: theme.palette.background.paper,
-            borderRadius: 2,
-            boxShadow: shadows.subtle,
-            overflow: 'hidden',
-            '& .MuiTableCell-root': {
-              borderColor: theme.palette.divider,
-            },
-          }}
-        >
-          <Table size="small">
-            <TableHead>
-              <TableRow
-                sx={{
-                  backgroundColor: alpha(theme.palette.background.paper, 0.6),
-                  backdropFilter: 'blur(8px)',
-                }}
-              >
-                <TableCell sx={{ fontWeight: 600 }}>Ticket #</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Due Date</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {tickets?.data.map((ticket) => (
-                <TableRow
-                  key={ticket.id}
-                  onClick={() => onTicketClick(ticket)}
-                  sx={{
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease-in-out',
-                    '&:hover': { 
-                      backgroundColor: alpha(theme.palette.action.hover, 0.7),
-                      transform: 'translateX(4px)',
-                    }
-                  }}
-                >
-                  <TableCell>
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        fontFamily: 'monospace',
-                        fontWeight: 500,
-                        color: colors.primaryBlue,
-                      }}
-                    >
-                      {ticket.ticketNumber}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={ticket.status}
-                      size="small"
-                      sx={{
-                        ...chipStyles,
-                        backgroundColor: alpha(getStatusColor(ticket.status), 0.1),
-                        color: getStatusColor(ticket.status),
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography
-                      sx={{
-                        color: theme.palette.text.primary,
-                        fontWeight: 400,
-                      }}
-                    >
-                      {ticket.description.length > 50
-                        ? `${ticket.description.slice(0, 50)}...`
-                        : ticket.description}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography
-                      sx={{
-                        color: theme.palette.text.secondary,
-                        fontSize: '0.875rem',
-                      }}
-                    >
-                      {formatDueDate(ticket.dueDate)}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {(!tickets?.data || tickets.data.length === 0) && (
+      <DialogContent>
+        {loading ? (
+          <Box display="flex" justifyContent="center" p={3}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={4}>
-                    <Typography 
-                      align="center" 
-                      sx={{ 
-                        py: 4,
-                        color: theme.palette.text.secondary,
-                      }}
-                    >
-                      No tickets found for this email address
-                    </Typography>
-                  </TableCell>
+                  <TableCell>Ticket #</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Urgency</TableCell>
+                  <TableCell>Created</TableCell>
+                  <TableCell>Last Updated</TableCell>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {tickets.map((ticket) => (
+                  <TableRow key={ticket.id}>
+                    <TableCell>{ticket.ticketNumber}</TableCell>
+                    <TableCell>
+                      {ticket.status.toUpperCase().replace('_', ' ')}
+                    </TableCell>
+                    <TableCell>
+                      <Typography
+                        style={{ color: getUrgencyColor(ticket.urgency) }}
+                      >
+                        {ticket.urgency.toUpperCase()}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(ticket.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(ticket.updatedAt).toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </DialogContent>
-      <DialogActions sx={{ p: 3, pt: 2 }}>
-        <Button 
-          onClick={onClose}
-          sx={{
-            ...chipStyles,
-            color: theme.palette.text.primary,
-            '&:hover': {
-              backgroundColor: alpha(theme.palette.text.primary, 0.1),
-            }
-          }}
-        >
-          Close
-        </Button>
-      </DialogActions>
     </Dialog>
   );
-}
+};
+
+export default SubmitterTicketsDialog;

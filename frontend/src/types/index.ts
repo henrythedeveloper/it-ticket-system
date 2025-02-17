@@ -2,64 +2,7 @@ export interface User {
   id: number;
   name: string;
   email: string;
-  role: 'admin' | 'user';
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Ticket {
-  id: number;
-  ticketNumber: string;
-  category: string;
-  description: string;
-  status: 'open' | 'in_progress' | 'resolved';
-  urgency: 'low' | 'normal' | 'high' | 'critical';
-  createdBy: number;
-  assignedTo: number | null;
-  submitterEmail: string;
-  dueDate: string | null;
-  createdAt: string;
-  updatedAt: string;
-  assignedUser?: User;
-  type?: 'ticket';
-}
-
-export interface Task {
-  id: number;
-  title: string;
-  description: string;
-  status: 'todo' | 'in_progress' | 'done';
-  priority: 'low' | 'medium' | 'high';
-  createdBy: number;
-  assignedTo: number | null;
-  dueDate: string | null;
-  createdAt: string;
-  updatedAt: string;
-  assignedUser?: User;
-  recurrenceType: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
-  recurrenceInterval: number;
-  recurrenceEndDate: string | null;
-  parentTaskId?: number | null;
-  nextOccurrence?: string | null;
-  type?: 'task';
-}
-
-export interface TicketHistory {
-  id: number;
-  ticketId: number;
-  updatedBy: number;
-  status: string;
-  comment: string;
-  createdAt: string;
-  updatedByUser?: User;
-}
-
-export interface Solution {
-  id: number;
-  title: string;
-  description: string;
-  category: string;
-  createdBy: number;
+  role: 'admin' | 'staff';
   createdAt: string;
   updatedAt: string;
 }
@@ -73,13 +16,131 @@ export interface RegisterCredentials {
   name: string;
   email: string;
   password: string;
+  role: 'admin' | 'staff';
 }
 
-// Type guard functions
-export const isTicket = (item: Ticket | Task): item is Ticket => {
-  return (item as Ticket).ticketNumber !== undefined;
+export interface Task {
+  id: number;
+  title: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high';
+  status: 'todo' | 'in_progress' | 'done';
+  createdBy: number;
+  creator: User;
+  assignedTo?: number | null;
+  assignedUser?: User;
+  dueDate?: string | null;
+  recurringTaskId?: number | null;
+  recurringTask?: RecurringTask;
+  history?: TaskHistory[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RecurringTask {
+  id: number;
+  title: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high';
+  frequency: 'daily' | 'weekly' | 'monthly';
+  nextRun: string;
+  assignedTo?: number | null;
+  createdBy: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaskHistory {
+  id: number;
+  taskId: number;
+  action: string;
+  userId: number;
+  user: User;
+  notes: string;
+  createdAt: string;
+}
+
+export interface Ticket {
+  id: number;
+  ticketNumber: string;
+  category: string;
+  description: string;
+  status: 'open' | 'in_progress' | 'resolved';
+  submitterEmail: string;
+  assignedTo?: number | null;
+  assignedUser?: User;
+  solution?: string | null;
+  resolvedBy?: number | null;
+  resolvedUser?: User;
+  resolvedAt?: string | null;
+  urgency: 'low' | 'normal' | 'high' | 'critical';
+  dueDate?: string | null;
+  history?: TicketHistory[];
+  solutions?: Solution[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TicketHistory {
+  id: number;
+  ticketId: number;
+  action: string;
+  userId?: number;
+  user?: User;
+  notes: string;
+  createdAt: string;
+}
+
+export interface Solution {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  previouslyUsed?: boolean;
+  tickets?: Ticket[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type Theme = {
+  colors: {
+    primaryBlue: string;
+    secondaryGray: string;
+    successGreen: string;
+    warningYellow: string;
+    errorRed: string;
+    background: string;
+    surfaceLight: string;
+    divider: string;
+  };
+  typography: {
+    subtle: string;
+    medium: string;
+    large: string;
+    strong: string;
+  };
+  spacing: {
+    xs: number;
+    sm: number;
+    md: number;
+    lg: number;
+    xl: number;
+  };
+  shadows: {
+    sm: string;
+    md: string;
+    lg: string;
+  };
+  borderRadius: {
+    sm: number;
+    md: number;
+    lg: number;
+  };
 };
 
-export const isTask = (item: Ticket | Task): item is Task => {
-  return (item as Task).title !== undefined;
+export type Nullable<T> = T | null;
+
+export const isTicket = (item: Task | Ticket): item is Ticket => {
+  return 'ticketNumber' in item;
 };

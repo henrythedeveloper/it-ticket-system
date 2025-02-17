@@ -1,187 +1,159 @@
-import { createTheme } from '@mui/material/styles';
-import { colors } from './common';
+import { css, type SerializedStyles } from '@emotion/react';
+import { Theme } from '../types';
 
-// Apple-inspired global styles
-export const globalStyles = {
-  '*': {
-    margin: 0,
-    padding: 0,
-    boxSizing: 'border-box',
-    '-webkit-font-smoothing': 'antialiased',
-    '-moz-osx-font-smoothing': 'grayscale',
+export const baseTheme: Theme = {
+  colors: {
+    primaryBlue: '#007bff',
+    secondaryGray: '#6c757d',
+    successGreen: '#28a745',
+    warningYellow: '#ffc107',
+    errorRed: '#dc3545',
+    background: '#f8f9fa',
+    surfaceLight: '#ffffff',
+    divider: '#dee2e6',
   },
-  html: {
-    fontSynthesis: 'none',
-    textRendering: 'optimizeLegibility',
+  typography: {
+    subtle: '0.875rem',
+    medium: '1rem',
+    large: '1.25rem',
+    strong: '1.5rem',
   },
-  body: {
-    margin: 0,
-    backgroundColor: colors.background,
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-    color: '#1C1C1E',
-    lineHeight: 1.5,
+  spacing: {
+    xs: 4,
+    sm: 8,
+    md: 16,
+    lg: 24,
+    xl: 32,
   },
-  'button, input, textarea, select': {
-    fontFamily: 'inherit',
+  shadows: {
+    sm: '0 1px 3px rgba(0,0,0,0.12)',
+    md: '0 4px 6px rgba(0,0,0,0.15)',
+    lg: '0 10px 15px rgba(0,0,0,0.18)',
   },
-  a: {
-    color: colors.primaryBlue,
-    textDecoration: 'none',
-    transition: 'color 0.2s ease-in-out',
-    '&:hover': {
-      color: '#0056b3',
-    },
+  borderRadius: {
+    sm: 4,
+    md: 8,
+    lg: 12,
   },
 };
 
-// Apple-inspired MUI theme customization
-export const theme = createTheme({
-  palette: {
-    primary: {
-      main: colors.primaryBlue,
-      light: '#409cff',
-      dark: '#0055cb',
-    },
-    secondary: {
-      main: colors.secondaryGray,
-      light: '#bcbcc1',
-      dark: '#636366',
-    },
-    error: {
-      main: colors.errorRed,
-      light: '#ff6961',
-      dark: '#c30010',
-    },
-    warning: {
-      main: colors.warningYellow,
-      light: '#ffdb4d',
-      dark: '#997a00',
-    },
-    success: {
-      main: colors.successGreen,
-      light: '#70dc85',
-      dark: '#248a3d',
-    },
-    background: {
-      default: colors.background,
-      paper: colors.surfaceLight,
-    },
-    text: {
-      primary: '#1C1C1E',
-      secondary: colors.secondaryGray,
-    },
-  },
-  typography: {
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-    h1: {
-      fontSize: '2.5rem',
-      fontWeight: 600,
-      letterSpacing: '-0.022em',
-    },
-    h2: {
-      fontSize: '2rem',
-      fontWeight: 600,
-      letterSpacing: '-0.021em',
-    },
-    h3: {
-      fontSize: '1.75rem',
-      fontWeight: 600,
-      letterSpacing: '-0.021em',
-    },
-    h4: {
-      fontSize: '1.5rem',
-      fontWeight: 600,
-      letterSpacing: '-0.02em',
-    },
-    h5: {
-      fontSize: '1.25rem',
-      fontWeight: 600,
-      letterSpacing: '-0.019em',
-    },
-    h6: {
-      fontSize: '1.125rem',
-      fontWeight: 600,
-      letterSpacing: '-0.018em',
-    },
-    body1: {
-      fontSize: '1rem',
-      letterSpacing: '-0.016em',
-    },
-    body2: {
-      fontSize: '0.875rem',
-      letterSpacing: '-0.014em',
-    },
-    button: {
-      textTransform: 'none',
-      letterSpacing: '-0.016em',
-    },
-  },
-  shape: {
-    borderRadius: 8,
-  },
+export const getGlobalStyles = (theme: Theme): SerializedStyles => css`
+  .page-container {
+    min-height: 100vh;
+    background-color: ${theme.colors.background};
+    padding: ${theme.spacing.md}px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .text-subtle {
+    font-size: ${theme.typography.subtle};
+    color: ${theme.colors.secondaryGray};
+  }
+
+  .text-medium {
+    font-size: ${theme.typography.medium};
+    color: ${theme.colors.secondaryGray};
+  }
+
+  .text-large {
+    font-size: ${theme.typography.large};
+    font-weight: 500;
+    color: ${theme.colors.secondaryGray};
+  }
+
+  .text-strong {
+    font-size: ${theme.typography.strong};
+    font-weight: 600;
+    color: ${theme.colors.secondaryGray};
+  }
+
+  .card {
+    background-color: ${theme.colors.surfaceLight};
+    border-radius: ${theme.borderRadius.md}px;
+    box-shadow: ${theme.shadows.md};
+    padding: ${theme.spacing.md}px;
+    margin: ${theme.spacing.sm}px;
+  }
+
+  .form-group {
+    margin-bottom: ${theme.spacing.md}px;
+  }
+
+  .form-label {
+    margin-bottom: ${theme.spacing.xs}px;
+    font-size: ${theme.typography.medium};
+    color: ${theme.colors.secondaryGray};
+  }
+
+  .form-input {
+    background-color: ${theme.colors.background};
+    border: 1px solid ${theme.colors.divider};
+    border-radius: ${theme.borderRadius.sm}px;
+    padding: ${theme.spacing.sm}px;
+    width: 100%;
+    &:focus {
+      border-color: ${theme.colors.primaryBlue};
+      outline: none;
+    }
+  }
+
+  .button-primary {
+    background-color: ${theme.colors.primaryBlue};
+    color: ${theme.colors.surfaceLight};
+    border: none;
+    border-radius: ${theme.borderRadius.sm}px;
+    padding: ${theme.spacing.sm}px ${theme.spacing.md}px;
+    cursor: pointer;
+    &:hover {
+      background-color: ${theme.colors.primaryBlue}dd;
+    }
+    &:disabled {
+      background-color: ${theme.colors.secondaryGray};
+      cursor: not-allowed;
+    }
+  }
+
+  .status-success {
+    color: ${theme.colors.successGreen};
+  }
+
+  .status-warning {
+    color: ${theme.colors.warningYellow};
+  }
+
+  .status-error {
+    color: ${theme.colors.errorRed};
+  }
+
+  .divider {
+    border-bottom: 1px solid ${theme.colors.divider};
+    margin: ${theme.spacing.md}px 0;
+  }
+`;
+
+export const materialExtensions = (theme: Theme) => ({
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
-          padding: '8px 16px',
-          transition: 'all 0.2s ease-in-out',
           textTransform: 'none',
-          fontWeight: 500,
-          '&:hover': {
-            transform: 'translateY(-1px)',
-          },
-        },
-        containedPrimary: {
-          background: `linear-gradient(180deg, ${colors.primaryBlue} 0%, #0062CC 100%)`,
-          boxShadow: '0 2px 4px rgba(0, 122, 255, 0.1)',
-          '&:hover': {
-            background: `linear-gradient(180deg, #1a86ff 0%, #0056b3 100%)`,
-            boxShadow: '0 4px 8px rgba(0, 122, 255, 0.2)',
-          },
         },
       },
     },
-    MuiCard: {
+    MuiTableCell: {
       styleOverrides: {
         root: {
-          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
-          borderRadius: 12,
+          borderColor: theme.colors.divider,
         },
       },
     },
-    MuiPaper: {
+    MuiDialog: {
       styleOverrides: {
-        root: {
-          borderRadius: 12,
-        },
-      },
-    },
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
-            borderRadius: 8,
-          },
-        },
-      },
-    },
-    MuiChip: {
-      styleOverrides: {
-        root: {
-          borderRadius: 6,
-          height: 24,
-          fontSize: '0.8125rem',
-          fontWeight: 500,
+        paper: {
+          borderRadius: theme.borderRadius.lg,
         },
       },
     },
   },
 });
-
-// Export extensions to Material-UI components
-export const materialExtensions = {
-  MuiCssBaseline: {
-    styleOverrides: globalStyles,
-  },
-};

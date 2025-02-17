@@ -1,298 +1,243 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Button,
+  TextField,
   MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
   Box,
-  Typography,
-  Stack,
-  useTheme,
-  alpha,
-  Collapse,
+  CircularProgress,
 } from '@mui/material';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { useTheme } from '../contexts/ThemeContext';
 import { Task, User } from '../types';
-import { colors, shadows, chipStyles } from '../styles/common';
-import dayjs from 'dayjs';
+import { getCommonDialogStyles } from '../contexts/ThemeContext';
+import axios from '../utils/axios';
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  task: Task | null;
   onSave: (task: Partial<Task>) => void;
-  isNew?: boolean;
+  task: Task | null;
   currentUser: User;
 }
 
-export default function TaskDialog({ open, onClose, task, onSave, isNew = false, currentUser }: Props) {
-  const theme = useTheme();
-  const [title, setTitle] = React.useState('');
-  const [description, setDescription] = React.useState('');
-  const [status, setStatus] = React.useState('todo');
-  const [priority, setPriority] = React.useState('medium');
-  const [assignedTo, setAssignedTo] = React.useState<number | null>(null);
-  const [dueDate, setDueDate] = React.useState<Date | null>(null);
-  const [showRecurrence, setShowRecurrence] = React.useState(false);
-  const [recurrenceType, setRecurrenceType] = React.useState('none');
-  const [recurrenceInterval, setRecurrenceInterval] = React.useState(1);
-  const [recurrenceEndDate, setRecurrenceEndDate] = React.useState<Date | null>(null);
+interface TaskFormData {
+  title: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high';
+  status: 'todo' | 'in_progress' | 'done';
+  assignedTo: number | null;
+  dueDate: Date | null;
+}
 
-  React.useEffect(() => {
+const initialFormData: TaskFormData = {
+  title: '',
+  description: '',
+  priority: 'medium',
+  status: 'todo',
+  assignedTo: null,
+  dueDate: null,
+};
+
+const TaskDialog: React.FC<Props> = ({
+  open,
+  onClose,
+  onSave,
+  task,
+  currentUser,
+}) => {
+  const { theme } = useTheme();
+  const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [formData, setFormData] = useState<TaskFormData>(initialFormData);
+
+  useEffect(() => {
+    if (currentUser?.role === 'admin' || currentUser?.role === 'staff') {
+      fetchUsers();
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
     if (task) {
-      setTitle(task.title);
-      setDescription(task.description);
-      setStatus(task.status);
-      setPriority(task.priority);
-      setAssignedTo(task.assignedTo || null);
-      setDueDate(task.dueDate ? new Date(task.dueDate) : null);
-      setRecurrenceType(task.recurrenceType || 'none');
-      setRecurrenceInterval(task.recurrenceInterval || 1);
-      setRecurrenceEndDate(task.recurrenceEndDate ? new Date(task.recurrenceEndDate) : null);
-      setShowRecurrence(task.recurrenceType !== 'none');
+      setFormData({
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        status: task.status,
+        assignedTo: task.assignedTo ?? null,
+        dueDate: task.dueDate ? new Date(task.dueDate) : null,
+      });
     } else {
-      resetForm();
+      setFormData(initialFormData);
     }
   }, [task]);
 
-  const resetForm = () => {
-    setTitle('');
-    setDescription('');
-    setStatus('todo');
-    setPriority('medium');
-    setAssignedTo(currentUser.id);
-    setDueDate(null);
-    setRecurrenceType('none');
-    setRecurrenceInterval(1);
-    setRecurrenceEndDate(null);
-    setShowRecurrence(false);
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get('/api/users');
+      setUsers(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
   };
 
-  const handleSave = () => {
-    onSave({
-      ...task,
-      title,
-      description,
-      status,
-      priority,
-      assignedTo,
-      dueDate: dueDate?.toISOString(),
-      recurrenceType: showRecurrence ? recurrenceType : 'none',
-      recurrenceInterval: showRecurrence ? recurrenceInterval : 1,
-      recurrenceEndDate: showRecurrence && recurrenceEndDate ? recurrenceEndDate.toISOString() : null,
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      // Convert Date to ISO string before saving
+      const submitData: Partial<Task> = {
+        title: formData.title,
+        description: formData.description,
+        priority: formData.priority,
+        status: formData.status,
+        assignedTo: formData.assignedTo,
+        dueDate: formData.dueDate?.toISOString() || null,
+      };
+      onSave(submitData);
+    } catch (error) {
+      console.error('Error saving task:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (field: keyof TaskFormData) => (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setFormData({
+      ...formData,
+      [field]: event.target.value,
     });
-    onClose();
   };
 
-  const inputStyles = {
-    '& .MuiOutlinedInput-root': {
-      borderRadius: 2,
-      backgroundColor: alpha(theme.palette.background.paper, 0.5),
-      backdropFilter: 'blur(8px)',
-      transition: 'all 0.2s ease-in-out',
-      '&:hover': {
-        backgroundColor: alpha(theme.palette.background.paper, 0.7),
-        boxShadow: shadows.subtle,
-      },
-      '&.Mui-focused': {
-        backgroundColor: alpha(theme.palette.background.paper, 0.9),
-        boxShadow: shadows.medium,
-      },
-    },
+  const handleDateChange = (date: Date | null) => {
+    setFormData({
+      ...formData,
+      dueDate: date,
+    });
   };
+
+  const canEdit = task ? (currentUser.role === 'admin' || task.createdBy === currentUser.id) : true;
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{
-        sx: {
-          backgroundColor: alpha(theme.palette.background.paper, 0.8),
-          backdropFilter: 'blur(20px)',
-          borderRadius: 3,
-          boxShadow: shadows.large,
-        }
-      }}
+      sx={getCommonDialogStyles(theme)}
     >
-      <DialogTitle sx={{ pb: 0 }}>
-        {isNew ? 'Create New Task' : 'Edit Task'}
-      </DialogTitle>
+      <form onSubmit={handleSubmit}>
+        <DialogTitle>
+          {task ? 'Edit Task' : 'Create Task'}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField
+              label="Title"
+              value={formData.title}
+              onChange={handleChange('title')}
+              required
+              fullWidth
+              disabled={!canEdit}
+            />
 
-      <DialogContent>
-        <Stack spacing={3} sx={{ mt: 2 }}>
-          <TextField
-            label="Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            fullWidth
-            required
-            sx={inputStyles}
-          />
+            <TextField
+              label="Description"
+              value={formData.description}
+              onChange={handleChange('description')}
+              required
+              fullWidth
+              multiline
+              rows={4}
+              disabled={!canEdit}
+            />
 
-          <TextField
-            label="Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            fullWidth
-            multiline
-            rows={4}
-            required
-            sx={inputStyles}
-          />
+            <TextField
+              select
+              label="Priority"
+              value={formData.priority}
+              onChange={handleChange('priority')}
+              required
+              fullWidth
+              disabled={!canEdit}
+            >
+              <MenuItem value="low">Low</MenuItem>
+              <MenuItem value="medium">Medium</MenuItem>
+              <MenuItem value="high">High</MenuItem>
+            </TextField>
 
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <FormControl fullWidth sx={inputStyles}>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={status}
+            {task && (
+              <TextField
+                select
                 label="Status"
-                onChange={(e) => setStatus(e.target.value)}
+                value={formData.status}
+                onChange={handleChange('status')}
+                required
+                fullWidth
+                disabled={!canEdit}
               >
-                <MenuItem value="todo">Todo</MenuItem>
+                <MenuItem value="todo">To Do</MenuItem>
                 <MenuItem value="in_progress">In Progress</MenuItem>
                 <MenuItem value="done">Done</MenuItem>
-              </Select>
-            </FormControl>
+              </TextField>
+            )}
 
-            <FormControl fullWidth sx={inputStyles}>
-              <InputLabel>Priority</InputLabel>
-              <Select
-                value={priority}
-                label="Priority"
-                onChange={(e) => setPriority(e.target.value)}
-              >
-                <MenuItem value="low">Low</MenuItem>
-                <MenuItem value="medium">Medium</MenuItem>
-                <MenuItem value="high">High</MenuItem>
-              </Select>
-            </FormControl>
-          </Stack>
-
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <DateTimePicker
-              label="Due Date"
-              value={dueDate ? dayjs(dueDate) : null}
-              onChange={(newValue) => setDueDate(newValue ? newValue.toDate() : null)}
-              slotProps={{
-                textField: {
-                  fullWidth: true,
-                  sx: inputStyles,
-                },
-              }}
-            />
-          </LocalizationProvider>
-
-          <Box>
-            <Button
-              variant="outlined"
-              onClick={() => setShowRecurrence(!showRecurrence)}
-              sx={{
-                ...chipStyles,
-                color: showRecurrence ? colors.primaryBlue : theme.palette.text.secondary,
-                borderColor: showRecurrence ? colors.primaryBlue : theme.palette.divider,
-                '&:hover': {
-                  borderColor: colors.primaryBlue,
-                },
-              }}
+            <TextField
+              select
+              label="Assigned To"
+              value={formData.assignedTo || ''}
+              onChange={handleChange('assignedTo')}
+              fullWidth
+              disabled={!canEdit}
             >
-              {showRecurrence ? 'Hide Recurrence Options' : 'Show Recurrence Options'}
-            </Button>
+              <MenuItem value="">Unassigned</MenuItem>
+              {users.map((user) => (
+                <MenuItem key={user.id} value={user.id}>
+                  {user.name}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <DatePicker
+                label="Due Date"
+                value={formData.dueDate}
+                onChange={handleDateChange}
+                disabled={!canEdit}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                  },
+                }}
+              />
+            </LocalizationProvider>
           </Box>
-
-          <Collapse in={showRecurrence}>
-            <Stack spacing={2}>
-              <Typography variant="subtitle2" color="textSecondary">
-                Recurrence Settings
-              </Typography>
-
-              <FormControl fullWidth sx={inputStyles}>
-                <InputLabel>Repeat</InputLabel>
-                <Select
-                  value={recurrenceType}
-                  label="Repeat"
-                  onChange={(e) => setRecurrenceType(e.target.value)}
-                >
-                  <MenuItem value="none">Never</MenuItem>
-                  <MenuItem value="daily">Daily</MenuItem>
-                  <MenuItem value="weekly">Weekly</MenuItem>
-                  <MenuItem value="monthly">Monthly</MenuItem>
-                  <MenuItem value="yearly">Yearly</MenuItem>
-                </Select>
-              </FormControl>
-
-              {recurrenceType !== 'none' && (
-                <>
-                  <TextField
-                    label="Every"
-                    type="number"
-                    value={recurrenceInterval}
-                    onChange={(e) => setRecurrenceInterval(parseInt(e.target.value) || 1)}
-                    InputProps={{
-                      inputProps: { min: 1 },
-                    }}
-                    sx={inputStyles}
-                    helperText={`Repeat every ${recurrenceInterval} ${recurrenceType.slice(0, -2)}(s)`}
-                  />
-
-                  <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <DateTimePicker
-                      label="End Date (Optional)"
-                      value={recurrenceEndDate ? dayjs(recurrenceEndDate) : null}
-                      onChange={(newValue) => setRecurrenceEndDate(newValue ? newValue.toDate() : null)}
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          sx: inputStyles,
-                        },
-                      }}
-                    />
-                  </LocalizationProvider>
-                </>
-              )}
-            </Stack>
-          </Collapse>
-        </Stack>
-      </DialogContent>
-
-      <DialogActions sx={{ p: 3 }}>
-        <Button 
-          onClick={onClose}
-          sx={{
-            ...chipStyles,
-            color: theme.palette.text.secondary,
-            '&:hover': {
-              backgroundColor: alpha(theme.palette.text.secondary, 0.1),
-            },
-          }}
-        >
-          Cancel
-        </Button>
-        <Button 
-          onClick={handleSave}
-          variant="contained"
-          disabled={!title || !description}
-          sx={{
-            ...chipStyles,
-            backgroundColor: colors.primaryBlue,
-            color: 'white',
-            '&:hover': {
-              backgroundColor: alpha(colors.primaryBlue, 0.9),
-            },
-          }}
-        >
-          {isNew ? 'Create' : 'Save'}
-        </Button>
-      </DialogActions>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          {canEdit && (
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={loading}
+              sx={{ opacity: loading ? 0.7 : undefined }}
+            >
+              {loading ? <CircularProgress size={24} /> : (task ? 'Save Changes' : 'Create Task')}
+            </Button>
+          )}
+        </DialogActions>
+      </form>
     </Dialog>
   );
-}
+};
+
+export default TaskDialog;

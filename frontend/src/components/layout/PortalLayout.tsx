@@ -1,327 +1,223 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { Outlet, Link, useNavigate } from 'react-router-dom';
 import {
-  Box,
   AppBar,
-  Toolbar,
-  Typography,
-  Container,
-  CircularProgress,
-  IconButton,
-  useTheme,
-  useMediaQuery,
+  Box,
+  CssBaseline,
+  Divider,
   Drawer,
+  IconButton,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Divider,
-  alpha,
+  Toolbar,
+  Typography,
+  Menu,
+  MenuItem,
+  Avatar,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
-  Brightness4,
-  Brightness7,
-  Dashboard,
-  Group,
-  Assignment,
-  AssignmentTurnedIn,
-  ExitToApp,
-  Edit as EditIcon,
+  Task as TaskIcon,
+  Person as PersonIcon,
+  DarkMode as DarkModeIcon,
+  LightMode as LightModeIcon,
+  ConfirmationNumber as TicketIcon,
 } from '@mui/icons-material';
-import { Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
-import { useThemeContext } from '../../contexts/ThemeContext';
 import UserProfileDialog from '../UserProfileDialog';
-import {
-  shadows,
-  sectionTitleStyles,
-  chipStyles,
-} from '../../styles/common';
+import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../contexts/ThemeContext';
+import { User } from '../../types';
+import axios from '../../utils/axios';
 
-const DRAWER_WIDTH = 280;
+const drawerWidth = 240;
 
-export default function PortalLayout() {
-  const { user, logout, isLoading } = useAuth();
+const PortalLayout = () => {
+  const { user, logout } = useAuth();
+  const { theme, mode, toggleColorMode } = useTheme();
   const navigate = useNavigate();
-  const location = useLocation();
-  const theme = useTheme();
-  const { toggleColorMode, mode } = useThemeContext();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  if (isLoading) {
-    return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        backgroundColor: theme.palette.background.default,
-      }}>
-        <CircularProgress sx={{ color: theme.palette.primary.main }} />
-      </Box>
-    );
-  }
+  const handleProfileClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+  const handleProfileClose = () => {
+    setAnchorEl(null);
+  };
 
-  const menuItems = [
-    { text: 'Dashboard', icon: <Dashboard />, path: '/portal' },
-    { text: 'Tickets', icon: <Assignment />, path: '/portal/tickets' },
-    { text: 'Tasks', icon: <AssignmentTurnedIn />, path: '/portal/tasks' },
-    { text: 'Users', icon: <Group />, path: '/portal/users' },
-  ];
+  const handleEditProfile = () => {
+    handleProfileClose();
+    setProfileDialogOpen(true);
+  };
+
+  const handleLogout = () => {
+    handleProfileClose();
+    logout();
+    navigate('/login');
+  };
+
+  const handleProfileSave = async (userData: Partial<User>) => {
+    try {
+      await axios.patch(`/api/users/${user?.id}`, userData);
+      setProfileDialogOpen(false);
+      window.location.reload(); // Refresh to update user data
+    } catch (error) {
+      console.error('Error updating profile:', error);
+    }
+  };
 
   const drawer = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ p: 3, pb: 2 }}>
-        <Typography variant="h6" sx={sectionTitleStyles}>
-          Help Desk Portal
-        </Typography>
-      </Box>
-      <Divider sx={{ mx: 2 }} />
-      <List sx={{ flex: 1, px: 1 }}>
-        {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
-            <ListItemButton
-              onClick={() => {
-                navigate(item.path);
-                if (isMobile) setMobileOpen(false);
-              }}
-              selected={location.pathname === item.path}
-              sx={{
-                borderRadius: 2,
-                transition: 'all 0.2s ease-in-out',
-                '&.Mui-selected': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                  '&:hover': {
-                    backgroundColor: alpha(theme.palette.primary.main, 0.15),
-                  },
-                },
-                '&:hover': {
-                  backgroundColor: alpha(theme.palette.action.hover, 0.7),
-                  transform: 'translateX(4px)',
-                },
-              }}
-            >
-              <ListItemIcon
-                sx={{
-                  color: location.pathname === item.path
-                    ? theme.palette.primary.main
-                    : theme.palette.text.secondary,
-                  minWidth: 40,
-                }}
-              >
-                {item.icon}
+    <Box sx={{ overflow: 'auto' }}>
+      <Toolbar />
+      <List>
+        {user?.role === 'admin' && (
+          <ListItem disablePadding>
+            <ListItemButton component={Link} to="/portal/users">
+              <ListItemIcon>
+                <PersonIcon />
               </ListItemIcon>
-              <ListItemText
-                primary={item.text}
-                sx={{
-                  '& .MuiTypography-root': {
-                    fontWeight: location.pathname === item.path ? 600 : 400,
-                  },
-                }}
-              />
+              <ListItemText primary="Users" />
             </ListItemButton>
           </ListItem>
-        ))}
-      </List>
-      <Divider sx={{ mx: 2 }} />
-      <Box sx={{ p: 2 }}>
-        <ListItem sx={{ 
-          backgroundColor: alpha(theme.palette.background.paper, 0.6),
-          borderRadius: 2,
-          mb: 1,
-          p: 2,
-        }}>
-          <ListItemText
-            primary={user.name}
-            secondary={user.email}
-            primaryTypographyProps={{ 
-              variant: 'subtitle2',
-              sx: { fontWeight: 600, color: theme.palette.text.primary }
-            }}
-            secondaryTypographyProps={{ 
-              variant: 'caption',
-              sx: { color: theme.palette.text.secondary }
-            }}
-          />
-          <IconButton 
-            onClick={() => setProfileDialogOpen(true)}
-            size="small"
-            sx={{ 
-              ml: 1,
-              backgroundColor: alpha(theme.palette.primary.main, 0.1),
-              '&:hover': {
-                backgroundColor: alpha(theme.palette.primary.main, 0.2),
-              }
-            }}
-          >
-            <EditIcon 
-              fontSize="small"
-              sx={{ color: theme.palette.primary.main }}
-            />
-          </IconButton>
+        )}
+        <ListItem disablePadding>
+          <ListItemButton component={Link} to="/portal/tasks">
+            <ListItemIcon>
+              <TaskIcon />
+            </ListItemIcon>
+            <ListItemText primary="Tasks" />
+          </ListItemButton>
         </ListItem>
-        <ListItemButton
-          onClick={logout}
-          sx={{
-            borderRadius: 2,
-            transition: 'all 0.2s ease-in-out',
-            '&:hover': {
-              backgroundColor: alpha(theme.palette.error.main, 0.1),
-              color: theme.palette.error.main,
-            },
-          }}
-        >
-          <ListItemIcon sx={{ minWidth: 40 }}>
-            <ExitToApp color="error" />
-          </ListItemIcon>
-          <ListItemText primary="Logout" />
-        </ListItemButton>
-      </Box>
+        <ListItem disablePadding>
+          <ListItemButton component={Link} to="/portal/tickets">
+            <ListItemIcon>
+              <TicketIcon />
+            </ListItemIcon>
+            <ListItemText primary="Tickets" />
+          </ListItemButton>
+        </ListItem>
+      </List>
     </Box>
   );
 
+  if (!user) {
+    return null;
+  }
+
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex' }}>
+      <CssBaseline />
       <AppBar
         position="fixed"
-        elevation={0}
         sx={{
-          zIndex: theme.zIndex.drawer + 1,
-          backdropFilter: 'blur(10px)',
-          backgroundColor: alpha(
-            theme.palette.background.paper,
-            mode === 'light' ? 0.7 : 0.8
-          ),
-          borderBottom: `1px solid ${theme.palette.divider}`,
+          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          ml: { sm: `${drawerWidth}px` },
+          backgroundColor: theme.colors.primaryBlue,
         }}
       >
-        <Container maxWidth="xl">
-          <Toolbar 
-            disableGutters 
-            sx={{ 
-              justifyContent: 'space-between',
-              minHeight: { xs: 56, sm: 64 }
-            }}
+        <Toolbar>
+          <IconButton
+            color="inherit"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{ mr: 2, display: { sm: 'none' } }}
           >
-            {isMobile && (
-              <IconButton
-                onClick={handleDrawerToggle}
-                sx={{
-                  ...chipStyles,
-                  backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                  '&:hover': {
-                    backgroundColor: alpha(theme.palette.primary.main, 0.2),
-                  }
-                }}
-              >
-                <MenuIcon sx={{ color: theme.palette.primary.main }} />
-              </IconButton>
-            )}
-            <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-              {isMobile && (
-                <Typography variant="h6" sx={sectionTitleStyles}>
-                  Help Desk
-                </Typography>
-              )}
-            </Box>
-            <IconButton 
-              onClick={toggleColorMode}
-              sx={{
-                ...chipStyles,
-                backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                '&:hover': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.2),
-                }
-              }}
-            >
-              {mode === 'dark' ? (
-                <Brightness7 sx={{ color: theme.palette.primary.main }} />
-              ) : (
-                <Brightness4 sx={{ color: theme.palette.primary.main }} />
-              )}
-            </IconButton>
-          </Toolbar>
-        </Container>
+            <MenuIcon />
+          </IconButton>
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+            Help Desk Portal
+          </Typography>
+          <IconButton color="inherit" onClick={toggleColorMode}>
+            {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+          </IconButton>
+          <IconButton onClick={handleProfileClick} size="small" sx={{ ml: 2 }}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: theme.colors.secondaryGray }}>
+              {user.name[0].toUpperCase()}
+            </Avatar>
+          </IconButton>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleProfileClose}
+            onClick={handleProfileClose}
+          >
+            <MenuItem onClick={handleEditProfile}>Edit Profile</MenuItem>
+            <Divider />
+            <MenuItem onClick={handleLogout}>Logout</MenuItem>
+          </Menu>
+        </Toolbar>
       </AppBar>
-
       <Box
         component="nav"
-        sx={{
-          width: { md: DRAWER_WIDTH },
-          flexShrink: { md: 0 },
-        }}
+        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
       >
-        {isMobile ? (
-          <Drawer
-            variant="temporary"
-            anchor="left"
-            open={mobileOpen}
-            onClose={handleDrawerToggle}
-            ModalProps={{ keepMounted: true }}
-            sx={{
-              display: { xs: 'block', md: 'none' },
-              '& .MuiDrawer-paper': { 
-                boxSizing: 'border-box', 
-                width: DRAWER_WIDTH,
-                backgroundColor: theme.palette.background.default,
-                borderRight: `1px solid ${theme.palette.divider}`,
-              },
-            }}
-          >
-            {drawer}
-          </Drawer>
-        ) : (
-          <Drawer
-            variant="permanent"
-            sx={{
-              display: { xs: 'none', md: 'block' },
-              '& .MuiDrawer-paper': { 
-                boxSizing: 'border-box', 
-                width: DRAWER_WIDTH,
-                backgroundColor: theme.palette.background.default,
-                borderRight: `1px solid ${theme.palette.divider}`,
-                boxShadow: shadows.subtle,
-              },
-            }}
-            open
-          >
-            {drawer}
-          </Drawer>
-        )}
+        <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={handleDrawerToggle}
+          ModalProps={{
+            keepMounted: true,
+          }}
+          sx={{
+            display: { xs: 'block', sm: 'none' },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+              backgroundColor: theme.colors.surfaceLight,
+            },
+          }}
+        >
+          {drawer}
+        </Drawer>
+        <Drawer
+          variant="permanent"
+          sx={{
+            display: { xs: 'none', sm: 'block' },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+              backgroundColor: theme.colors.surfaceLight,
+            },
+          }}
+          open
+        >
+          {drawer}
+        </Drawer>
       </Box>
-
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          width: { xs: '100%', md: `calc(100% - ${DRAWER_WIDTH}px)` },
-          mt: { xs: 7, sm: 8 },
-          backgroundColor: theme.palette.background.default,
-          transition: theme.transitions.create(['background-color'], {
-            duration: theme.transitions.duration.standard,
-          }),
+          p: 3,
+          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          backgroundColor: theme.colors.background,
           minHeight: '100vh',
-          p: { xs: 2, sm: 3, md: 4 },
         }}
       >
+        <Toolbar />
         <Outlet />
       </Box>
 
-      <UserProfileDialog
-        open={profileDialogOpen}
-        onClose={() => setProfileDialogOpen(false)}
-      />
+      {user && (
+        <UserProfileDialog
+          open={profileDialogOpen}
+          onClose={() => setProfileDialogOpen(false)}
+          onSave={handleProfileSave}
+          user={user}
+          currentUser={user}
+        />
+      )}
     </Box>
   );
-}
+};
+
+export default PortalLayout;

@@ -1,313 +1,129 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Button,
+  TextField,
+  MenuItem,
   Box,
-  Typography,
-  Divider,
-  Alert,
-  IconButton,
-  useTheme,
-  alpha,
 } from '@mui/material';
-import { Close as CloseIcon } from '@mui/icons-material';
-import api from '../utils/axios';
+import { useTheme } from '../contexts/ThemeContext';
+import { getCommonDialogStyles } from '../contexts/ThemeContext';
 import { User } from '../types';
-import { useAuth } from '../hooks/useAuth';
-import { 
-  colors, 
-  shadows, 
-  chipStyles, 
-  sectionTitleStyles,
-} from '../styles/common';
 
-interface UserProfileDialogProps {
+type Props = {
   open: boolean;
   onClose: () => void;
+  onSave: (data: Partial<User>) => void;
+  user: User | undefined | null;  // Make user prop optional
+  isNew?: boolean;
+  currentUser: User;
+};
+
+interface UserFormData {
+  name: string;
+  email: string;
+  role: 'admin' | 'staff';
+  password?: string;
 }
 
-export default function UserProfileDialog({ open, onClose }: UserProfileDialogProps) {
-  const theme = useTheme();
-  const { user, login } = useAuth();
-  const [name, setName] = useState(user?.name || '');
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+const UserProfileDialog: React.FC<Props> = ({
+  open,
+  onClose,
+  onSave,
+  user,
+  isNew = false,
+  currentUser,
+}) => {
+  const { theme } = useTheme();
+  const [formData, setFormData] = useState<UserFormData>({
+    name: user?.name || '',
+    email: user?.email || '',
+    role: user?.role || 'staff',
+    password: '',
+  });
 
-  const handleUpdateProfile = async () => {
-    try {
-      setError(null);
-      await api.patch<{ user: User }>(`/users/${user?.id}`, {
-        name,
-      });
-      await login({ email: user?.email || '', password: oldPassword });
-      setSuccess('Profile updated successfully');
-    } catch {
-      setError('Failed to update profile');
+  const handleChange = (field: keyof UserFormData) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [field]: event.target.value,
+    });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const submitData = { ...formData };
+    if (!isNew || !submitData.password) {
+      delete submitData.password;
     }
+    onSave(submitData);
   };
 
-  const handleChangePassword = async () => {
-    try {
-      setError(null);
-      if (newPassword !== confirmPassword) {
-        setError('New passwords do not match');
-        return;
-      }
-
-      await api.post(`/auth/change-password`, {
-        oldPassword,
-        newPassword,
-      });
-
-      setSuccess('Password changed successfully');
-      setOldPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch {
-      setError('Failed to change password. Make sure your current password is correct.');
-    }
-  };
-
-  const handleClose = () => {
-    setOldPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setError(null);
-    setSuccess(null);
-    onClose();
-  };
+  const canChangeRole = currentUser.role === 'admin';
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={handleClose} 
-      maxWidth="sm" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
       fullWidth
-      PaperProps={{
-        elevation: 0,
-        sx: {
-          borderRadius: 3,
-          backgroundColor: theme.palette.background.default,
-          boxShadow: shadows.strong,
-        }
-      }}
+      sx={getCommonDialogStyles(theme)}
     >
-      <DialogTitle sx={{ p: 3, pb: 2 }}>
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between' 
-          }}
-        >
-          <Typography sx={sectionTitleStyles}>
-            Edit Profile
-          </Typography>
-          <IconButton 
-            onClick={handleClose} 
-            size="small"
-            sx={{
-              ...chipStyles,
-              backgroundColor: alpha(theme.palette.text.primary, 0.1),
-              '&:hover': {
-                backgroundColor: alpha(theme.palette.text.primary, 0.2),
-              }
-            }}
-          >
-            <CloseIcon sx={{ color: theme.palette.text.primary }} />
-          </IconButton>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent sx={{ px: 3 }}>
-        {error && (
-          <Alert 
-            severity="error" 
-            sx={{ 
-              mb: 2,
-              borderRadius: 2,
-              bgcolor: alpha(colors.errorRed, 0.1),
-              color: colors.errorRed,
-              border: `1px solid ${alpha(colors.errorRed, 0.2)}`,
-            }}
-          >
-            {error}
-          </Alert>
-        )}
-        {success && (
-          <Alert 
-            severity="success" 
-            sx={{ 
-              mb: 2,
-              borderRadius: 2,
-              bgcolor: alpha(colors.successGreen, 0.1),
-              color: colors.successGreen,
-              border: `1px solid ${alpha(colors.successGreen, 0.2)}`,
-            }}
-          >
-            {success}
-          </Alert>
-        )}
-        
-        <Box sx={{ mb: 3 }}>
-          <Typography 
-            variant="subtitle1" 
-            sx={{ 
-              mb: 2, 
-              fontWeight: 600,
-              color: theme.palette.text.primary,
-            }}
-          >
-            Profile Information
-          </Typography>
-          <TextField
-            fullWidth
-            label="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            sx={{
-              mb: 2,
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-              },
-            }}
-          />
-          <TextField
-            fullWidth
-            label="Email"
-            value={user?.email}
-            disabled
-            helperText="Email cannot be changed"
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-              },
-            }}
-          />
-        </Box>
-
-        <Divider sx={{ 
-          my: 3,
-          borderColor: theme.palette.divider,
-        }} />
-
-        <Box>
-          <Typography 
-            variant="subtitle1" 
-            sx={{ 
-              mb: 2,
-              fontWeight: 600,
-              color: theme.palette.text.primary,
-            }}
-          >
-            Change Password
-          </Typography>
-          <TextField
-            fullWidth
-            type="password"
-            label="Current Password"
-            value={oldPassword}
-            onChange={(e) => setOldPassword(e.target.value)}
-            sx={{
-              mb: 2,
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-              },
-            }}
-          />
-          <TextField
-            fullWidth
-            type="password"
-            label="New Password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            sx={{
-              mb: 2,
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-              },
-            }}
-          />
-          <TextField
-            fullWidth
-            type="password"
-            label="Confirm New Password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            error={newPassword !== confirmPassword && confirmPassword !== ''}
-            helperText={
-              newPassword !== confirmPassword && confirmPassword !== ''
-                ? 'Passwords do not match'
-                : ''
-            }
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-              },
-            }}
-          />
-        </Box>
-      </DialogContent>
-
-      <DialogActions sx={{ p: 3, pt: 2, gap: 1 }}>
-        <Button 
-          onClick={handleClose}
-          sx={{
-            ...chipStyles,
-            color: theme.palette.text.primary,
-            '&:hover': {
-              backgroundColor: alpha(theme.palette.text.primary, 0.1),
-            }
-          }}
-        >
-          Cancel
-        </Button>
-        <Button 
-          onClick={handleUpdateProfile}
-          variant="outlined"
-          disabled={!name || name === user?.name}
-          sx={{
-            ...chipStyles,
-            borderColor: colors.primaryBlue,
-            color: colors.primaryBlue,
-            '&:hover': {
-              borderColor: colors.primaryBlue,
-              backgroundColor: alpha(colors.primaryBlue, 0.1),
-            },
-            '&:disabled': {
-              borderColor: alpha(colors.primaryBlue, 0.5),
-              color: alpha(colors.primaryBlue, 0.5),
-            }
-          }}
-        >
-          Update Profile
-        </Button>
-        <Button
-          onClick={handleChangePassword}
-          variant="contained"
-          disabled={!oldPassword || !newPassword || !confirmPassword}
-          sx={{
-            ...chipStyles,
-            backgroundColor: colors.primaryBlue,
-            color: 'white',
-            '&:hover': {
-              backgroundColor: alpha(colors.primaryBlue, 0.9),
-            },
-            '&:disabled': {
-              backgroundColor: alpha(colors.primaryBlue, 0.5),
-            }
-          }}
-        >
-          Change Password
-        </Button>
-      </DialogActions>
+      <DialogTitle>{isNew ? 'Create User' : 'Edit User'}</DialogTitle>
+      <form onSubmit={handleSubmit}>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              label="Name"
+              value={formData.name}
+              onChange={handleChange('name')}
+              required
+              fullWidth
+            />
+            <TextField
+              label="Email"
+              value={formData.email}
+              onChange={handleChange('email')}
+              required
+              fullWidth
+              type="email"
+            />
+            {(isNew || canChangeRole) && (
+              <TextField
+                select
+                label="Role"
+                value={formData.role}
+                onChange={handleChange('role')}
+                required
+                fullWidth
+              >
+                <MenuItem value="staff">Staff</MenuItem>
+                <MenuItem value="admin">Admin</MenuItem>
+              </TextField>
+            )}
+            {isNew && (
+              <TextField
+                label="Password"
+                value={formData.password}
+                onChange={handleChange('password')}
+                required
+                fullWidth
+                type="password"
+              />
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="contained" color="primary">
+            {isNew ? 'Create' : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </form>
     </Dialog>
   );
-}
+};
+
+export default UserProfileDialog;
