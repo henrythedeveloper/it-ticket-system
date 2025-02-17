@@ -13,111 +13,38 @@ import (
 
 type UserHandler struct {
 db          *gorm.DB
-authService *auth.Service
+authService *auth.AuthService
 }
 
-func NewUserHandler(db *gorm.DB, authService *auth.Service) *UserHandler {
+func NewUserHandler(db *gorm.DB, authService *auth.AuthService) *UserHandler {
 return &UserHandler{
 db:          db,
 authService: authService,
 }
 }
 
-// ListUsers returns all users (admin only)
 func (h *UserHandler) ListUsers(c *gin.Context) {
 var users []models.User
-if err := h.db.Order("created_at DESC").Find(&users).Error; err != nil {
-  c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
-  return
+if err := h.db.Find(&users).Error; err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
+return
 }
 
-// Ensure empty array if no users found
-if len(users) == 0 {
-  c.JSON(http.StatusOK, gin.H{"data": []models.User{}})
-  return
+// Remove passwords from response
+for i := range users {
+users[i].Password = ""
 }
 
 c.JSON(http.StatusOK, gin.H{"data": users})
 }
 
-type UpdateUserRequest struct {
-Name string `json:"name,omitempty"`
-Role string `json:"role,omitempty" binding:"omitempty,oneof=admin staff"`
-}
-
-// UpdateUser handles user updates
-func (h *UserHandler) UpdateUser(c *gin.Context) {
-    id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-    if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-        return
-    }
-
-    currentUserID := middleware.GetUserID(c)
-    userRole := c.GetString("userRole")
-    
-    var user models.User
-    if err := h.db.First(&user, id).Error; err != nil {
-        if err == gorm.ErrRecordNotFound {
-            c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-            return
-        }
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
-        return
-    }
-
-    var req UpdateUserRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-        return
-    }
-
-        // Handle permissions
-        if userRole != "admin" {
-            // Non-admins can only edit their own profile
-            if uint(id) != currentUserID {
-                c.JSON(http.StatusForbidden, gin.H{"error": "You can only edit your own profile"})
-                return
-            }
-            // Non-admins can't change roles
-            if req.Role != "" {
-                c.JSON(http.StatusForbidden, gin.H{"error": "Only admins can change roles"})
-                return
-            }
-        }
-
-    // Update fields if provided
-    if req.Name != "" {
-        user.Name = req.Name
-    }
-    if req.Role != "" && userRole == "admin" {
-        user.Role = req.Role
-    }
-
-if err := h.db.Save(&user).Error; err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
-return
-}
-
-c.JSON(http.StatusOK, user)
-}
-
-// DeleteUser handles user deletion (admin only)
-func (h *UserHandler) DeleteUser(c *gin.Context) {
+func (h *UserHandler) GetUser(c *gin.Context) {
 id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 if err != nil {
 c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
 return
 }
 
-// Prevent self-deletion
-currentUserID := middleware.GetUserID(c)
-if uint(id) == currentUserID {
-c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot delete own user"})
-return
-}
-
-// First check if user exists
 var user models.User
 if err := h.db.First(&user, id).Error; err != nil {
 if err == gorm.ErrRecordNotFound {
@@ -128,76 +55,104 @@ c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
 return
 }
 
-// Set assigned_to to null for all tickets and tasks
-if err := h.db.Model(&models.Ticket{}).Where("assigned_to = ?", id).Update("assigned_to", nil).Error; err != nil {
-    c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update tickets"})
-    return
+// Remove password from response
+user.Password = ""
+c.JSON(http.StatusOK, user)
 }
 
-if err := h.db.Model(&models.Task{}).Where("assigned_to = ?", id).Update("assigned_to", nil).Error; err != nil {
-    c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update tasks"})
-    return
+type UpdateUserInput struct {
+Name     *string `json:"name,omitempty"`
+Email    *string `json:"email,omitempty"`
+Password *string `json:"password,omitempty"`
+Role     *string `json:"role,omitempty" binding:"omitempty,oneof=admin staff"`
 }
 
-// Now perform the deletion
-if err := h.db.Delete(&user).Error; err != nil {
+func (h *UserHandler) UpdateUser(c *gin.Context) {
+id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+if err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+return
+}
+
+// Only admins can update other users
+currentUserID := middleware.GetUserID(c)
+if uint(id) != currentUserID {
+role, exists := c.Get("userRole")
+if !exists || role != "admin" {
+c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied"})
+return
+}
+}
+
+var input UpdateUserInput
+if err := c.ShouldBindJSON(&input); err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+return
+}
+
+var user models.User
+if err := h.db.First(&user, id).Error; err != nil {
+if err == gorm.ErrRecordNotFound {
+c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+return
+}
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
+return
+}
+
+// Update fields if provided
+if input.Name != nil {
+user.Name = *input.Name
+}
+if input.Email != nil {
+user.Email = *input.Email
+}
+if input.Password != nil {
+hashedPassword, err := auth.HashPassword(*input.Password)
+if err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+return
+}
+user.Password = hashedPassword
+}
+if input.Role != nil {
+// Only admins can change roles
+role, exists := c.Get("userRole")
+if !exists || role != "admin" {
+c.JSON(http.StatusForbidden, gin.H{"error": "Only admins can change roles"})
+return
+}
+user.Role = *input.Role
+}
+
+if err := h.db.Save(&user).Error; err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
+return
+}
+
+// Remove password from response
+user.Password = ""
+c.JSON(http.StatusOK, user)
+}
+
+func (h *UserHandler) DeleteUser(c *gin.Context) {
+id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+if err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+return
+}
+
+// Only admins can delete users
+role, exists := c.Get("userRole")
+if !exists || role != "admin" {
+c.JSON(http.StatusForbidden, gin.H{"error": "Only admins can delete users"})
+return
+}
+
+if err := h.db.Delete(&models.User{}, id).Error; err != nil {
 c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user"})
 return
 }
 
 c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
-}
-
-// GetUserProfile returns the current user's profile
-func (h *UserHandler) GetUserProfile(c *gin.Context) {
-userID := middleware.GetUserID(c)
-
-var user models.User
-if err := h.db.First(&user, userID).Error; err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user profile"})
-return
-}
-
-// Get user's assigned tickets count
-var openTicketsCount int64
-h.db.Model(&models.Ticket{}).
-Where("assigned_to = ? AND status != ?", userID, models.TicketStatusResolved).
-Count(&openTicketsCount)
-
-// Get user's assigned tasks count
-var pendingTasksCount int64
-h.db.Model(&models.Task{}).
-Where("assigned_to = ? AND status != ?", userID, models.TaskStatusDone).
-Count(&pendingTasksCount)
-
-response := gin.H{
-"user":            user,
-"openTickets":     openTicketsCount,
-"pendingTasks":    pendingTasksCount,
-}
-
-c.JSON(http.StatusOK, response)
-}
-
-// GetUserStats returns statistics about users (admin only)
-func (h *UserHandler) GetUserStats(c *gin.Context) {
-var stats struct {
-Total     int64 `json:"total"`
-Admins    int64 `json:"admins"`
-Staff     int64 `json:"staff"`
-ActiveNow int64 `json:"activeNow"` // Users with assigned open tickets or tasks
-}
-
-h.db.Model(&models.User{}).Count(&stats.Total)
-h.db.Model(&models.User{}).Where("role = ?", models.UserRoleAdmin).Count(&stats.Admins)
-h.db.Model(&models.User{}).Where("role = ?", models.UserRoleStaff).Count(&stats.Staff)
-
-// Count users with active tickets or tasks
-h.db.Model(&models.User{}).
-Where("id IN (SELECT DISTINCT assigned_to FROM tickets WHERE status != ?) OR "+
-"id IN (SELECT DISTINCT assigned_to FROM tasks WHERE status != ?)",
-models.TicketStatusResolved, models.TaskStatusDone).
-Count(&stats.ActiveNow)
-
-c.JSON(http.StatusOK, stats)
 }

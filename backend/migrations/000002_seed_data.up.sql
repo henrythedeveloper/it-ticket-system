@@ -14,6 +14,54 @@ VALUES
      '$2a$10$jINNGmtL/Yuh8GwiY76Eueo.TGgACW7BQvM6LH/KLTrMidWky0xtS', -- password is 'staff123'
      'staff');
 
+-- Insert recurring tasks
+INSERT INTO recurring_tasks (title, description, priority, frequency, next_run, assigned_to, created_by, is_active)
+VALUES
+    ('Daily System Health Check', 
+     'Check system logs, monitor server health, and verify backup status',
+     'high',
+     'daily',
+     NOW() + INTERVAL '1 day',
+     2, -- Assigned to John Smith
+     1, -- Created by Admin
+     true),
+     
+    ('Weekly Data Backup Verification',
+     'Verify all system backups completed successfully and test sample restoration',
+     'high',
+     'weekly',
+     NOW() + INTERVAL '1 week',
+     3, -- Assigned to Jane Doe
+     1,
+     true),
+     
+    ('Monthly Security Audit',
+     'Review security logs, check user permissions, verify firewall rules',
+     'medium',
+     'monthly',
+     NOW() + INTERVAL '1 month',
+     2,
+     1,
+     true),
+     
+    ('Weekly Software Updates',
+     'Check and apply pending software updates during maintenance window',
+     'medium',
+     'weekly',
+     NOW() + INTERVAL '1 week',
+     3,
+     1,
+     true),
+     
+    ('Monthly Hardware Maintenance',
+     'Clean workstations, check hardware health, replace equipment as needed',
+     'low',
+     'monthly',
+     NOW() + INTERVAL '1 month',
+     2,
+     1,
+     true);
+
 -- Insert common solutions
 INSERT INTO solutions (title, description, category) VALUES
 ('Reset Password', 'Try resetting your password by clicking the "Forgot Password" link on the login page.', 'access'),
@@ -177,3 +225,17 @@ VALUES
     (3, 1, 'created', 'Task created'),
     (3, 2, 'status_changed', 'Completed maintenance tasks'),
     (3, 2, 'status_changed', 'Marked as done after verification');
+
+-- Create some initial tasks from recurring templates
+INSERT INTO tasks (title, description, priority, status, created_by, assigned_to, recurring_task_id, due_date)
+SELECT 
+    rt.title,
+    rt.description,
+    rt.priority,
+    'todo',
+    rt.created_by,
+    rt.assigned_to,
+    rt.id,
+    rt.next_run
+FROM recurring_tasks rt
+WHERE rt.is_active = true;

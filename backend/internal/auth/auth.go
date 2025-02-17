@@ -1,132 +1,133 @@
 package auth
 
 import (
-"database/sql"
-"net/http"
-"os"
+"errors"
 "time"
 
-"github.com/gin-gonic/gin"
 "github.com/golang-jwt/jwt/v5"
 "golang.org/x/crypto/bcrypt"
+"gorm.io/gorm"
+
+"helpdesk/internal/models"
 )
 
-type LoginRequest struct {
-Email    string `json:"email" binding:"required"`
+var (
+ErrUserExists          = errors.New("user already exists")
+ErrInvalidCredentials = errors.New("invalid credentials")
+)
+
+type AuthService struct {
+db        *gorm.DB
+jwtSecret string
+}
+
+func NewAuthService(db *gorm.DB, jwtSecret string) *AuthService {
+return &AuthService{
+db:        db,
+jwtSecret: jwtSecret,
+}
+}
+
+// HashPassword hashes a plain text password using bcrypt
+func HashPassword(password string) (string, error) {
+hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+if err != nil {
+return "", err
+}
+return string(hashedBytes), nil
+}
+
+type LoginInput struct {
+Email    string `json:"email" binding:"required,email"`
 Password string `json:"password" binding:"required"`
 }
 
-type RegisterRequest struct {
+type RegisterInput struct {
 Name     string `json:"name" binding:"required"`
-Email    string `json:"email" binding:"required"`
-Password string `json:"password" binding:"required"`
+Email    string `json:"email" binding:"required,email"`
+Password string `json:"password" binding:"required,min=6"`
+Role     string `json:"role" binding:"required,oneof=admin staff"`
 }
 
-func LoginHandler(db *sql.DB) gin.HandlerFunc {
-return func(c *gin.Context) {
-var req LoginRequest
-if err := c.ShouldBindJSON(&req); err != nil {
-c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-return
+type AuthResponse struct {
+Token string      `json:"token"`
+User  models.User `json:"user"`
 }
 
-var user struct {
-ID       int
-Password string
-Role     string
+func (s *AuthService) Login(input LoginInput) (*AuthResponse, error) {
+var user models.User
+if err := s.db.Where("email = ?", input.Email).First(&user).Error; err != nil {
+if err == gorm.ErrRecordNotFound {
+return nil, ErrInvalidCredentials
+}
+return nil, err
 }
 
-err := db.QueryRow(`
-SELECT id, password, role
-FROM users
-WHERE email = $1 AND deleted_at IS NULL
-`, req.Email).Scan(&user.ID, &user.Password, &user.Role)
+if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
+return nil, ErrInvalidCredentials
+}
 
+token, err := s.generateToken(user)
 if err != nil {
-c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
-return
+return nil, err
 }
 
-// Compare password with hash
-if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
-return
+return &AuthResponse{
+Token: token,
+User:  user,
+}, nil
 }
 
-// Get JWT secret from environment
-jwtSecret := os.Getenv("JWT_SECRET")
-if jwtSecret == "" {
-c.JSON(http.StatusInternalServerError, gin.H{"error": "JWT secret not configured"})
-return
+func (s *AuthService) Register(input RegisterInput) (*AuthResponse, error) {
+var existingUser models.User
+err := s.db.Where("email = ?", input.Email).First(&existingUser).Error
+if err == nil {
+return nil, ErrUserExists
+}
+if err != gorm.ErrRecordNotFound {
+return nil, err
 }
 
-// Create token
+hashedPassword, err := HashPassword(input.Password)
+if err != nil {
+return nil, err
+}
+
+user := models.User{
+Name:     input.Name,
+Email:    input.Email,
+Password: hashedPassword,
+Role:     input.Role,
+}
+
+if err := s.db.Create(&user).Error; err != nil {
+return nil, err
+}
+
+token, err := s.generateToken(user)
+if err != nil {
+return nil, err
+}
+
+return &AuthResponse{
+Token: token,
+User:  user,
+}, nil
+}
+
+func (s *AuthService) generateToken(user models.User) (string, error) {
 token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-"user_id": user.ID,
-"role":    user.Role,
-"exp":     time.Now().Add(24 * time.Hour).Unix(),
+"userID": user.ID,
+"email":  user.Email,
+"role":   user.Role,
+"exp":    time.Now().Add(24 * time.Hour).Unix(),
 })
 
-// Sign and get the complete encoded token as a string
-tokenString, err := token.SignedString([]byte(jwtSecret))
-if err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create token"})
-return
+return token.SignedString([]byte(s.jwtSecret))
 }
 
-c.JSON(http.StatusOK, gin.H{
-"token": tokenString,
-"user": gin.H{
-"id":   user.ID,
-"role": user.Role,
-},
+func (s *AuthService) ValidateToken(tokenString string) (*jwt.Token, error) {
+return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+return []byte(s.jwtSecret), nil
 })
-}
-}
-
-func RegisterHandler(db *sql.DB) gin.HandlerFunc {
-return func(c *gin.Context) {
-var req RegisterRequest
-if err := c.ShouldBindJSON(&req); err != nil {
-c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-return
-}
-
-// Check if email already exists
-var exists bool
-err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)", req.Email).Scan(&exists)
-if err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
-return
-}
-if exists {
-c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
-return
-}
-
-// Hash password
-hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-if err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
-return
-}
-
-// Insert new user
-var userID int
-err = db.QueryRow(`
-INSERT INTO users (name, email, password, role, created_at, updated_at)
-VALUES ($1, $2, $3, 'user', NOW(), NOW())
-RETURNING id
-`, req.Name, req.Email, string(hashedPassword)).Scan(&userID)
-
-if err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
-return
-}
-
-c.JSON(http.StatusCreated, gin.H{
-"message": "User registered successfully",
-"id":      userID,
-})
-}
 }

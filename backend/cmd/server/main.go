@@ -1,7 +1,6 @@
 package main
 
 import (
-"database/sql"
 "log"
 "os"
 "os/signal"
@@ -11,7 +10,8 @@ import (
 "github.com/gin-contrib/cors"
 "github.com/gin-gonic/gin"
 "github.com/joho/godotenv"
-_ "github.com/lib/pq"
+"gorm.io/driver/postgres"
+"gorm.io/gorm"
 
 "helpdesk/internal/auth"
 "helpdesk/internal/handlers"
@@ -32,20 +32,36 @@ log.Fatal("JWT_SECRET environment variable is required")
 }
 
 // Database connection
-db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+db, err := gorm.Open(postgres.Open(os.Getenv("DATABASE_URL")), &gorm.Config{})
 if err != nil {
 log.Fatal("Error connecting to database:", err)
 }
-defer db.Close()
+
+sqlDB, err := db.DB()
+if err != nil {
+log.Fatal("Error getting underlying sql.DB:", err)
+}
+
+// Set connection pool settings
+sqlDB.SetMaxIdleConns(10)
+sqlDB.SetMaxOpenConns(100)
+sqlDB.SetConnMaxLifetime(time.Hour)
 
 // Test database connection
-if err := db.Ping(); err != nil {
+if err := sqlDB.Ping(); err != nil {
 log.Fatal("Error pinging database:", err)
 }
 
-// Initialize components
-handler := handlers.NewHandler(db)
-authMiddleware := middleware.NewAuthMiddleware(jwtSecret)
+// Initialize services
+authService := auth.NewAuthService(db, jwtSecret)
+
+// Initialize handlers
+authHandler := handlers.NewAuthHandler(authService)
+taskHandler := handlers.NewTaskHandler(db)
+userHandler := handlers.NewUserHandler(db, authService)
+
+// Initialize middleware
+authMiddleware := middleware.AuthMiddleware(jwtSecret)
 
 // Initialize and start task scheduler and cleanup service
 taskScheduler := scheduler.NewTaskScheduler(db)
@@ -71,41 +87,27 @@ MaxAge:          12 * time.Hour,
 }))
 
 // Public routes
-r.POST("/api/auth/login", auth.LoginHandler(db))
-r.POST("/api/auth/register", auth.RegisterHandler(db))
-r.POST("/api/tickets", handler.CreateTicket)
-r.GET("/api/solutions", handler.GetSolutions)
-r.POST("/api/solutions/search", handler.SearchSolutions)
+r.POST("/api/auth/login", authHandler.Login)
+r.POST("/api/auth/register", authHandler.Register)
 
 // Protected routes
 protected := r.Group("/api")
-protected.Use(authMiddleware.AuthRequired())
+protected.Use(authMiddleware)
 {
 // User routes
-protected.GET("/users", handler.GetUsers)
-protected.GET("/users/:id", handler.GetUser)
-protected.PATCH("/users/:id", handler.UpdateUser)
-protected.DELETE("/users/:id", handler.DeleteUser)
-
-// Ticket routes
-protected.GET("/tickets", handler.GetTickets)
-protected.GET("/tickets/:id", handler.GetTicket)
-protected.PATCH("/tickets/:id", handler.UpdateTicket)
-protected.DELETE("/tickets/:id", handler.DeleteTicket)
-protected.GET("/tickets/export", handler.ExportTickets)
-protected.GET("/tickets/:id/history", handler.GetTicketHistory)
+protected.GET("/users", userHandler.ListUsers)
+protected.GET("/users/:id", userHandler.GetUser)
+protected.PATCH("/users/:id", userHandler.UpdateUser)
+protected.DELETE("/users/:id", userHandler.DeleteUser)
 
 // Task routes
-protected.POST("/tasks", handler.CreateTask)
-protected.GET("/tasks", handler.GetTasks)
-protected.GET("/tasks/:id", handler.GetTask)
-protected.PATCH("/tasks/:id", handler.UpdateTask)
-protected.DELETE("/tasks/:id", handler.DeleteTask)
-
-// Solution routes
-protected.POST("/solutions", handler.CreateSolution)
-protected.PATCH("/solutions/:id", handler.UpdateSolution)
-protected.DELETE("/solutions/:id", handler.DeleteSolution)
+protected.POST("/tasks", taskHandler.CreateTask)
+protected.GET("/tasks", taskHandler.ListTasks)
+protected.GET("/tasks/:id", taskHandler.GetTask)
+protected.PATCH("/tasks/:id", taskHandler.UpdateTask)
+protected.DELETE("/tasks/:id", taskHandler.DeleteTask)
+protected.GET("/tasks/:id/history", taskHandler.GetTaskHistory)
+protected.GET("/tasks/stats", taskHandler.GetTaskStats)
 }
 
 // Set up graceful shutdown
