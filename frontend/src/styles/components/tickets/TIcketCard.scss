@@ -1,0 +1,179 @@
+@import '../../variables';
+
+.ticket-card {
+  background-color: $white;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow;
+  padding: $spacing-4;
+  margin-bottom: $spacing-4;
+  transition: transform $transition-fast, box-shadow $transition-fast;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+  
+  .ticket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-3;
+    
+    .ticket-badges {
+      display: flex;
+      gap: $spacing-2;
+    }
+    
+    .ticket-id {
+      font-size: $font-size-sm;
+      color: $gray-500;
+      font-family: $font-family-mono;
+    }
+  }
+  
+  .ticket-title {
+    display: block;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: $gray-900;
+    margin-bottom: $spacing-3;
+    text-decoration: none;
+    
+    &:hover {
+      color: $primary-color;
+    }
+  }
+  
+  .ticket-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: $spacing-2;
+    font-size: $font-size-sm;
+    
+    .meta-label {
+      color: $gray-600;
+      margin-right: $spacing-1;
+    }
+    
+    .meta-value {
+      color: $gray-800;
+    }
+  }
+  
+  .ticket-assignment {
+    margin-bottom: $spacing-3;
+    font-size: $font-size-sm;
+    
+    .meta-label {
+      color: $gray-600;
+      margin-right: $spacing-1;
+    }
+    
+    .meta-value {
+      color: $gray-800;
+      font-weight: $font-weight-medium;
+    }
+  }
+  
+  .ticket-excerpt {
+    color: $gray-700;
+    font-size: $font-size-sm;
+    margin-bottom: $spacing-3;
+    line-height: 1.5;
+  }
+  
+  .ticket-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    margin-bottom: $spacing-3;
+    
+    .tag {
+      background-color: $gray-100;
+      color: $gray-700;
+      padding: $spacing-1 $spacing-2;
+      border-radius: $border-radius-full;
+      font-size: $font-size-xs;
+    }
+  }
+  
+  .view-ticket-btn {
+    display: inline-block;
+    background-color: $gray-100;
+    color: $gray-700;
+    padding: $spacing-2 $spacing-4;
+    border-radius: $border-radius;
+    text-decoration: none;
+    font-size: $font-size-sm;
+    transition: background-color $transition-fast, color $transition-fast;
+    
+    &:hover {
+      background-color: $primary-color;
+      color: $white;
+    }
+  }
+}
+
+// Status badges
+.status-badge {
+  padding: $spacing-1 $spacing-2;
+  border-radius: $border-radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  
+  &.badge-unassigned {
+    background-color: rgba($status-unassigned, 0.1);
+    color: $status-unassigned;
+  }
+  
+  &.badge-assigned {
+    background-color: rgba($status-assigned, 0.1);
+    color: $status-assigned;
+  }
+  
+  &.badge-progress {
+    background-color: rgba($status-progress, 0.1);
+    color: $status-progress;
+  }
+  
+  &.badge-closed {
+    background-color: rgba($status-closed, 0.1);
+    color: $status-closed;
+  }
+}
+
+// Urgency badges
+.urgency-badge {
+  padding: $spacing-1 $spacing-2;
+  border-radius: $border-radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  
+  &.badge-low {
+    background-color: rgba($urgency-low, 0.1);
+    color: $urgency-low;
+  }
+  
+  &.badge-medium {
+    background-color: rgba($urgency-medium, 0.1);
+    color: $urgency-medium;
+  }
+  
+  &.badge-high {
+    background-color: rgba($urgency-high, 0.1);
+    color: $urgency-high;
+  }
+  
+  &.badge-critical {
+    background-color: rgba($urgency-critical, 0.1);
+    color: $urgency-critical;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: $breakpoint-md) {
+  .ticket-meta {
+    flex-direction: column;
+    gap: $spacing-1;
+  }
+}

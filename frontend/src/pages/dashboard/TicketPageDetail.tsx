@@ -1,0 +1,553 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
+import api from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { Ticket, User, TicketUpdate, TicketUpdateCreate, TicketStatusUpdate, Attachment, APIResponse } from '../../types/models';
+import '../../styles/pages/dashboard/TicketDetailPage.scss';
+
+const CommentSchema = Yup.object().shape({
+  comment: Yup.string().required('Comment is required'),
+  is_internal_note: Yup.boolean()
+});
+
+const UpdateTicketSchema = Yup.object().shape({
+  status: Yup.string().required('Status is required'),
+  assigned_to_user_id: Yup.string().nullable(),
+  resolution_notes: Yup.string().when('status', {
+    is: 'Closed',
+    then: Yup.string().required('Resolution notes are required when closing a ticket'),
+    otherwise: Yup.string()
+  })
+});
+
+const TicketDetailPage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [updateType, setUpdateType] = useState<'comment' | 'status' | null>(null);
+  
+  const isAdmin = user?.role === 'Admin';
+  const isAssignedToMe = ticket?.assigned_to_user_id === user?.id;
+  const canUpdateTicket = isAdmin || isAssignedToMe || ticket?.status === 'Unassigned';
+
+  useEffect(() => {
+    const fetchTicketData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch ticket details
+        const ticketResponse = await api.get<APIResponse<Ticket>>(`/api/v1/tickets/${id}`);
+        if (ticketResponse.data.success && ticketResponse.data.data) {
+          setTicket(ticketResponse.data.data);
+        } else {
+          setError('Failed to load ticket details');
+        }
+        
+        // Fetch users for assignment dropdown
+        const usersResponse = await api.get<APIResponse<User[]>>('/api/v1/users');
+        if (usersResponse.data.success && usersResponse.data.data) {
+          setUsers(usersResponse.data.data);
+        }
+        
+      } catch (error) {
+        console.error('Error fetching ticket details:', error);
+        setError('Failed to load ticket details');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (id) {
+      fetchTicketData();
+    }
+  }, [id]);
+  
+  const handleAddComment = async (values: TicketUpdateCreate, { resetForm }: { resetForm: () => void }) => {
+    try {
+      const response = await api.post<APIResponse<TicketUpdate>>(`/api/v1/tickets/${id}/comments`, values);
+      
+      if (response.data.success && response.data.data) {
+        // Add the new comment to the ticket updates
+        const newUpdate = response.data.data;
+        
+        if (ticket) {
+          setTicket({
+            ...ticket,
+            updates: [...(ticket.updates || []), newUpdate]
+          });
+        }
+        
+        resetForm();
+        setUpdateType(null);
+      } else {
+        setError(response.data.error || 'Failed to add comment');
+      }
+    } catch (err: any) {
+      console.error('Error adding comment:', err);
+      setError(err.response?.data?.error || 'Failed to add comment');
+    }
+  };
+  
+  const handleUpdateTicket = async (values: TicketStatusUpdate) => {
+    try {
+      const response = await api.put<APIResponse<Ticket>>(`/api/v1/tickets/${id}`, values);
+      
+      if (response.data.success && response.data.data) {
+        setTicket(response.data.data);
+        setUpdateType(null);
+      } else {
+        setError(response.data.error || 'Failed to update ticket');
+      }
+    } catch (err: any) {
+      console.error('Error updating ticket:', err);
+      setError(err.response?.data?.error || 'Failed to update ticket');
+    }
+  };
+  
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await api.post<APIResponse<Attachment>>(
+        `/api/v1/tickets/${id}/attachments`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+      
+      if (response.data.success && response.data.data) {
+        const newAttachment = response.data.data;
+        
+        if (ticket) {
+          setTicket({
+            ...ticket,
+            attachments: [...(ticket.attachments || []), newAttachment]
+          });
+        }
+      } else {
+        setError(response.data.error || 'Failed to upload file');
+      }
+    } catch (err: any) {
+      console.error('Error uploading file:', err);
+      setError(err.response?.data?.error || 'Failed to upload file');
+    }
+  };
+  
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+  
+  if (loading) {
+    return (
+      <div className="ticket-detail-page loading">
+        <div className="loader"></div>
+        <p>Loading ticket details...</p>
+      </div>
+    );
+  }
+
+  if (error || !ticket) {
+    return (
+      <div className="ticket-detail-page error">
+        <h1>Error</h1>
+        <p>{error || 'Ticket not found'}</p>
+        <button onClick={() => navigate('/tickets')} className="back-button">
+          Back to Tickets
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="ticket-detail-page">
+      <div className="page-header">
+        <div className="header-left">
+          <button onClick={() => navigate('/tickets')} className="back-button">
+            ← Back to Tickets
+          </button>
+          <h1>Ticket #{ticket.id.substring(0, 8)}</h1>
+        </div>
+        <div className="header-right">
+          {canUpdateTicket && ticket.status !== 'Closed' && (
+            <button 
+              className="update-ticket-btn"
+              onClick={() => setUpdateType('status')}
+            >
+              Update Status
+            </button>
+          )}
+        </div>
+      </div>
+      
+      {error && <div className="error-message">{error}</div>}
+      
+      <div className="ticket-grid">
+        <div className="ticket-main">
+          <div className="ticket-card">
+            <div className="ticket-header">
+              <h2>{ticket.subject}</h2>
+              <div className="ticket-meta">
+                <span className={`status-badge status-${ticket.status.toLowerCase().replace(' ', '-')}`}>
+                  {ticket.status}
+                </span>
+                <span className={`urgency-badge urgency-${ticket.urgency.toLowerCase()}`}>
+                  {ticket.urgency}
+                </span>
+              </div>
+            </div>
+            
+            <div className="ticket-body">
+              <p className="ticket-description">{ticket.body}</p>
+              
+              {ticket.tags && ticket.tags.length > 0 && (
+                <div className="ticket-tags">
+                  {ticket.tags.map(tag => (
+                    <span key={tag.id} className="tag">{tag.name}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {ticket.attachments && ticket.attachments.length > 0 && (
+              <div className="ticket-attachments">
+                <h3>Attachments</h3>
+                <ul className="attachment-list">
+                  {ticket.attachments.map(attachment => (
+                    <li key={attachment.id} className="attachment-item">
+                      <a 
+                        href={attachment.url || `#`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="attachment-link"
+                      >
+                        <span className="attachment-icon">📎</span>
+                        <span className="attachment-name">{attachment.filename}</span>
+                        <span className="attachment-size">
+                          {(attachment.size / 1024).toFixed(1)} KB
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {ticket.resolution_notes && (
+              <div className="resolution-notes">
+                <h3>Resolution</h3>
+                <p>{ticket.resolution_notes}</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="ticket-updates">
+            <div className="updates-header">
+              <h3>Updates & Comments</h3>
+              {ticket.status !== 'Closed' && (
+                <button 
+                  className="add-comment-btn"
+                  onClick={() => setUpdateType('comment')}
+                >
+                  Add Comment
+                </button>
+              )}
+            </div>
+            
+            {updateType === 'comment' && (
+              <div className="comment-form-container">
+                <h4>Add Comment</h4>
+                <Formik
+                  initialValues={{ comment: '', is_internal_note: false }}
+                  validationSchema={CommentSchema}
+                  onSubmit={handleAddComment}
+                >
+                  {({ isSubmitting }) => (
+                    <Form className="comment-form">
+                      <div className="form-group">
+                        <Field
+                          as="textarea"
+                          name="comment"
+                          placeholder="Enter your comment here..."
+                          rows={4}
+                        />
+                        <ErrorMessage name="comment" component="div" className="error" />
+                      </div>
+                      
+                      <div className="form-group checkbox">
+                        <label>
+                          <Field type="checkbox" name="is_internal_note" />
+                          Internal Note (not visible to end user)
+                        </label>
+                      </div>
+                      
+                      <div className="form-actions">
+                        <button 
+                          type="button" 
+                          onClick={() => setUpdateType(null)}
+                          className="cancel-btn"
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          type="submit" 
+                          disabled={isSubmitting}
+                          className="submit-btn"
+                        >
+                          {isSubmitting ? 'Posting...' : 'Post Comment'}
+                        </button>
+                      </div>
+                    </Form>
+                  )}
+                </Formik>
+              </div>
+            )}
+            
+            {updateType === 'status' && (
+              <div className="status-form-container">
+                <h4>Update Ticket Status</h4>
+                <Formik
+                  initialValues={{
+                    status: ticket.status,
+                    assigned_to_user_id: ticket.assigned_to_user_id || '',
+                    resolution_notes: ticket.resolution_notes || ''
+                  }}
+                  validationSchema={UpdateTicketSchema}
+                  onSubmit={handleUpdateTicket}
+                >
+                  {({ isSubmitting, values }) => (
+                    <Form className="status-form">
+                      <div className="form-group">
+                        <label>Status</label>
+                        <Field as="select" name="status">
+                          <option value="Unassigned">Unassigned</option>
+                          <option value="Assigned">Assigned</option>
+                          <option value="In Progress">In Progress</option>
+                          <option value="Closed">Closed</option>
+                        </Field>
+                        <ErrorMessage name="status" component="div" className="error" />
+                      </div>
+                      
+                      <div className="form-group">
+                        <label>Assigned To</label>
+                        <Field as="select" name="assigned_to_user_id">
+                          <option value="">-- Unassigned --</option>
+                          {users.map(user => (
+                            <option key={user.id} value={user.id}>
+                              {user.name} ({user.email})
+                            </option>
+                          ))}
+                        </Field>
+                      </div>
+                      
+                      {values.status === 'Closed' && (
+                        <div className="form-group">
+                          <label>Resolution Notes</label>
+                          <Field
+                            as="textarea"
+                            name="resolution_notes"
+                            placeholder="Describe how the issue was resolved..."
+                            rows={4}
+                          />
+                          <ErrorMessage name="resolution_notes" component="div" className="error" />
+                        </div>
+                      )}
+                      
+                      <div className="form-actions">
+                        <button 
+                          type="button" 
+                          onClick={() => setUpdateType(null)}
+                          className="cancel-btn"
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          type="submit" 
+                          disabled={isSubmitting}
+                          className="submit-btn"
+                        >
+                          {isSubmitting ? 'Updating...' : 'Update Ticket'}
+                        </button>
+                      </div>
+                    </Form>
+                  )}
+                </Formik>
+              </div>
+            )}
+            
+            <div className="updates-timeline">
+              {ticket.updates && ticket.updates.length > 0 ? (
+                ticket.updates.map(update => (
+                  <div 
+                    key={update.id} 
+                    className={`update-item ${update.is_internal_note ? 'internal-note' : ''}`}
+                  >
+                    <div className="update-header">
+                      <div className="update-author">
+                        {update.user ? (
+                          <span>{update.user.name}</span>
+                        ) : (
+                          <span>System</span>
+                        )}
+                        {update.is_internal_note && (
+                          <span className="internal-badge">Internal</span>
+                        )}
+                      </div>
+                      <div className="update-time">
+                        {formatDate(update.created_at)}
+                      </div>
+                    </div>
+                    <div className="update-content">
+                      {update.comment}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="no-updates">No updates yet</p>
+              )}
+              
+              <div className="update-item system-update">
+                <div className="update-header">
+                  <div className="update-author">
+                    <span>System</span>
+                  </div>
+                  <div className="update-time">
+                    {formatDate(ticket.created_at)}
+                  </div>
+                </div>
+                <div className="update-content">
+                  Ticket created by {ticket.end_user_email}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="ticket-sidebar">
+          <div className="sidebar-card">
+            <h3>Ticket Information</h3>
+            <div className="info-group">
+              <label>Ticket ID:</label>
+              <span>{ticket.id}</span>
+            </div>
+            <div className="info-group">
+              <label>Created:</label>
+              <span>{formatDate(ticket.created_at)}</span>
+            </div>
+            <div className="info-group">
+              <label>Last Updated:</label>
+              <span>{formatDate(ticket.updated_at)}</span>
+            </div>
+            {ticket.closed_at && (
+              <div className="info-group">
+                <label>Closed:</label>
+                <span>{formatDate(ticket.closed_at)}</span>
+              </div>
+            )}
+            <div className="info-group">
+              <label>Status:</label>
+              <span className={`status-badge status-${ticket.status.toLowerCase().replace(' ', '-')}`}>
+                {ticket.status}
+              </span>
+            </div>
+            <div className="info-group">
+              <label>Urgency:</label>
+              <span className={`urgency-badge urgency-${ticket.urgency.toLowerCase()}`}>
+                {ticket.urgency}
+              </span>
+            </div>
+            <div className="info-group">
+              <label>Issue Type:</label>
+              <span>{ticket.issue_type}</span>
+            </div>
+            <div className="info-group">
+              <label>Submitted By:</label>
+              <span>{ticket.end_user_email}</span>
+            </div>
+            <div className="info-group">
+              <label>Assigned To:</label>
+              <span>
+                {ticket.assigned_to_user ? ticket.assigned_to_user.name : 'Unassigned'}
+              </span>
+            </div>
+          </div>
+          
+          {ticket.status !== 'Closed' && (
+            <div className="sidebar-card">
+              <h3>Actions</h3>
+              <div className="sidebar-actions">
+                <div className="file-upload-container">
+                  <label htmlFor="file-upload" className="file-upload-btn">
+                    Attach File
+                  </label>
+                  <input 
+                    id="file-upload" 
+                    type="file" 
+                    onChange={handleFileUpload}
+                    className="file-input"
+                  />
+                </div>
+                
+                {ticket.assigned_to_user_id !== user?.id && (
+                  <button 
+                    className="assign-to-me-btn"
+                    onClick={() => handleUpdateTicket({
+                      status: 'Assigned',
+                      assigned_to_user_id: user?.id
+                    })}
+                  >
+                    Assign to Me
+                  </button>
+                )}
+                
+                {ticket.status === 'Assigned' && isAssignedToMe && (
+                  <button 
+                    className="start-work-btn"
+                    onClick={() => handleUpdateTicket({
+                      status: 'In Progress',
+                      assigned_to_user_id: user?.id
+                    })}
+                  >
+                    Start Working
+                  </button>
+                )}
+                
+                {(ticket.status === 'Assigned' || ticket.status === 'In Progress') && isAssignedToMe && (
+                  <button 
+                    className="close-ticket-btn"
+                    onClick={() => setUpdateType('status')}
+                  >
+                    Close Ticket
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default TicketDetailPage;

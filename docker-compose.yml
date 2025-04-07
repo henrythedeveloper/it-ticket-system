@@ -1,66 +1,103 @@
 version: '3.8'
+
 services:
+  # Nginx reverse proxy
+  nginx:
+    build: ./nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - frontend
+      - backend
+    volumes:
+      - ./nginx/certs:/etc/nginx/certs
+    networks:
+      - helpdesk-network
+
+  # Frontend service (React/TypeScript)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
     environment:
-      - VITE_API_URL=http://backend:8080/api/v1
-    depends_on:
-      backend:
-        condition: service_healthy
+      - NODE_ENV=production
     networks:
       - helpdesk-network
+    depends_on:
+      - backend
 
+  # Backend API service (Go)
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
     environment:
-      - PORT=8080
-      - DB_HOST=db
+      - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=postgrespassword
-      - DB_NAME=helpdesk
-      - JWT_SECRET=your-secure-jwt-secret-key-here
-      - CORS_ORIGIN=http://localhost:3000
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DB_SSL_MODE=disable
+      - EMAIL_FROM=${EMAIL_FROM}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER}
+      - EMAIL_API_KEY=${EMAIL_API_KEY}
+      - S3_ENDPOINT=${S3_ENDPOINT}
+      - S3_REGION=${S3_REGION}
+      - S3_BUCKET=${S3_BUCKET}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - PORT=8080
     depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/v1/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - postgres
+      - minio
     networks:
       - helpdesk-network
 
-  db:
-    image: postgres:15-alpine
-    ports:
-      - "5433:5432"
+  # PostgreSQL database
+  postgres:
+    image: postgres:14-alpine
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgrespassword
-      - POSTGRES_DB=helpdesk
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - helpdesk-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # MinIO for file storage (S3 compatible)
+  minio:
+    image: minio/minio
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - minio-data:/data
+    environment:
+      - MINIO_ROOT_USER=${S3_ACCESS_KEY}
+      - MINIO_ROOT_PASSWORD=${S3_SECRET_KEY}
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
     networks:
       - helpdesk-network
-
-volumes:
-  postgres_data:
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
 
 networks:
   helpdesk-network:
     driver: bridge
+
+volumes:
+  postgres-data:
+  minio-data:

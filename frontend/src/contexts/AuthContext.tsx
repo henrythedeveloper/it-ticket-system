@@ -1,102 +1,114 @@
-import React, { createContext, useEffect, useState } from 'react';
-import api from '../utils/axios';
-import { isAxiosError } from 'axios';
-import { User, LoginCredentials, RegisterCredentials } from '../types';
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import api from '../services/api';
+import { User } from '../types/models';
 
-export interface AuthContextType {
-  user: User | null;
-  login: (credentials: LoginCredentials) => Promise<void>;
-  register: (credentials: RegisterCredentials) => Promise<void>;
-  logout: () => void;
-  isLoading: boolean;
+interface AuthContextData {
   isAuthenticated: boolean;
+  user: User | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => void;
+  updateUser: (user: User) => void;
 }
 
-export const AuthContext = createContext<AuthContextType | null>(null);
+interface AuthResponse {
+  success: boolean;
+  data: {
+    access_token: string;
+    token_type: string;
+    expires_at: string;
+  };
+}
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+interface UserResponse {
+  success: boolean;
+  data: User;
+}
+
+const AuthContext = createContext<AuthContextData>({} as AuthContextData);
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const init = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setIsLoading(false);
-          return;
+    const loadStoredData = async () => {
+      const storedToken = localStorage.getItem('@Helpdesk:token');
+      
+      if (storedToken) {
+        api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+        
+        try {
+          const response = await api.get<UserResponse>('/api/v1/me');
+          
+          if (response.data.success) {
+            setUser(response.data.data);
+          } else {
+            localStorage.removeItem('@Helpdesk:token');
+            api.defaults.headers.common['Authorization'] = '';
+          }
+        } catch (error) {
+          localStorage.removeItem('@Helpdesk:token');
+          api.defaults.headers.common['Authorization'] = '';
         }
-
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        const response = await api.get('/auth/verify');
-        setUser(response.data);
-      } catch (error) {
-        console.error('Auth verification failed:', error);
-        if (isAxiosError(error) && error.response?.status === 401) {
-          localStorage.removeItem('token');
-          delete api.defaults.headers.common['Authorization'];
-        }
-      } finally {
-        setIsLoading(false);
       }
+      
+      setLoading(false);
     };
-
-    init();
+    
+    loadStoredData();
   }, []);
-
-  const login = async (credentials: LoginCredentials) => {
-    try {
-      const response = await api.post('/auth/login', credentials);
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(user);
-    } catch (err) {
-      if (isAxiosError(err)) {
-        console.error('Login error:', {
-          status: err.response?.status,
-          data: err.response?.data,
-        });
-      }
-      throw err;
+  
+  const login = async (email: string, password: string) => {
+    const response = await api.post<AuthResponse>('/api/v1/auth/login', { email, password });
+    
+    if (response.data.success) {
+      const { access_token } = response.data.data;
+      
+      localStorage.setItem('@Helpdesk:token', access_token);
+      
+      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      
+      const userResponse = await api.get<UserResponse>('/api/v1/me');
+      
+      setUser(userResponse.data.data);
+    } else {
+      throw new Error('Invalid credentials');
     }
   };
-
-  const register = async (credentials: RegisterCredentials) => {
-    try {
-      const response = await api.post('/auth/register', credentials);
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(user);
-    } catch (error) {
-      console.error('Registration failed:', error);
-      throw error;
-    }
-  };
-
+  
   const logout = () => {
-    localStorage.removeItem('token');
-    delete api.defaults.headers.common['Authorization'];
+    localStorage.removeItem('@Helpdesk:token');
+    api.defaults.headers.common['Authorization'] = '';
     setUser(null);
   };
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+  };
+  
   return (
     <AuthContext.Provider
       value={{
+        isAuthenticated: !!user,
         user,
+        loading,
         login,
-        register,
         logout,
-        isLoading,
-        isAuthenticated: !!user
+        updateUser,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
+};
+
+export function useAuth(): AuthContextData {
+  const context = useContext(AuthContext);
+  
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  
+  return context;
 }

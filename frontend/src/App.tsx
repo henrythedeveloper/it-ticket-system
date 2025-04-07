@@ -1,60 +1,68 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import AuthLayout from './layouts/AuthLayout';
+import MainLayout from './layouts/MainLayout';
+import PublicLayout from './layouts/PublicLayout';
 
-// Layouts
-import PublicLayout from './components/layout/PublicLayout';
-import PortalLayout from './components/layout/PortalLayout';
+// Public pages
+import HomePage from './pages/public/HomePage';
+import CreateTicketPage from './pages/public/CreateTicketPage';
+import FAQPage from './pages/public/FAQPage';
+import LoginPage from './pages/auth/LoginPage';
 
-// Public Pages
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import SubmitTicket from './pages/public/SubmitTicket';
-import TicketSuccess from './pages/public/TicketSuccess';
-import Solutions from './pages/public/Solutions';
-import FAQ from './pages/public/FAQ';
+// Auth pages
+import DashboardPage from './pages/dashboard/DashboardPage';
+import TicketsPage from './pages/dashboard/TicketsPage';
+import TicketDetailPage from './pages/dashboard/TicketDetailPage';
+import TasksPage from './pages/dashboard/TasksPage';
+import TaskDetailPage from './pages/dashboard/TaskDetailPage';
+import UsersPage from './pages/dashboard/UsersPage';
+import UserFormPage from './pages/dashboard/UserFormPage';
+import SettingsPage from './pages/dashboard/SettingsPage';
+import ProfilePage from './pages/dashboard/ProfilePage';
 
-// Portal Pages
-import Dashboard from './pages/portal/Dashboard';
-import TaskList from './pages/portal/TaskList';
-import TicketList from './pages/portal/TicketList';
-import UserList from './pages/portal/UserList';
-
-export default function App() {
+const App: React.FC = () => {
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
+    <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Auth Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-
           {/* Public Routes */}
           <Route element={<PublicLayout />}>
-            <Route path="/submit-ticket" element={<SubmitTicket />} />
-            <Route path="/ticket-success" element={<TicketSuccess />} />
-            <Route path="/solutions" element={<Solutions />} />
-            <Route path="/faq" element={<FAQ />} />
+            <Route path="/" element={<HomePage />} />
+            <Route path="/create-ticket" element={<CreateTicketPage />} />
+            <Route path="/faq" element={<FAQPage />} />
           </Route>
 
-          {/* Portal Routes */}
-          <Route path="/portal" element={<PortalLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="tickets" element={<TicketList />} />
-            <Route path="tasks" element={<TaskList />} />
-            <Route path="users" element={<UserList />} />
+          {/* Authentication Routes */}
+          <Route element={<AuthLayout />}>
+            <Route path="/login" element={<LoginPage />} />
           </Route>
 
-          {/* Default route goes to submit ticket */}
-          <Route path="/" element={<Navigate to="/submit-ticket" replace />} />
-          
-          {/* Catch invalid portal routes */}
-          <Route path="/portal/*" element={<Navigate to="/portal" replace />} />
-          
-          {/* Catch all other routes */}
-          <Route path="*" element={<Navigate to="/submit-ticket" replace />} />
+          {/* Protected Routes */}
+          <Route
+            element={
+              <ProtectedRoute>
+                <MainLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/tickets" element={<TicketsPage />} />
+            <Route path="/tickets/:id" element={<TicketDetailPage />} />
+            <Route path="/tasks" element={<TasksPage />} />
+            <Route path="/tasks/:id" element={<TaskDetailPage />} />
+            <Route path="/users" element={<UsersPage />} />
+            <Route path="/users/new" element={<UserFormPage />} />
+            <Route path="/users/:id" element={<UserFormPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+          </Route>
         </Routes>
       </BrowserRouter>
-    </LocalizationProvider>
+    </AuthProvider>
   );
-}
+};
+
+export default App;

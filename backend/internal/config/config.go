@@ -2,137 +2,106 @@ package config
 
 import (
 	"fmt"
-	"os"
-	"strconv"
 	"time"
+
+	"github.com/spf13/viper"
 )
 
+// Config holds all configuration for the application
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
-	JWT      JWTConfig
-	SMTP     SMTPConfig
+	Auth     AuthConfig
+	Email    EmailConfig
+	Storage  StorageConfig
 }
 
+// ServerConfig holds server-specific configurations
 type ServerConfig struct {
-	Port            int
-	AllowedOrigins []string
-	TimeoutSeconds int
+	Port int
 }
 
+// DatabaseConfig holds database connection parameters
 type DatabaseConfig struct {
 	Host     string
 	Port     int
 	User     string
 	Password string
-	DBName   string
+	Name     string
 	SSLMode  string
 }
 
-type JWTConfig struct {
-	Secret        string
-	TokenExpiry   time.Duration
-	RefreshSecret string
+// AuthConfig holds authentication settings
+type AuthConfig struct {
+	JWTSecret  string
+	JWTExpires time.Duration
 }
 
-type SMTPConfig struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
+// EmailConfig holds email service configuration
+type EmailConfig struct {
+	Provider string
+	APIKey   string
 	From     string
 }
 
-// LoadConfig loads configuration from environment variables
-func LoadConfig() (*Config, error) {
-	config := &Config{}
+// StorageConfig holds file storage configuration
+type StorageConfig struct {
+	Endpoint   string
+	Region     string
+	Bucket     string
+	AccessKey  string
+	SecretKey  string
+	DisableSSL bool
+}
 
-	// Server configuration
-	port, err := strconv.Atoi(getEnvOrDefault("PORT", "8080"))
-	if err != nil {
-		return nil, fmt.Errorf("invalid PORT: %w", err)
-	}
+// Load loads configuration from environment variables
+func Load() (*Config, error) {
+	viper.SetDefault("PORT", 8080)
+	viper.SetDefault("JWT_EXPIRES", "24h")
+	viper.SetDefault("S3_DISABLE_SSL", false)
 
-	config.Server = ServerConfig{
-		Port: port,
-		AllowedOrigins: []string{
-			getEnvOrDefault("CORS_ORIGIN", "http://localhost:3000"),
+	viper.AutomaticEnv()
+
+	// Read environment variables
+	config := &Config{
+		Server: ServerConfig{
+			Port: viper.GetInt("PORT"),
 		},
-		TimeoutSeconds: 30,
+		Database: DatabaseConfig{
+			Host:     viper.GetString("DB_HOST"),
+			Port:     viper.GetInt("DB_PORT"),
+			User:     viper.GetString("DB_USER"),
+			Password: viper.GetString("DB_PASSWORD"),
+			Name:     viper.GetString("DB_NAME"),
+			SSLMode:  viper.GetString("DB_SSL_MODE"),
+		},
+		Auth: AuthConfig{
+			JWTSecret:  viper.GetString("JWT_SECRET"),
+			JWTExpires: viper.GetDuration("JWT_EXPIRES"),
+		},
+		Email: EmailConfig{
+			Provider: viper.GetString("EMAIL_PROVIDER"),
+			APIKey:   viper.GetString("EMAIL_API_KEY"),
+			From:     viper.GetString("EMAIL_FROM"),
+		},
+		Storage: StorageConfig{
+			Endpoint:   viper.GetString("S3_ENDPOINT"),
+			Region:     viper.GetString("S3_REGION"),
+			Bucket:     viper.GetString("S3_BUCKET"),
+			AccessKey:  viper.GetString("S3_ACCESS_KEY"),
+			SecretKey:  viper.GetString("S3_SECRET_KEY"),
+			DisableSSL: viper.GetBool("S3_DISABLE_SSL"),
+		},
 	}
 
-	// Database configuration
-	dbPort, err := strconv.Atoi(getEnvOrDefault("DB_PORT", "5432"))
-	if err != nil {
-		return nil, fmt.Errorf("invalid DB_PORT: %w", err)
+	// Validate required configuration
+	if config.Database.Host == "" || config.Database.User == "" || config.Database.Password == "" || config.Database.Name == "" {
+		return nil, fmt.Errorf("missing required database configuration")
 	}
 
-	config.Database = DatabaseConfig{
-		Host:     getEnvOrDefault("DB_HOST", "localhost"),
-		Port:     dbPort,
-		User:     getEnvOrDefault("DB_USER", "postgres"),
-		Password: getEnvOrDefault("DB_PASSWORD", ""),
-		DBName:   getEnvOrDefault("DB_NAME", "helpdesk"),
-		SSLMode:  getEnvOrDefault("DB_SSLMODE", "disable"),
-	}
-
-	// JWT configuration
-	config.JWT = JWTConfig{
-		Secret:        getEnvOrDefault("JWT_SECRET", "your-secret-key"),
-		TokenExpiry:   24 * time.Hour,
-		RefreshSecret: getEnvOrDefault("JWT_REFRESH_SECRET", "your-refresh-secret-key"),
-	}
-
-	// SMTP configuration
-	smtpPort, err := strconv.Atoi(getEnvOrDefault("SMTP_PORT", "587"))
-	if err != nil {
-		return nil, fmt.Errorf("invalid SMTP_PORT: %w", err)
-	}
-
-	config.SMTP = SMTPConfig{
-		Host:     getEnvOrDefault("SMTP_HOST", "smtp.gmail.com"),
-		Port:     smtpPort,
-		Username: getEnvOrDefault("SMTP_USERNAME", ""),
-		Password: getEnvOrDefault("SMTP_PASSWORD", ""),
-		From:     getEnvOrDefault("SMTP_FROM", "helpdesk@example.com"),
+	if config.Auth.JWTSecret == "" {
+		return nil, fmt.Errorf("missing required JWT secret")
 	}
 
 	return config, nil
-}
-
-// GetDSN returns the PostgreSQL connection string
-func (c *DatabaseConfig) GetDSN() string {
-	return fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		c.Host, c.Port, c.User, c.Password, c.DBName, c.SSLMode,
-	)
-}
-
-// getEnvOrDefault returns the environment variable value or the default if not set
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
-// Validate performs basic validation of the configuration
-func (c *Config) Validate() error {
-	if c.Server.Port <= 0 {
-		return fmt.Errorf("invalid server port: %d", c.Server.Port)
-	}
-
-	if c.Database.Host == "" {
-		return fmt.Errorf("database host is required")
-	}
-
-	if c.Database.Port <= 0 {
-		return fmt.Errorf("invalid database port: %d", c.Database.Port)
-	}
-
-	if c.JWT.Secret == "" {
-		return fmt.Errorf("JWT secret is required")
-	}
-
-	return nil
 }

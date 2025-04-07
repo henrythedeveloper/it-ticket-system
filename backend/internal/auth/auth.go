@@ -1,133 +1,103 @@
 package auth
 
 import (
-"errors"
-"time"
+	"errors"
+	"fmt"
+	"time"
 
-"github.com/golang-jwt/jwt/v5"
-"golang.org/x/crypto/bcrypt"
-"gorm.io/gorm"
-
-"helpdesk/internal/models"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/henrythedeveloper/bus-it-ticket/internal/config"
+	"github.com/henrythedeveloper/bus-it-ticket/internal/models"
+	"golang.org/x/crypto/bcrypt"
 )
 
-var (
-ErrUserExists          = errors.New("user already exists")
-ErrInvalidCredentials = errors.New("invalid credentials")
-)
+// Service defines the authentication service interface
+type Service interface {
+	HashPassword(password string) (string, error)
+	CheckPassword(hashedPassword, password string) error
+	GenerateToken(user models.User) (models.Token, error)
+	ValidateToken(tokenString string) (*Claims, error)
+}
 
+// AuthService is an implementation of the authentication Service
 type AuthService struct {
-db        *gorm.DB
-jwtSecret string
+	config config.AuthConfig
 }
 
-func NewAuthService(db *gorm.DB, jwtSecret string) *AuthService {
-return &AuthService{
-db:        db,
-jwtSecret: jwtSecret,
-}
-}
-
-// HashPassword hashes a plain text password using bcrypt
-func HashPassword(password string) (string, error) {
-hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-if err != nil {
-return "", err
-}
-return string(hashedBytes), nil
+// Claims represents JWT claims
+type Claims struct {
+	UserID string          `json:"user_id"`
+	Email  string          `json:"email"`
+	Role   models.UserRole `json:"role"`
+	jwt.RegisteredClaims
 }
 
-type LoginInput struct {
-Email    string `json:"email" binding:"required,email"`
-Password string `json:"password" binding:"required"`
+// NewService creates a new authentication service
+func NewService(cfg config.AuthConfig) Service {
+	return &AuthService{
+		config: cfg,
+	}
 }
 
-type RegisterInput struct {
-Name     string `json:"name" binding:"required"`
-Email    string `json:"email" binding:"required,email"`
-Password string `json:"password" binding:"required,min=6"`
-Role     string `json:"role" binding:"required,oneof=admin staff"`
+// HashPassword hashes a password using bcrypt
+func (s *AuthService) HashPassword(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("failed to hash password: %w", err)
+	}
+	return string(hash), nil
 }
 
-type AuthResponse struct {
-Token string      `json:"token"`
-User  models.User `json:"user"`
+// CheckPassword compares a hashed password with a plain password
+func (s *AuthService) CheckPassword(hashedPassword, password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 
-func (s *AuthService) Login(input LoginInput) (*AuthResponse, error) {
-var user models.User
-if err := s.db.Where("email = ?", input.Email).First(&user).Error; err != nil {
-if err == gorm.ErrRecordNotFound {
-return nil, ErrInvalidCredentials
-}
-return nil, err
+// GenerateToken generates a JWT token for a user
+func (s *AuthService) GenerateToken(user models.User) (models.Token, error) {
+	expirationTime := time.Now().Add(s.config.JWTExpires)
+
+	claims := &Claims{
+		UserID: user.ID,
+		Email:  user.Email,
+		Role:   user.Role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Subject:   user.ID,
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(s.config.JWTSecret))
+	if err != nil {
+		return models.Token{}, fmt.Errorf("failed to sign token: %w", err)
+	}
+
+	return models.Token{
+		AccessToken: tokenString,
+		TokenType:   "Bearer",
+		ExpiresAt:   expirationTime,
+	}, nil
 }
 
-if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
-return nil, ErrInvalidCredentials
-}
+// ValidateToken validates a JWT token
+func (s *AuthService) ValidateToken(tokenString string) (*Claims, error) {
+	claims := &Claims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(s.config.JWTSecret), nil
+	})
 
-token, err := s.generateToken(user)
-if err != nil {
-return nil, err
-}
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse token: %w", err)
+	}
 
-return &AuthResponse{
-Token: token,
-User:  user,
-}, nil
-}
+	if !token.Valid {
+		return nil, errors.New("invalid token")
+	}
 
-func (s *AuthService) Register(input RegisterInput) (*AuthResponse, error) {
-var existingUser models.User
-err := s.db.Where("email = ?", input.Email).First(&existingUser).Error
-if err == nil {
-return nil, ErrUserExists
-}
-if err != gorm.ErrRecordNotFound {
-return nil, err
-}
-
-hashedPassword, err := HashPassword(input.Password)
-if err != nil {
-return nil, err
-}
-
-user := models.User{
-Name:     input.Name,
-Email:    input.Email,
-Password: hashedPassword,
-Role:     input.Role,
-}
-
-if err := s.db.Create(&user).Error; err != nil {
-return nil, err
-}
-
-token, err := s.generateToken(user)
-if err != nil {
-return nil, err
-}
-
-return &AuthResponse{
-Token: token,
-User:  user,
-}, nil
-}
-
-func (s *AuthService) generateToken(user models.User) (string, error) {
-token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-"userID": user.ID,
-"email":  user.Email,
-"role":   user.Role,
-"exp":    time.Now().Add(24 * time.Hour).Unix(),
-})
-
-return token.SignedString([]byte(s.jwtSecret))
-}
-
-func (s *AuthService) ValidateToken(tokenString string) (*jwt.Token, error) {
-return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-return []byte(s.jwtSecret), nil
-})
+	return claims, nil
 }
