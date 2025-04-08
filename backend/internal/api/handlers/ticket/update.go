@@ -80,7 +80,7 @@ func (h *Handler) UpdateTicket(c echo.Context) error {
 		args = append(args, time.Now(), ticketUpdate.ResolutionNotes)
 	}
 
-	query += ` WHERE id =  + fmt.Sprintf("%d", len(args)+1)
+	query += ` WHERE id =  + fmt.Sprintf("%d", len(args)+1)`
 	args = append(args, ticketID)
 
 	query += ` RETURNING id`

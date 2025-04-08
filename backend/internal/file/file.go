@@ -9,11 +9,19 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/henrythedeveloper/bus-it-ticket/internal/config"
 )
+
+type StorageConfig struct {
+	Endpoint  string
+	Region    string
+	AccessKey string
+	SecretKey string
+	Bucket    string
+}
 
 // Service defines the file storage service interface
 type Service interface {
@@ -40,10 +48,10 @@ func NewService(cfg config.StorageConfig) (Service, error) {
 	})
 
 	// Create AWS config
-	awsCfg, err := config.LoadDefaultConfig(context.Background(),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(cfg.AccessKey, cfg.SecretKey, "")),
-		config.WithEndpointResolverWithOptions(customResolver),
-		config.WithRegion(cfg.Region),
+	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(),
+		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(cfg.AccessKey, cfg.SecretKey, "")),
+		awsconfig.WithEndpointResolverWithOptions(customResolver),
+		awsconfig.WithRegion(cfg.Region),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)

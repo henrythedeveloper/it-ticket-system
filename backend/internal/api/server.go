@@ -3,10 +3,12 @@ package api
 import (
 	"context"
 
+	"github.com/henrythedeveloper/bus-it-ticket/internal/api/handlers/faq"
+	"github.com/henrythedeveloper/bus-it-ticket/internal/api/handlers/tag"
 	"github.com/henrythedeveloper/bus-it-ticket/internal/api/handlers/task"
 	"github.com/henrythedeveloper/bus-it-ticket/internal/api/handlers/ticket"
 	"github.com/henrythedeveloper/bus-it-ticket/internal/api/handlers/user"
-	"github.com/henrythedeveloper/bus-it-ticket/internal/api/middleware/auth"
+	authmw "github.com/henrythedeveloper/bus-it-ticket/internal/api/middleware/auth"
 	"github.com/henrythedeveloper/bus-it-ticket/internal/auth"
 	"github.com/henrythedeveloper/bus-it-ticket/internal/config"
 	"github.com/henrythedeveloper/bus-it-ticket/internal/db"
@@ -32,6 +34,8 @@ func NewServer(db *db.DB, emailService email.Service, fileService file.Service, 
 	authService := auth.NewService(cfg.Auth)
 
 	// Create handlers
+	faqHandler := faq.NewHandler(db)
+	tagHandler := tag.NewHandler(db)
 	userHandler := user.NewHandler(db, authService)
 	ticketHandler := ticket.NewHandler(db, emailService, fileService)
 	taskHandler := task.NewHandler(db, emailService)
@@ -51,9 +55,9 @@ func NewServer(db *db.DB, emailService email.Service, fileService file.Service, 
 	// Public routes
 	apiGroup.POST("/auth/login", userHandler.Login)
 	apiGroup.POST("/tickets", ticketHandler.CreateTicket)
-	apiGroup.GET("/faq", user.GetAllFAQs) // This would be in a FAQ handler
-	apiGroup.GET("/faq/:id", user.GetFAQByID)
-	apiGroup.GET("/tags", user.GetAllTags) // This would be in a Tag handler
+	apiGroup.GET("/faq", faqHandler.GetAllFAQs)
+	apiGroup.GET("/faq/:id", faqHandler.GetFAQByID)
+	apiGroup.GET("/tags", tagHandler.GetAllTags) // This would be in a Tag handler
 
 	// Protected routes (require authentication)
 	authGroup := apiGroup.Group("", jwtMiddleware)
@@ -69,6 +73,14 @@ func NewServer(db *db.DB, emailService email.Service, fileService file.Service, 
 	// Task routes
 	taskGroup := authGroup.Group("/tasks")
 	task.RegisterRoutes(taskGroup, taskHandler)
+
+	// Faq Route
+	faqGroup := authGroup.Group("/faq")
+	faq.RegisterRoutes(faqGroup, faqHandler, adminMiddleware)
+	
+	// Tag Route
+	tagGroup := authGroup.Group("/tag")
+	tag.RegisterRoutes(tagGroup, tagHandler, adminMiddleware)
 
 	return &Server{
 		echo:        e,

@@ -41,22 +41,22 @@ type UserLogin struct {
 
 // Ticket represents a support ticket
 type Ticket struct {
-	ID               string        `json:"id"`
-	EndUserEmail     string        `json:"end_user_email"`
-	IssueType        string        `json:"issue_type"`
-	Urgency          TicketUrgency `json:"urgency"`
-	Subject          string        `json:"subject"`
-	Body             string        `json:"body"`
-	Status           TicketStatus  `json:"status"`
-	AssignedToUserID *string       `json:"assigned_to_user_id,omitempty"`
-	AssignedToUser   *User         `json:"assigned_to_user,omitempty"`
-	CreatedAt        time.Time     `json:"created_at"`
-	UpdatedAt        time.Time     `json:"updated_at"`
-	ClosedAt         *time.Time    `json:"closed_at,omitempty"`
-	ResolutionNotes  *string       `json:"resolution_notes,omitempty"`
-	Tags             []Tag         `json:"tags,omitempty"`
+	ID               string         `json:"id"`
+	EndUserEmail     string         `json:"end_user_email"`
+	IssueType        string         `json:"issue_type"`
+	Urgency          TicketUrgency  `json:"urgency"`
+	Subject          string         `json:"subject"`
+	Body             string         `json:"body"`
+	Status           TicketStatus   `json:"status"`
+	AssignedToUserID *string        `json:"assigned_to_user_id,omitempty"`
+	AssignedToUser   *User          `json:"assigned_to_user,omitempty"`
+	CreatedAt        time.Time      `json:"created_at"`
+	UpdatedAt        time.Time      `json:"updated_at"`
+	ClosedAt         *time.Time     `json:"closed_at,omitempty"`
+	ResolutionNotes  *string        `json:"resolution_notes,omitempty"`
+	Tags             []Tag          `json:"tags,omitempty"`
 	Updates          []TicketUpdate `json:"updates,omitempty"`
-	Attachments      []Attachment  `json:"attachments,omitempty"`
+	Attachments      []Attachment   `json:"attachments,omitempty"`
 }
 
 // TicketStatus represents the status of a ticket
@@ -232,25 +232,25 @@ type SearchResult struct {
 
 // PaginatedResponse represents a paginated response
 type PaginatedResponse struct {
-	Total  int         `json:"total"`
-	Page   int         `json:"page"`
-	Limit  int         `json:"limit"`
-	Data   interface{} `json:"data"`
-	HasMore bool       `json:"has_more"`
+	Total   int         `json:"total"`
+	Page    int         `json:"page"`
+	Limit   int         `json:"limit"`
+	Data    interface{} `json:"data"`
+	HasMore bool        `json:"has_more"`
 }
 
 // TicketFilter represents filters for ticket listing
 type TicketFilter struct {
-	Status      *TicketStatus  `json:"status,omitempty"`
-	Urgency     *TicketUrgency `json:"urgency,omitempty"`
-	AssignedTo  *string        `json:"assigned_to,omitempty"`
-	EndUserEmail *string       `json:"end_user_email,omitempty"`
-	FromDate    *time.Time     `json:"from_date,omitempty"`
-	ToDate      *time.Time     `json:"to_date,omitempty"`
-	Tags        []string       `json:"tags,omitempty"`
-	Search      string         `json:"search,omitempty"`
-	Page        int            `json:"page,omitempty"`
-	Limit       int            `json:"limit,omitempty"`
+	Status       *TicketStatus  `json:"status,omitempty"`
+	Urgency      *TicketUrgency `json:"urgency,omitempty"`
+	AssignedTo   *string        `json:"assigned_to,omitempty"`
+	EndUserEmail *string        `json:"end_user_email,omitempty"`
+	FromDate     *time.Time     `json:"from_date,omitempty"`
+	ToDate       *time.Time     `json:"to_date,omitempty"`
+	Tags         []string       `json:"tags,omitempty"`
+	Search       string         `json:"search,omitempty"`
+	Page         int            `json:"page,omitempty"`
+	Limit        int            `json:"limit,omitempty"`
 }
 
 // TaskFilter represents filters for task listing
@@ -264,4 +264,4 @@ type TaskFilter struct {
 	Search      string      `json:"search,omitempty"`
 	Page        int         `json:"page,omitempty"`
 	Limit       int         `json:"limit,omitempty"`
-}"
+}

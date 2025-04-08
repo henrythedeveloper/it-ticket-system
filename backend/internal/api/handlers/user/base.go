@@ -30,18 +30,3 @@ func RegisterRoutes(g *echo.Group, h *Handler, adminMiddleware echo.MiddlewareFu
 	g.GET("/me", h.GetCurrentUser)
 }
 
-// These would be in separate handlers
-func GetAllFAQs(c echo.Context) error {
-	// Implementation
-	return nil
-}
-
-func GetFAQByID(c echo.Context) error {
-	// Implementation
-	return nil
-}
-
-func GetAllTags(c echo.Context) error {
-	// Implementation
-	return nil
-}
