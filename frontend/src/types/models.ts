@@ -33,6 +33,25 @@ export interface UserLogin {
 export type TicketStatus = 'Unassigned' | 'Assigned' | 'In Progress' | 'Closed';
 export type TicketUrgency = 'Low' | 'Medium' | 'High' | 'Critical';
 
+// Define the missing Tag interface
+export interface Tag {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+// Define the missing Attachment interface
+export interface Attachment {
+  id: string;
+  ticket_id: string;
+  filename: string;
+  storage_path: string;
+  mime_type: string;
+  size: number;
+  uploaded_at: string;
+  url?: string;
+}
+
 export interface Ticket {
   id: string;
   end_user_email: string;
@@ -104,4 +123,46 @@ export interface Task {
   description?: string;
   status: TaskStatus;
   assigned_to_user_id?: string;
-  assigned_to_user
+  assigned_to_user?: User;
+  created_by_user_id?: string;
+  created_by_user?: User;
+  due_date?: string;
+  is_recurring?: boolean;
+  recurrence_rule?: string;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string;
+  tags?: Tag[];
+  attachments?: Attachment[];
+}
+
+export interface TaskCreate {
+  title: string;
+  description?: string;
+  assigned_to_user_id?: string;
+  due_date?: string;
+  is_recurring?: boolean;
+  recurrence_rule?: string;
+}
+
+export interface TaskStatusUpdate {
+  status: TaskStatus;
+}
+
+// API Response types
+export interface APIResponse<T> {
+  success: boolean;
+  message?: string;
+  data?: T;
+  error?: string;
+}
+
+// FAQ related types
+export interface FAQEntry {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+  created_at: string;
+  updated_at: string;
+}
