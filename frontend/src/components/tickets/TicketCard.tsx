@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Ticket } from '../../types/models';
-import '../../styles/components/tickets/TicketCard.scss';
 
 interface TicketCardProps {
   ticket: Ticket;

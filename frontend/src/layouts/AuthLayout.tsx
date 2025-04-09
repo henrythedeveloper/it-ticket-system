@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import '../styles/layouts/AuthLayout.scss';
 
 const AuthLayout: React.FC = () => {
   const { isAuthenticated } = useAuth();

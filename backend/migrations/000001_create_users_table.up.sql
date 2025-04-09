@@ -21,7 +21,7 @@ VALUES (
     uuid_generate_v4(),
     'Admin User',
     'admin@example.com',
-    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', -- 'password123'
+    '$2a$12$2JziQOW//48h3cL2IZLVf.5ehvVwzjF/G4KprN220GQMq5.BzfR6m', -- 'password123'
     'Admin',
     NOW(),
     NOW()

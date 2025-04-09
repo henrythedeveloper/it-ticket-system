@@ -50,7 +50,7 @@ func NewServer(db *db.DB, emailService email.Service, fileService file.Service, 
 	adminMiddleware := authmw.AdminMiddleware()
 
 	// Routes
-	apiGroup := e.Group("/api/v1")
+	apiGroup := e.Group("/api")
 
 	// Public routes
 	apiGroup.POST("/auth/login", userHandler.Login)
@@ -77,7 +77,7 @@ func NewServer(db *db.DB, emailService email.Service, fileService file.Service, 
 	// Faq Route
 	faqGroup := authGroup.Group("/faq")
 	faq.RegisterRoutes(faqGroup, faqHandler, adminMiddleware)
-	
+
 	// Tag Route
 	tagGroup := authGroup.Group("/tag")
 	tag.RegisterRoutes(tagGroup, tagHandler, adminMiddleware)

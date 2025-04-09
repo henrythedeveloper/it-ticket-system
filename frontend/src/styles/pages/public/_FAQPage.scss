@@ -1,4 +1,4 @@
-@import '../../variables';
+@use '../../variables' as *;;
 
 .faq-page {
   max-width: 1200px;
@@ -37,7 +37,7 @@
         &:focus {
           outline: none;
           border-color: $primary-color;
-          box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
+          box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
         }
       }
       

@@ -1,0 +1,590 @@
+@use '../../variables' as *;;
+
+.ticket-detail-page {
+  width: 100%;
+  margin-bottom: $spacing-8;
+  
+  .page-header {
+    .header-left {
+      display: flex;
+      flex-direction: column;
+      
+      .back-button {
+        background: none;
+        border: none;
+        color: $primary-color;
+        font-weight: $font-weight-medium;
+        cursor: pointer;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        margin-bottom: $spacing-2;
+        
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+    
+    .header-right {
+      .update-ticket-btn {
+        background-color: $primary-color;
+        color: $white;
+        border: none;
+        border-radius: $border-radius;
+        padding: $spacing-2 $spacing-4;
+        font-weight: $font-weight-medium;
+        cursor: pointer;
+        transition: background-color $transition-fast;
+        
+        &:hover {
+          background-color: $primary-dark;
+        }
+      }
+    }
+  }
+  
+  .ticket-grid {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    gap: $spacing-6;
+    
+    @media (max-width: $breakpoint-lg) {
+      grid-template-columns: 1fr;
+    }
+    
+    .ticket-main {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-6;
+    }
+  }
+  
+  .ticket-card {
+    background-color: $white;
+    border-radius: $border-radius-lg;
+    box-shadow: $shadow;
+    padding: $spacing-6;
+    
+    .ticket-header {
+      margin-bottom: $spacing-4;
+      
+      h2 {
+        font-size: $font-size-2xl;
+        color: $gray-900;
+        margin-bottom: $spacing-3;
+      }
+      
+      .ticket-meta {
+        display: flex;
+        gap: $spacing-3;
+      }
+    }
+    
+    .ticket-body {
+      .ticket-description {
+        color: $gray-800;
+        line-height: 1.6;
+        white-space: pre-line;
+        margin-bottom: $spacing-4;
+      }
+      
+      .ticket-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: $spacing-2;
+        margin-bottom: $spacing-4;
+        
+        .tag {
+          background-color: $gray-100;
+          color: $gray-700;
+          padding: $spacing-1 $spacing-3;
+          border-radius: $border-radius-full;
+          font-size: $font-size-sm;
+        }
+      }
+    }
+    
+    .ticket-attachments {
+      margin-top: $spacing-6;
+      padding-top: $spacing-4;
+      border-top: 1px solid $gray-200;
+      
+      h3 {
+        font-size: $font-size-lg;
+        color: $gray-800;
+        margin-bottom: $spacing-3;
+      }
+      
+      .attachment-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        
+        .attachment-item {
+          margin-bottom: $spacing-2;
+          
+          .attachment-link {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: $primary-color;
+            padding: $spacing-2;
+            border-radius: $border-radius;
+            transition: background-color $transition-fast;
+            
+            &:hover {
+              background-color: $gray-50;
+            }
+            
+            .attachment-icon {
+              margin-right: $spacing-2;
+            }
+            
+            .attachment-name {
+              flex-grow: 1;
+            }
+            
+            .attachment-size {
+              color: $gray-600;
+              font-size: $font-size-sm;
+            }
+          }
+        }
+      }
+    }
+    
+    .resolution-notes {
+      margin-top: $spacing-6;
+      padding-top: $spacing-4;
+      border-top: 1px solid $gray-200;
+      
+      h3 {
+        font-size: $font-size-lg;
+        color: $gray-800;
+        margin-bottom: $spacing-3;
+      }
+      
+      p {
+        color: $gray-700;
+        line-height: 1.5;
+      }
+    }
+  }
+  
+  .ticket-updates {
+    background-color: $white;
+    border-radius: $border-radius-lg;
+    box-shadow: $shadow;
+    padding: $spacing-6;
+    
+    .updates-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: $spacing-4;
+      
+      h3 {
+        font-size: $font-size-lg;
+        color: $gray-800;
+        margin: 0;
+      }
+      
+      .add-comment-btn {
+        background-color: $primary-color;
+        color: $white;
+        border: none;
+        border-radius: $border-radius;
+        padding: $spacing-2 $spacing-3;
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+        cursor: pointer;
+        transition: background-color $transition-fast;
+        
+        &:hover {
+          background-color: $primary-dark;
+        }
+      }
+    }
+    
+    .comment-form-container, .status-form-container {
+      background-color: $gray-50;
+      border-radius: $border-radius;
+      padding: $spacing-4;
+      margin-bottom: $spacing-4;
+      
+      h4 {
+        font-size: $font-size-base;
+        color: $gray-800;
+        margin-bottom: $spacing-3;
+      }
+      
+      .comment-form, .status-form {
+        .form-group {
+          margin-bottom: $spacing-3;
+          
+          label {
+            display: block;
+            font-weight: $font-weight-medium;
+            color: $gray-700;
+            margin-bottom: $spacing-2;
+          }
+          
+          textarea, select {
+            width: 100%;
+            padding: $spacing-3;
+            border: 1px solid $gray-300;
+            border-radius: $border-radius;
+            font-size: $font-size-base;
+            
+            &:focus {
+              outline: none;
+              border-color: $primary-color;
+              box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
+            }
+          }
+          
+          textarea {
+            resize: vertical;
+            min-height: 100px;
+          }
+          
+          &.checkbox {
+            display: flex;
+            align-items: center;
+            
+            label {
+              display: flex;
+              align-items: center;
+              margin-bottom: 0;
+              cursor: pointer;
+              
+              input[type="checkbox"] {
+                margin-right: $spacing-2;
+              }
+            }
+          }
+          
+          .error {
+            color: $error-color;
+            font-size: $font-size-sm;
+            margin-top: $spacing-1;
+          }
+        }
+        
+        .form-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: $spacing-3;
+          
+          button {
+            padding: $spacing-2 $spacing-4;
+            border-radius: $border-radius;
+            font-size: $font-size-sm;
+            font-weight: $font-weight-medium;
+            cursor: pointer;
+            transition: background-color $transition-fast;
+          }
+          
+          .cancel-btn {
+            background-color: $white;
+            color: $gray-700;
+            border: 1px solid $gray-300;
+            
+            &:hover {
+              background-color: $gray-100;
+            }
+          }
+          
+          .submit-btn {
+            background-color: $primary-color;
+            color: $white;
+            border: none;
+            
+            &:hover {
+              background-color: $primary-dark;
+            }
+            
+            &:disabled {
+              background-color: $gray-400;
+              cursor: not-allowed;
+            }
+          }
+        }
+      }
+    }
+    
+    .updates-timeline {
+      .update-item {
+        padding: $spacing-4;
+        border-left: 3px solid $gray-300;
+        margin-bottom: $spacing-4;
+        position: relative;
+        
+        &:before {
+          content: '';
+          position: absolute;
+          width: 12px;
+          height: 12px;
+          background-color: $gray-300;
+          border-radius: 50%;
+          left: -7px;
+          top: $spacing-4;
+        }
+        
+        &.internal-note {
+          background-color: rgba($accent-light, 0.05);
+          border-left-color: $accent-light;
+          
+          &:before {
+            background-color: $accent-light;
+          }
+        }
+        
+        &.system-update {
+          background-color: rgba($gray-500, 0.05);
+          border-left-color: $gray-500;
+          
+          &:before {
+            background-color: $gray-500;
+          }
+        }
+        
+        .update-header {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: $spacing-2;
+          
+          .update-author {
+            font-weight: $font-weight-medium;
+            color: $gray-800;
+            display: flex;
+            align-items: center;
+            
+            .internal-badge {
+              background-color: $accent-light;
+              color: $white;
+              font-size: $font-size-xs;
+              padding: 2px $spacing-1;
+              border-radius: $border-radius-sm;
+              margin-left: $spacing-2;
+            }
+          }
+          
+          .update-time {
+            font-size: $font-size-sm;
+            color: $gray-600;
+          }
+        }
+        
+        .update-content {
+          color: $gray-700;
+          line-height: 1.5;
+          white-space: pre-line;
+        }
+      }
+      
+      .no-updates {
+        color: $gray-500;
+        text-align: center;
+        padding: $spacing-6;
+        font-style: italic;
+      }
+    }
+  }
+  
+  .ticket-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-6;
+    
+    .sidebar-card {
+      background-color: $white;
+      border-radius: $border-radius-lg;
+      box-shadow: $shadow;
+      padding: $spacing-4;
+      
+      h3 {
+        font-size: $font-size-lg;
+        color: $gray-800;
+        margin-bottom: $spacing-4;
+        padding-bottom: $spacing-2;
+        border-bottom: 1px solid $gray-200;
+      }
+      
+      .info-group {
+        display: flex;
+        margin-bottom: $spacing-3;
+        
+        label {
+          width: 120px;
+          font-weight: $font-weight-medium;
+          color: $gray-600;
+        }
+        
+        span {
+          flex-grow: 1;
+          color: $gray-800;
+        }
+      }
+      
+      .sidebar-actions {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-3;
+        
+        .file-upload-container {
+          position: relative;
+          
+          .file-upload-btn {
+            display: block;
+            width: 100%;
+            padding: $spacing-2;
+            text-align: center;
+            background-color: $gray-100;
+            color: $gray-800;
+            border: 1px dashed $gray-400;
+            border-radius: $border-radius;
+            cursor: pointer;
+            transition: all $transition-fast;
+            
+            &:hover {
+              background-color: $gray-200;
+            }
+          }
+          
+          .file-input {
+            position: absolute;
+            width: 0.1px;
+            height: 0.1px;
+            opacity: 0;
+            overflow: hidden;
+            z-index: -1;
+          }
+        }
+        
+        .assign-to-me-btn, .start-work-btn, .close-ticket-btn {
+          padding: $spacing-2;
+          border: none;
+          border-radius: $border-radius;
+          font-weight: $font-weight-medium;
+          cursor: pointer;
+          transition: background-color $transition-fast;
+          text-align: center;
+        }
+        
+        .assign-to-me-btn {
+          background-color: $primary-light;
+          color: $white;
+          
+          &:hover {
+            background-color: $primary-dark;
+          }
+        }
+        
+        .start-work-btn {
+          background-color: $info-color;
+          color: $white;
+          
+          &:hover {
+            background-color: darken($info-color, 10%);
+          }
+        }
+        
+        .close-ticket-btn {
+          background-color: $success-color;
+          color: $white;
+          
+          &:hover {
+            background-color: darken($success-color, 10%);
+          }
+        }
+      }
+    }
+  }
+  
+  .status-badge, .urgency-badge {
+    display: inline-block;
+    padding: $spacing-1 $spacing-2;
+    border-radius: $border-radius-full;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+    text-align: center;
+    min-width: 80px;
+  }
+  
+  .status-badge {
+    &.status-unassigned {
+      background-color: rgba($status-unassigned, 0.1);
+      color: $status-unassigned;
+    }
+    
+    &.status-assigned {
+      background-color: rgba($status-assigned, 0.1);
+      color: $status-assigned;
+    }
+    
+    &.status-in-progress {
+      background-color: rgba($status-progress, 0.1);
+      color: $status-progress;
+    }
+    
+    &.status-closed {
+      background-color: rgba($status-closed, 0.1);
+      color: $status-closed;
+    }
+  }
+  
+  .urgency-badge {
+    &.urgency-low {
+      background-color: rgba($urgency-low, 0.1);
+      color: $urgency-low;
+    }
+    
+    &.urgency-medium {
+      background-color: rgba($urgency-medium, 0.1);
+      color: $urgency-medium;
+    }
+    
+    &.urgency-high {
+      background-color: rgba($urgency-high, 0.1);
+      color: $urgency-high;
+    }
+    
+    &.urgency-critical {
+      background-color: rgba($urgency-critical, 0.1);
+      color: $urgency-critical;
+    }
+  }
+}
+
+@media (max-width: $breakpoint-md) {
+  .ticket-detail-page {
+    .ticket-card, .ticket-updates, .sidebar-card {
+      padding: $spacing-4;
+    }
+    
+    .updates-timeline {
+      .update-item {
+        padding: $spacing-3;
+        
+        .update-header {
+          flex-direction: column;
+          
+          .update-time {
+            margin-top: $spacing-1;
+          }
+        }
+      }
+    }
+    
+    .form-actions {
+      flex-direction: column;
+      
+      button {
+        width: 100%;
+        margin-bottom: $spacing-2;
+      }
+    }
+  }
+}

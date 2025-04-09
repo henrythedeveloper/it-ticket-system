@@ -1,4 +1,30 @@
-@import 'variables';
+@use 'variables' as *;
+
+/* Import component styles */
+@use './components/forms';
+@use './components/tickets/TicketCard';
+
+
+/* Import layouts Styles */
+@use './layouts/AuthLayout';
+@use './layouts/MainLayout';
+@use './layouts/PublicLayout';
+
+/* Import pages styles */
+
+@use './pages/dashboard/DashboardPage';
+@use './pages/dashboard/ProfilePage';
+@use './pages/dashboard/SettingsPage';
+@use './pages/dashboard/TaskDetailPage';
+@use './pages/dashboard/TasksPage';
+@use './pages/dashboard/TicketDetailPage';
+@use './pages/dashboard/TicketsPage';
+@use './pages/dashboard/UserFormPage';
+@use './pages/dashboard/UsersPage';
+
+@use './pages/public/CreateTicketPage';
+@use './pages/public/FAQPage';
+@use './pages/public/HomePage';
 
 /* Base Reset */
 *,
@@ -235,6 +261,3 @@ table {
     font-size: $font-size-xl;
   }
 }
-
-/* Import component styles */
-@import './components/forms';

@@ -3,7 +3,6 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import api from '../../services/api';
 import { TicketCreate, Tag, APIResponse } from '../../types/models';
-import '../../styles/pages/public/CreateTicketPage.scss';
 
 const TicketSchema = Yup.object().shape({
   end_user_email: Yup.string()
@@ -33,7 +32,7 @@ const CreateTicketPage: React.FC = () => {
     // Fetch available tags
     const fetchTags = async () => {
       try {
-        const response = await api.get<APIResponse<Tag[]>>('/api/v1/tags');
+        const response = await api.get<APIResponse<Tag[]>>('/tags');
         if (response.data.success && response.data.data) {
           setTags(response.data.data);
         }
@@ -75,7 +74,7 @@ const CreateTicketPage: React.FC = () => {
         tags: selectedTags.length > 0 ? selectedTags : undefined
       };
       
-      const response = await api.post<APIResponse<{ id: string }>>('/api/v1/tickets', ticketData);
+      const response = await api.post<APIResponse<{ id: string }>>('/tickets', ticketData);
       
       if (response.data.success && response.data.data) {
         setTicketId(response.data.data.id);

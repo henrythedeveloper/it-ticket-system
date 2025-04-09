@@ -10,6 +10,11 @@ const api = axios.create({
 // Add a request interceptor
 api.interceptors.request.use(
   (config) => {
+    // Don't add auth header for login route
+    if (config.url === '/auth/login') {
+      return config;
+    }
+
     // If token exists, add it to request headers
     const token = localStorage.getItem('@Helpdesk:token');
     if (token) {

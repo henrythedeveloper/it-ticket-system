@@ -1,0 +1,140 @@
+@use '../../variables' as *;;
+
+.user-form-page {
+  width: 100%;
+  margin-bottom: $spacing-8;
+  
+  .page-header {
+    .back-button {
+      background: none;
+      border: none;
+      color: $primary-color;
+      font-weight: $font-weight-medium;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      margin-bottom: $spacing-2;
+      
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+  
+  .user-form-container {
+    background-color: $white;
+    border-radius: $border-radius-lg;
+    box-shadow: $shadow;
+    padding: $spacing-6;
+    max-width: 600px;
+    margin: 0 auto;
+    
+    .user-form {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-4;
+      
+      .form-group {
+        margin-bottom: $spacing-4;
+        
+        label {
+          display: block;
+          font-weight: $font-weight-medium;
+          margin-bottom: $spacing-2;
+          color: $gray-700;
+        }
+        
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        select {
+          width: 100%;
+          padding: $spacing-3;
+          border: 1px solid $gray-300;
+          border-radius: $border-radius;
+          font-size: $font-size-base;
+          
+          &:focus {
+            outline: none;
+            border-color: $primary-color;
+            box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
+          }
+          
+          &:disabled {
+            background-color: $gray-100;
+            cursor: not-allowed;
+          }
+        }
+        
+        .field-info {
+          font-size: $font-size-sm;
+          color: $gray-600;
+          margin-top: $spacing-1;
+        }
+        
+        .error {
+          color: $error-color;
+          font-size: $font-size-sm;
+          margin-top: $spacing-1;
+        }
+      }
+    }
+  }
+  
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: $spacing-3;
+    margin-top: $spacing-6;
+    
+    .cancel-btn, .submit-btn {
+      padding: $spacing-2 $spacing-6;
+      border-radius: $border-radius;
+      font-weight: $font-weight-medium;
+      cursor: pointer;
+      transition: all $transition-fast;
+    }
+    
+    .cancel-btn {
+      background-color: $white;
+      color: $gray-700;
+      border: 1px solid $gray-300;
+      
+      &:hover {
+        background-color: $gray-100;
+      }
+    }
+    
+    .submit-btn {
+      background-color: $primary-color;
+      color: $white;
+      border: none;
+      
+      &:hover {
+        background-color: $primary-dark;
+      }
+      
+      &:disabled {
+        background-color: $gray-400;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+@media (max-width: $breakpoint-md) {
+  .user-form-page {
+    .user-form-container {
+      padding: $spacing-4;
+    }
+    
+    .form-actions {
+      flex-direction: column;
+      
+      button {
+        width: 100%;
+      }
+    }
+  }
+}

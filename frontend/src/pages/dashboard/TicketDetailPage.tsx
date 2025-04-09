@@ -5,7 +5,6 @@ import * as Yup from 'yup';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Ticket, User, TicketUpdate, TicketUpdateCreate, TicketStatusUpdate, Attachment, APIResponse } from '../../types/models';
-import '../../styles/pages/dashboard/TicketDetailPage.scss';
 
 const CommentSchema = Yup.object().shape({
   comment: Yup.string().required('Comment is required'),
@@ -15,11 +14,11 @@ const CommentSchema = Yup.object().shape({
 const UpdateTicketSchema = Yup.object().shape({
   status: Yup.string().required('Status is required'),
   assigned_to_user_id: Yup.string().nullable(),
-  resolution_notes: Yup.string().when('status', {
-    is: 'Closed',
-    then: Yup.string().required('Resolution notes are required when closing a ticket'),
-    otherwise: Yup.string()
-  })
+  resolution_notes: Yup.string().when('status', ([status], schema) =>
+    status === 'Closed'
+      ? schema.required('Resolution notes are required when closing a ticket')
+      : schema
+  )
 });
 
 const TicketDetailPage: React.FC = () => {
@@ -42,7 +41,7 @@ const TicketDetailPage: React.FC = () => {
         setLoading(true);
         
         // Fetch ticket details
-        const ticketResponse = await api.get<APIResponse<Ticket>>(`/api/v1/tickets/${id}`);
+        const ticketResponse = await api.get<APIResponse<Ticket>>(`/tickets/${id}`);
         if (ticketResponse.data.success && ticketResponse.data.data) {
           setTicket(ticketResponse.data.data);
         } else {
@@ -50,7 +49,7 @@ const TicketDetailPage: React.FC = () => {
         }
         
         // Fetch users for assignment dropdown
-        const usersResponse = await api.get<APIResponse<User[]>>('/api/v1/users');
+        const usersResponse = await api.get<APIResponse<User[]>>('/users');
         if (usersResponse.data.success && usersResponse.data.data) {
           setUsers(usersResponse.data.data);
         }
@@ -70,7 +69,7 @@ const TicketDetailPage: React.FC = () => {
   
   const handleAddComment = async (values: TicketUpdateCreate, { resetForm }: { resetForm: () => void }) => {
     try {
-      const response = await api.post<APIResponse<TicketUpdate>>(`/api/v1/tickets/${id}/comments`, values);
+      const response = await api.post<APIResponse<TicketUpdate>>(`/tickets/${id}/comments`, values);
       
       if (response.data.success && response.data.data) {
         // Add the new comment to the ticket updates
@@ -96,7 +95,7 @@ const TicketDetailPage: React.FC = () => {
   
   const handleUpdateTicket = async (values: TicketStatusUpdate) => {
     try {
-      const response = await api.put<APIResponse<Ticket>>(`/api/v1/tickets/${id}`, values);
+      const response = await api.put<APIResponse<Ticket>>(`/tickets/${id}`, values);
       
       if (response.data.success && response.data.data) {
         setTicket(response.data.data);
@@ -120,7 +119,7 @@ const TicketDetailPage: React.FC = () => {
     
     try {
       const response = await api.post<APIResponse<Attachment>>(
-        `/api/v1/tickets/${id}/attachments`,
+        `/tickets/${id}/attachments`,
         formData,
         {
           headers: {

@@ -39,7 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
         
         try {
-          const response = await api.get<UserResponse>('/api/v1/me');
+          const response = await api.get<UserResponse>('/me');
           
           if (response.data.success) {
             setUser(response.data.data);
@@ -60,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
   
   const login = async (email: string, password: string) => {
-    const response = await api.post<AuthResponse>('/api/v1/auth/login', { email, password });
+    const response = await api.post<AuthResponse>('/auth/login', { email, password });
     
     if (response.data.success) {
       const { access_token } = response.data.data;
@@ -69,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
       
-      const userResponse = await api.get<UserResponse>('/api/v1/me');
+      const userResponse = await api.get<UserResponse>('/me');
       
       setUser(userResponse.data.data);
     } else {

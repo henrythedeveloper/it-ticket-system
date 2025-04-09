@@ -1,0 +1,36 @@
+// Import variables if needed (adjust path as necessary)
+@use '../variables' as *;
+
+.auth-layout {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh; // Full viewport height
+  background-color: $gray-100; // Or another suitable background
+  padding: $spacing-6; // Use defined spacing variable
+
+  .auth-container {
+    background-color: $white; // White background for the form container
+    padding: $spacing-8;      // Generous padding
+    border-radius: $border-radius-lg; // Rounded corners 
+    box-shadow: $shadow-lg;        // Add a shadow 
+    width: 100%;
+    max-width: 450px; // Limit the maximum width
+    text-align: center;
+
+    .logo {
+      margin-bottom: $spacing-6;
+    }
+    h2 {
+      margin-bottom: $spacing-4;
+      color: $gray-900; 
+    }
+  }
+}
+
+
+@media (max-width: $breakpoint-sm) {
+  .auth-layout .auth-container {
+    padding: $spacing-6;
+  }
+}

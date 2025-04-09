@@ -1,6 +1,6 @@
 module github.com/henrythedeveloper/bus-it-ticket
 
-go 1.21
+go 1.24.2
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.24.0
@@ -11,7 +11,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.17.0
 	github.com/jackc/pgx/v5 v5.5.0
 	github.com/labstack/echo/v4 v4.11.4
-	github.com/sendgrid/sendgrid-go v3.14.0+incompatible
+	github.com/resend/resend-go/v2 v2.17.0
 	github.com/spf13/viper v1.18.1
 	golang.org/x/crypto v0.18.0
 )
@@ -48,7 +48,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
-	github.com/sendgrid/rest v2.6.9+incompatible // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect

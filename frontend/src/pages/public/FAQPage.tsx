@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { FAQEntry, APIResponse } from '../../types/models';
-import '../../styles/pages/public/FAQPage.scss';
 
 const FAQPage: React.FC = () => {
   const [faqs, setFaqs] = useState<FAQEntry[]>([]);
@@ -19,7 +18,7 @@ const FAQPage: React.FC = () => {
     const fetchFaqs = async () => {
       try {
         setLoading(true);
-        const response = await api.get<APIResponse<FAQEntry[]>>('/api/v1/faq');
+        const response = await api.get<APIResponse<FAQEntry[]>>('/faq');
         
         if (response.data.success && response.data.data) {
           setFaqs(response.data.data);

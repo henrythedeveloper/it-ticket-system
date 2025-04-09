@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import '../styles/layouts/PublicLayout.scss';
+
 
 const PublicLayout: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -17,38 +17,47 @@ const PublicLayout: React.FC = () => {
 
   return (
     <div className="public-layout">
-      {/* Header */}
-      <header className="public-header">
+      {/* Side Navigation */}
+      <nav className="side-nav">
         <div className="logo-container">
           <Link to="/" className="logo">
             IT Helpdesk
           </Link>
         </div>
-        <nav className="main-nav">
-          <ul>
-            <li>
-              <Link to="/">Home</Link>
-            </li>
-            <li>
-              <Link to="/create-ticket">Submit Ticket</Link>
-            </li>
-            <li>
-              <Link to="/faq">FAQ</Link>
-            </li>
-          </ul>
-        </nav>
+        <ul className="nav-links">
+          <li>
+            <Link to="/">
+              <span className="icon">🏠</span>
+              <span className="link-text">Home</span>
+            </Link>
+          </li>
+          <li>
+            <Link to="/create-ticket">
+              <span className="icon">📝</span>
+              <span className="link-text">Submit Ticket</span>
+            </Link>
+          </li>
+          <li>
+            <Link to="/faq">
+              <span className="icon">❓</span>
+              <span className="link-text">FAQ</span>
+            </Link>
+          </li>
+        </ul>
         <div className="auth-buttons">
           {isAuthenticated ? (
             <button className="dashboard-btn" onClick={handleDashboardClick}>
-              Dashboard
+              <span className="icon">📊</span>
+              <span className="btn-text">Dashboard</span>
             </button>
           ) : (
             <button className="login-btn" onClick={handleLoginClick}>
-              Staff Login
+              <span className="icon">🔒</span>
+              <span className="btn-text">Staff Login</span>
             </button>
           )}
         </div>
-      </header>
+      </nav>
 
       {/* Main Content */}
       <main className="public-content">

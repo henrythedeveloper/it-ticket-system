@@ -1,0 +1,127 @@
+// Import variables if needed (adjust path as necessary)
+@use '../variables' as *;
+
+.public-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: $gray-50;
+
+  .side-nav {
+    width: $sidebar-width;
+    background-color: $white;
+    box-shadow: $shadow;
+    padding: $spacing-4;
+    position: fixed;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid $gray-200;
+
+    .logo-container {
+      padding: $spacing-4 0;
+      text-align: center;
+      margin-bottom: $spacing-6;
+      border-bottom: 1px solid $gray-200;
+
+      .logo {
+        font-size: $font-size-xl;
+        font-weight: $font-weight-bold;
+        color: $primary-color;
+        text-decoration: none;
+        
+        &:hover {
+          color: $primary-dark;
+        }
+      }
+    }
+
+    .nav-links {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      flex-grow: 1;
+
+      li {
+        margin-bottom: $spacing-2;
+
+        a {
+          display: flex;
+          align-items: center;
+          padding: $spacing-3 $spacing-4;
+          color: $gray-700;
+          text-decoration: none;
+          font-weight: $font-weight-medium;
+          border-radius: $border-radius;
+          transition: all $transition-fast;
+
+          .icon {
+            margin-right: $spacing-3;
+            font-size: $font-size-xl;
+          }
+
+          &:hover {
+            color: $primary-color;
+            background-color: rgba($primary-color, 0.1);
+          }
+        }
+      }
+    }
+
+    .auth-buttons {
+      padding-top: $spacing-4;
+      border-top: 1px solid $gray-200;
+
+      .login-btn, .dashboard-btn {
+        width: 100%;
+        background-color: $primary-color;
+        color: $white;
+        border: none;
+        padding: $spacing-3;
+        border-radius: $border-radius;
+        font-weight: $font-weight-medium;
+        cursor: pointer;
+        transition: background-color $transition-fast;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        .icon {
+          margin-right: $spacing-2;
+        }
+
+        &:hover {
+          background-color: $primary-dark;
+        }
+      }
+    }
+  }
+
+  main {
+    flex-grow: 1;
+    padding: $spacing-8;
+    margin-left: $sidebar-width;
+    width: calc(100% - #{$sidebar-width});
+  }
+
+  .public-footer {
+    background-color: $gray-800; 
+    color: $gray-300;           
+    padding: $spacing-6;          
+    text-align: center;
+    font-size: $font-size-sm;     
+    // Add styles for footer links, copyright, etc.
+  }
+}
+
+
+@media (max-width: $breakpoint-md) { 
+  .public-layout {
+    main {
+      padding: $spacing-6 $spacing-4;
+    }
+    .public-header, .public-footer {
+      padding-left: $spacing-4;
+      padding-right: $spacing-4;
+    }
+  }
+}

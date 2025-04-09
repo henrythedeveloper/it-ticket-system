@@ -3,7 +3,6 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Ticket, User, Tag, APIResponse } from '../../types/models';
-import '../../styles/pages/dashboard/TicketsPage.scss';
 
 const TicketsPage: React.FC = () => {
   const { user } = useAuth();
@@ -44,7 +43,7 @@ const TicketsPage: React.FC = () => {
         selectedTags.forEach(tag => params.append('tags', tag));
         
         // Fetch tickets
-        const ticketsResponse = await api.get<APIResponse<Ticket[]>>(`/api/v1/tickets?${params.toString()}`);
+        const ticketsResponse = await api.get<APIResponse<Ticket[]>>(`/tickets?${params.toString()}`);
         if (ticketsResponse.data.success && ticketsResponse.data.data) {
           setTickets(ticketsResponse.data.data);
         } else {
@@ -52,13 +51,13 @@ const TicketsPage: React.FC = () => {
         }
         
         // Fetch users for filter dropdown
-        const usersResponse = await api.get<APIResponse<User[]>>('/api/v1/users');
+        const usersResponse = await api.get<APIResponse<User[]>>('/users');
         if (usersResponse.data.success && usersResponse.data.data) {
           setUsers(usersResponse.data.data);
         }
         
         // Fetch tags for filter
-        const tagsResponse = await api.get<APIResponse<Tag[]>>('/api/v1/tags');
+        const tagsResponse = await api.get<APIResponse<Tag[]>>('/tags');
         if (tagsResponse.data.success && tagsResponse.data.data) {
           setTags(tagsResponse.data.data);
         }

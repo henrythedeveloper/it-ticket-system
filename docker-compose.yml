@@ -7,6 +7,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    restart: unless-stopped
     depends_on:
       - frontend
       - backend
@@ -20,8 +21,11 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=/api
     environment:
       - NODE_ENV=production
+      - REACT_APP_API_URL=/api
     networks:
       - helpdesk-network
     depends_on:
@@ -49,9 +53,12 @@ services:
       - S3_SECRET_KEY=${S3_SECRET_KEY}
       - JWT_SECRET=${JWT_SECRET}
       - PORT=8080
+    restart: unless-stopped
     depends_on:
-      - postgres
-      - minio
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     networks:
       - helpdesk-network
 

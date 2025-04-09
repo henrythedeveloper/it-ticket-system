@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Ticket, Task, APIResponse } from '../../types/models';
-import '../../styles/pages/dashboard/DashboardPage.scss';
 
 type TicketCounts = {
   unassigned: number;
@@ -43,13 +42,13 @@ const DashboardPage: React.FC = () => {
         setLoading(true);
         
         // Fetch ticket counts
-        const countsResponse = await api.get<APIResponse<TicketCounts>>('/api/v1/tickets/counts');
+        const countsResponse = await api.get<APIResponse<TicketCounts>>('/tickets/counts');
         if (countsResponse.data.success && countsResponse.data.data) {
           setTicketCounts(countsResponse.data.data);
         }
         
         // Fetch recent tickets
-        const recentResponse = await api.get<APIResponse<Ticket[]>>('/api/v1/tickets?limit=5');
+        const recentResponse = await api.get<APIResponse<Ticket[]>>('/tickets?limit=5');
         if (recentResponse.data.success && recentResponse.data.data) {
           setRecentTickets(
             recentResponse.data.data.map(ticket => ({
@@ -63,7 +62,7 @@ const DashboardPage: React.FC = () => {
         }
         
         // Fetch my assigned tickets
-        const myTicketsResponse = await api.get<APIResponse<Ticket[]>>('/api/v1/tickets?assigned_to=me&limit=5');
+        const myTicketsResponse = await api.get<APIResponse<Ticket[]>>('/tickets?assigned_to=me&limit=5');
         if (myTicketsResponse.data.success && myTicketsResponse.data.data) {
           setMyTickets(
             myTicketsResponse.data.data.map(ticket => ({
@@ -77,7 +76,7 @@ const DashboardPage: React.FC = () => {
         }
         
         // Fetch upcoming tasks
-        const tasksResponse = await api.get<APIResponse<Task[]>>('/api/v1/tasks?assigned_to=me&status=Open&limit=5');
+        const tasksResponse = await api.get<APIResponse<Task[]>>('/tasks?assigned_to=me&status=Open&limit=5');
         if (tasksResponse.data.success && tasksResponse.data.data) {
           setUpcomingTasks(tasksResponse.data.data);
         }
