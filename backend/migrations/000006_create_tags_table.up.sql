@@ -6,7 +6,7 @@ CREATE TABLE tags (
 
 -- Create the many-to-many relationship between tickets and tags
 CREATE TABLE ticket_tags (
-    ticket_id UUID NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+    ticket_id INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
     tag_id UUID NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
     PRIMARY KEY (ticket_id, tag_id)
 );

@@ -1,7 +1,7 @@
 CREATE TYPE task_status AS ENUM ('Open', 'In Progress', 'Completed');
 
 CREATE TABLE tasks (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id SERIAL PRIMARY KEY ,
     title VARCHAR(200) NOT NULL,
     description TEXT,
     status task_status NOT NULL DEFAULT 'Open',

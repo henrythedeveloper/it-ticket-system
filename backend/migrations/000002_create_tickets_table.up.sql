@@ -3,7 +3,7 @@ CREATE TYPE ticket_status AS ENUM ('Unassigned', 'Assigned', 'In Progress', 'Clo
 CREATE TYPE ticket_urgency AS ENUM ('Low', 'Medium', 'High', 'Critical');
 
 CREATE TABLE tickets (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id SERIAL PRIMARY KEY,
     end_user_email VARCHAR(255) NOT NULL,
     issue_type VARCHAR(100) NOT NULL,
     urgency ticket_urgency NOT NULL DEFAULT 'Medium',
@@ -26,7 +26,7 @@ CREATE INDEX idx_tickets_created_at ON tickets(created_at);
 -- Create ticket updates table for comments and history
 CREATE TABLE ticket_updates (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    ticket_id UUID NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+    ticket_id INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id),
     comment TEXT NOT NULL,
     is_internal_note BOOLEAN NOT NULL DEFAULT FALSE,

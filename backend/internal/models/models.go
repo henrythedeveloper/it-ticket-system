@@ -6,7 +6,7 @@ import (
 
 // User represents a user of the system
 type User struct {
-	ID           string    `json:"id"`
+	ID           string    `json:"id"` // Assuming users.id remains UUID
 	Name         string    `json:"name"`
 	Email        string    `json:"email"`
 	PasswordHash string    `json:"-"` // Never expose password hash in JSON responses
@@ -41,20 +41,20 @@ type UserLogin struct {
 
 // Ticket represents a support ticket
 type Ticket struct {
-	ID               string         `json:"id"`
+	ID               int32          `json:"id"` // <<< Changed from string to int32
 	EndUserEmail     string         `json:"end_user_email"`
 	IssueType        string         `json:"issue_type"`
 	Urgency          TicketUrgency  `json:"urgency"`
 	Subject          string         `json:"subject"`
 	Body             string         `json:"body"`
 	Status           TicketStatus   `json:"status"`
-	AssignedToUserID *string        `json:"assigned_to_user_id,omitempty"`
+	AssignedToUserID *string        `json:"assigned_to_user_id,omitempty"` // Assuming users.id is still UUID (string)
 	AssignedToUser   *User          `json:"assigned_to_user,omitempty"`
 	CreatedAt        time.Time      `json:"created_at"`
 	UpdatedAt        time.Time      `json:"updated_at"`
 	ClosedAt         *time.Time     `json:"closed_at,omitempty"`
 	ResolutionNotes  *string        `json:"resolution_notes,omitempty"`
-	Tags             []Tag          `json:"tags,omitempty"`
+	Tags             []Tag          `json:"tags,omitempty"` // Assuming tags.id is still UUID (string)
 	Updates          []TicketUpdate `json:"updates,omitempty"`
 	Attachments      []Attachment   `json:"attachments,omitempty"`
 }
@@ -94,14 +94,14 @@ type TicketCreate struct {
 	Urgency      TicketUrgency `json:"urgency" validate:"required,oneof=Low Medium High Critical"`
 	Subject      string        `json:"subject" validate:"required,min=5,max=200"`
 	Body         string        `json:"body" validate:"required"`
-	Tags         []string      `json:"tags,omitempty"`
+	Tags         []string      `json:"tags,omitempty"` // Tag names are passed initially
 }
 
 // TicketUpdate represents an update or comment on a ticket
 type TicketUpdate struct {
-	ID             string    `json:"id"`
-	TicketID       string    `json:"ticket_id"`
-	UserID         *string   `json:"user_id,omitempty"`
+	ID             string    `json:"id"` // Assuming ticket_updates.id remains UUID
+	TicketID       int32     `json:"ticket_id"` // <<< Changed from string to int32 (references tickets.id)
+	UserID         *string   `json:"user_id,omitempty"` // Assuming users.id is still UUID (string)
 	User           *User     `json:"user,omitempty"`
 	Comment        string    `json:"comment"`
 	IsInternalNote bool      `json:"is_internal_note"`
@@ -117,31 +117,31 @@ type TicketUpdateCreate struct {
 // TicketStatusUpdate represents data needed to update a ticket's status
 type TicketStatusUpdate struct {
 	Status           TicketStatus `json:"status" validate:"required,oneof=Unassigned Assigned In Progress Closed"`
-	AssignedToUserID *string      `json:"assigned_to_user_id,omitempty"`
+	AssignedToUserID *string      `json:"assigned_to_user_id,omitempty"` // Assuming users.id is still UUID (string)
 	ResolutionNotes  *string      `json:"resolution_notes,omitempty"`
 }
 
 // Attachment represents a file attached to a ticket
 type Attachment struct {
-	ID          string    `json:"id"`
-	TicketID    string    `json:"ticket_id"`
+	ID          int32     `json:"id"` // <<< Changed from string to int32
+	TicketID    int32     `json:"ticket_id"` // <<< Changed from string to int32 (references tickets.id)
 	Filename    string    `json:"filename"`
 	StoragePath string    `json:"storage_path"`
 	MimeType    string    `json:"mime_type"`
-	Size        int       `json:"size"`
+	Size        int       `json:"size"` // This was already int, which is correct for INTEGER
 	UploadedAt  time.Time `json:"uploaded_at"`
 	URL         string    `json:"url,omitempty"` // Used for returning a presigned URL
 }
 
 // Task represents a task assigned to IT staff
 type Task struct {
-	ID               string     `json:"id"`
+	ID               int32      `json:"id"` // <<< Changed from string to int32
 	Title            string     `json:"title"`
 	Description      *string    `json:"description,omitempty"`
 	Status           TaskStatus `json:"status"`
-	AssignedToUserID *string    `json:"assigned_to_user_id,omitempty"`
+	AssignedToUserID *string    `json:"assigned_to_user_id,omitempty"` // Assuming users.id is still UUID (string)
 	AssignedToUser   *User      `json:"assigned_to_user,omitempty"`
-	CreatedByUserID  string     `json:"created_by_user_id"`
+	CreatedByUserID  string     `json:"created_by_user_id"` // Assuming users.id is still UUID (string)
 	CreatedByUser    *User      `json:"created_by_user,omitempty"`
 	DueDate          *time.Time `json:"due_date,omitempty"`
 	IsRecurring      bool       `json:"is_recurring"`
@@ -149,6 +149,7 @@ type Task struct {
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at"`
 	CompletedAt      *time.Time `json:"completed_at,omitempty"`
+	// Removed Tags and Attachments from Task struct as they weren't in the original DB schema for tasks
 }
 
 // TaskStatus represents the status of a task
@@ -167,7 +168,7 @@ const (
 type TaskCreate struct {
 	Title          string     `json:"title" validate:"required"`
 	Description    *string    `json:"description,omitempty"`
-	AssignedToID   *string    `json:"assigned_to_user_id,omitempty"`
+	AssignedToID   *string    `json:"assigned_to_user_id,omitempty"` // Assuming users.id is still UUID (string)
 	DueDate        *time.Time `json:"due_date,omitempty"`
 	IsRecurring    bool       `json:"is_recurring"`
 	RecurrenceRule *string    `json:"recurrence_rule,omitempty"`
@@ -180,7 +181,7 @@ type TaskStatusUpdate struct {
 
 // FAQEntry represents a frequently asked question entry
 type FAQEntry struct {
-	ID        string    `json:"id"`
+	ID        string    `json:"id"` // Assuming faq_entries.id remains UUID
 	Question  string    `json:"question"`
 	Answer    string    `json:"answer"`
 	Category  string    `json:"category"`
@@ -197,7 +198,7 @@ type FAQCreate struct {
 
 // Tag represents a tag that can be attached to tickets
 type Tag struct {
-	ID        string    `json:"id"`
+	ID        string    `json:"id"` // Assuming tags.id remains UUID
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
 }
@@ -243,11 +244,11 @@ type PaginatedResponse struct {
 type TicketFilter struct {
 	Status       *TicketStatus  `json:"status,omitempty"`
 	Urgency      *TicketUrgency `json:"urgency,omitempty"`
-	AssignedTo   *string        `json:"assigned_to,omitempty"`
+	AssignedTo   *string        `json:"assigned_to,omitempty"` // Can be user ID (string UUID) or "me" / "unassigned"
 	EndUserEmail *string        `json:"end_user_email,omitempty"`
 	FromDate     *time.Time     `json:"from_date,omitempty"`
 	ToDate       *time.Time     `json:"to_date,omitempty"`
-	Tags         []string       `json:"tags,omitempty"`
+	Tags         []string       `json:"tags,omitempty"` // Tag names
 	Search       string         `json:"search,omitempty"`
 	Page         int            `json:"page,omitempty"`
 	Limit        int            `json:"limit,omitempty"`
@@ -256,8 +257,8 @@ type TicketFilter struct {
 // TaskFilter represents filters for task listing
 type TaskFilter struct {
 	Status      *TaskStatus `json:"status,omitempty"`
-	AssignedTo  *string     `json:"assigned_to,omitempty"`
-	CreatedBy   *string     `json:"created_by,omitempty"`
+	AssignedTo  *string     `json:"assigned_to,omitempty"` // Can be user ID (string UUID) or "me" / "unassigned"
+	CreatedBy   *string     `json:"created_by,omitempty"` // Can be user ID (string UUID) or "me"
 	DueFromDate *time.Time  `json:"due_from_date,omitempty"`
 	DueToDate   *time.Time  `json:"due_to_date,omitempty"`
 	IsRecurring *bool       `json:"is_recurring,omitempty"`
