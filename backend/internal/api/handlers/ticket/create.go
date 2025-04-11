@@ -3,17 +3,14 @@ package ticket
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
-
-	// Import log package
-	"log" // <<< Add this import
 
 	"github.com/henrythedeveloper/bus-it-ticket/internal/models"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 )
-
 
 // CreateTicket creates a new ticket
 func (h Handler) CreateTicket(c echo.Context) error {
@@ -75,7 +72,7 @@ func (h Handler) CreateTicket(c echo.Context) error {
 		// Use the provided tag names (assuming ticketCreate.Tags is []string)
 		for _, tagName := range ticketCreate.Tags {
 			// Get tag ID or create if it doesn't exist
-			var tagID string // Assuming tags.id is UUID, pgx can scan into string
+			var tagID string                                             // Assuming tags.id is UUID, pgx can scan into string
 			log.Printf("DEBUG: Checking for tag with name: %s", tagName) // Added log
 			err := tx.QueryRow(ctx,
 				`SELECT id FROM tags WHERE name = $1`, tagName).Scan(&tagID)
@@ -96,13 +93,12 @@ func (h Handler) CreateTicket(c echo.Context) error {
 					log.Printf("DEBUG: Created tag '%s' with ID: %s", tagName, tagID) // Added log
 				} else {
 					// *** Log the specific error before returning generic message ***
-					log.Printf("ERROR: Failed to check/scan tag '%s': %v", tagName, err) // <<< Added detailed log
+					log.Printf("ERROR: Failed to check/scan tag '%s': %v", tagName, err)            // <<< Added detailed log
 					return echo.NewHTTPError(http.StatusInternalServerError, "failed to check tag") // Keep generic error for client
 				}
 			} else {
 				log.Printf("DEBUG: Found tag '%s' with ID: %s", tagName, tagID) // Added log
 			}
-
 
 			// Add tag to ticket
 			log.Printf("DEBUG: Adding tag %s (ID: %s) to ticket %d", tagName, tagID, ticket.ID) // Added log
@@ -141,7 +137,6 @@ func (h Handler) CreateTicket(c echo.Context) error {
 			log.Printf("INFO: Sent ticket confirmation email for ticket %s to %s", ticketIDStr, ticket.EndUserEmail)
 		}
 	}()
-
 
 	return c.JSON(http.StatusCreated, models.APIResponse{
 		Success: true,
