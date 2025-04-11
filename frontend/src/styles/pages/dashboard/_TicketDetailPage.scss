@@ -122,32 +122,121 @@
         margin: 0;
         
         .attachment-item {
-          margin-bottom: $spacing-2;
-          
-          .attachment-link {
+          margin-bottom: $spacing-3;
+          padding: $spacing-2 0;
+          border-bottom: 1px solid $gray-100;
+
+          &:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+          }
+
+          // Container for Image + Filename + Download Icon
+          .image-attachment {
             display: flex;
             align-items: center;
-            text-decoration: none;
-            color: $primary-color;
+            gap: $spacing-3;
+
+            .image-preview {
+              flex-shrink: 0; // Prevent shrinking
+              width: 100px; // Example size
+              height: 75px; // Example size
+              background-color: $gray-100;
+              border-radius: $border-radius;
+              border: 1px solid $gray-200;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              overflow: hidden; // Clip image if it's too big
+
+              img {
+                display: block;
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: cover; // Or 'contain' based on preference
+              }
+
+              .image-placeholder {
+                text-align: center;
+                font-size: $font-size-xs;
+                color: $gray-500;
+
+                span {
+                  display: block;
+                  margin-bottom: $spacing-1;
+                }
+
+                .load-image-btn {
+                  padding: $spacing-1 $spacing-2;
+                  font-size: $font-size-xs;
+                  background-color: $gray-200;
+                  color: $gray-700;
+                  border: none;
+                  border-radius: $border-radius-sm;
+                  cursor: pointer;
+                  transition: background-color $transition-fast;
+
+                  &:hover {
+                    background-color: $gray-300;
+                  }
+                }
+              }
+            }
+            .attachment-filename {
+              flex-grow: 1; // Take remaining space
+              font-size: $font-size-sm;
+              color: $gray-800;
+              word-break: break-all; // Prevent long names overflowing badly
+            }
+    
+            .download-icon-btn {
+              flex-shrink: 0;
+              background: none;
+              border: none;
+              font-size: $font-size-lg; // Adjust size of icon
+              color: $gray-500;
+              cursor: pointer;
+              padding: $spacing-1;
+              transition: color $transition-fast;
+    
+              &:hover {
+                color: $primary-color;
+              }
+            }
+    
+          } 
+
+          .attachment-link-button {
+            display: flex;
+            align-items: center;
+            width: 100%; // Make it full width like list item
             padding: $spacing-2;
+            border: 1px solid $gray-200;
+            background-color: $white;
             border-radius: $border-radius;
-            transition: background-color $transition-fast;
-            
+            text-align: left;
+            cursor: pointer;
+            transition: background-color $transition-fast, border-color $transition-fast;
+            gap: $spacing-2;
+    
             &:hover {
               background-color: $gray-50;
+              border-color: $gray-300;
             }
-            
+    
             .attachment-icon {
-              margin-right: $spacing-2;
+              color: $gray-500;
             }
-            
             .attachment-name {
               flex-grow: 1;
+              color: $primary-color;
+              font-weight: $font-weight-medium;
+              font-size: $font-size-sm;
             }
-            
             .attachment-size {
               color: $gray-600;
-              font-size: $font-size-sm;
+              font-size: $font-size-xs;
+              white-space: nowrap;
             }
           }
         }

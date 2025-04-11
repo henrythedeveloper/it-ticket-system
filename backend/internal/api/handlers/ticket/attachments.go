@@ -3,6 +3,8 @@ package ticket
 import (
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"time"
 
@@ -75,15 +77,6 @@ func (h *Handler) UploadAttachment(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to store attachment metadata")
 	}
 
-	// Generate signed URL for attachment
-	url, err := h.fileService.GetFileURL(ctx, attachment.StoragePath)
-	if err != nil {
-		// Don't fail the whole request for a URL generation error
-		fmt.Printf("Failed to generate URL for attachment %s: %v\n", attachment.ID, err)
-	} else {
-		attachment.URL = url
-	}
-
 	return c.JSON(http.StatusCreated, models.APIResponse{
 		Success: true,
 		Message: "File uploaded successfully",
@@ -123,15 +116,57 @@ func (h *Handler) GetAttachment(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get attachment metadata")
 	}
 
-	// Generate signed URL for attachment
-	url, err := h.fileService.GetFileURL(ctx, attachment.StoragePath)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate download URL")
-	}
-	attachment.URL = url
-
 	return c.JSON(http.StatusOK, models.APIResponse{
 		Success: true,
 		Data:    attachment,
 	})
+}
+
+// DownloadAttachment streams an attachment file back to the client
+func (h *Handler) DownloadAttachment(c echo.Context) error {
+	attachmentID := c.Param("attachmentId") // Read path parameter
+	if attachmentID == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "missing attachment ID")
+	}
+
+	ctx := c.Request().Context()
+	// User authentication is handled by the middleware applied to the group
+
+	// 1. Get attachment metadata from DB
+	var att models.Attachment
+	err := h.db.Pool.QueryRow(ctx, `
+        SELECT storage_path, filename, mime_type, size
+        FROM attachments
+        WHERE id = $1
+    `, attachmentID).Scan(&att.StoragePath, &att.Filename, &att.MimeType, &att.Size)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return echo.NewHTTPError(http.StatusNotFound, "attachment not found")
+		}
+		log.Printf("ERROR: Failed to get attachment metadata %s: %v", attachmentID, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to retrieve attachment info")
+	}
+
+	// 2. Get the object stream from S3/MinIO using the fileService
+	//    (Requires adding GetObject method to file.Service - see next step)
+	fileReader, err := h.fileService.GetObject(ctx, att.StoragePath)
+	if err != nil {
+		log.Printf("ERROR: Failed to get object %s from storage: %v", att.StoragePath, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to retrieve file from storage")
+	}
+	// Ensure the reader (which should be an io.ReadCloser) is closed
+	if closer, ok := fileReader.(io.Closer); ok {
+		defer closer.Close()
+	}
+
+	// 3. Stream the file back to the client
+	c.Response().Header().Set(echo.HeaderContentType, att.MimeType)
+	// Optional: Set content length if available (helps browser show progress)
+	// c.Response().Header().Set(echo.HeaderContentLength, fmt.Sprintf("%d", att.Size))
+	// Set filename for download prompt
+	c.Response().Header().Set(echo.HeaderContentDisposition, fmt.Sprintf("attachment; filename=\"%s\"", att.Filename))
+
+	// Use Stream to copy data - efficient for large files
+	return c.Stream(http.StatusOK, att.MimeType, fileReader)
+
 }

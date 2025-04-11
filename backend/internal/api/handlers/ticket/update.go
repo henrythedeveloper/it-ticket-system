@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+	"log"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
@@ -80,15 +81,23 @@ func (h *Handler) UpdateTicket(c echo.Context) error {
 		args = append(args, time.Now(), ticketUpdate.ResolutionNotes)
 	}
 
-	query += ` WHERE id =  + fmt.Sprintf("%d", len(args)+1)`
+	query += fmt.Sprintf(" WHERE id = $%d", len(args)+1)
 	args = append(args, ticketID)
 
 	query += ` RETURNING id`
 	
+	 // --- Add Logging Here ---
+	 log.Printf("DEBUG: Attempting SQL Update Query: %s", query)
+	 log.Printf("DEBUG: With Arguments: %v", args)
+	 // --- End Logging ---
+
 	// Execute update
 	var updatedTicketID string
 	err = tx.QueryRow(ctx, query, args...).Scan(&updatedTicketID)
 	if err != nil {
+		// --- Add Error Logging Here ---
+        log.Printf("ERROR: SQL Update Failed: %v", err) // Log the actual DB error
+        // --- End Error Logging ---
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to update ticket")
 	}
 	

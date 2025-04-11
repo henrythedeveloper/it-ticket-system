@@ -17,6 +17,7 @@ interface AuthResponse {
     access_token: string;
     token_type: string;
     expires_at: string;
+    user: User;
   };
 }
 
@@ -32,27 +33,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadStoredData = async () => {
+    const loadStoredData = () => {
       const storedToken = localStorage.getItem('@Helpdesk:token');
-      
       if (storedToken) {
         api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-        
-        try {
-          const response = await api.get<UserResponse>('/me');
-          
-          if (response.data.success) {
-            setUser(response.data.data);
-          } else {
-            localStorage.removeItem('@Helpdesk:token');
-            api.defaults.headers.common['Authorization'] = '';
-          }
-        } catch (error) {
-          localStorage.removeItem('@Helpdesk:token');
-          api.defaults.headers.common['Authorization'] = '';
-        }
       }
-      
       setLoading(false);
     };
     
@@ -60,18 +45,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
   
   const login = async (email: string, password: string) => {
-    const response = await api.post<AuthResponse>('/auth/login', { email, password });
+    const response = await api.post<AuthResponse & { user: User }>('/auth/login', { email, password });
     
     if (response.data.success) {
-      const { access_token } = response.data.data;
+      const { access_token, user } = response.data.data;
       
       localStorage.setItem('@Helpdesk:token', access_token);
-      
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
       
-      const userResponse = await api.get<UserResponse>('/me');
-      
-      setUser(userResponse.data.data);
+      setUser(user);
     } else {
       throw new Error('Invalid credentials');
     }

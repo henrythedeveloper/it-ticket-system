@@ -26,7 +26,7 @@ FROM nginx:alpine as production
 COPY --from=build /app/build /usr/share/nginx/html
 
 # Add custom nginx config if needed
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.default.conf /etc/nginx/conf.d/default.conf 
 
 # Expose port
 EXPOSE 80

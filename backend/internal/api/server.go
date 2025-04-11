@@ -25,6 +25,10 @@ type Server struct {
 	authService auth.Service
 }
 
+func (s *Server) EchoInstance() *echo.Echo {
+    return s.echo
+}
+
 // NewServer creates a new API server
 func NewServer(db *db.DB, emailService email.Service, fileService file.Service, cfg *config.Config) *Server {
 	e := echo.New()
@@ -62,25 +66,31 @@ func NewServer(db *db.DB, emailService email.Service, fileService file.Service, 
 	// Protected routes (require authentication)
 	authGroup := apiGroup.Group("", jwtMiddleware)
 
+	// --- Start Changes ---
+
+	// Ticket routes
+	ticketGroup := authGroup.Group("/tickets")
+	// ticket.RegisterRoutes(ticketGroup, ticketHandler) // <-- COMMENT OUT THIS LINE
+
+	// Define ticket routes directly here for testing:
+	ticketGroup.GET("/counts", ticketHandler.GetTicketCounts) // Add this
+	ticketGroup.GET("", ticketHandler.GetAllTickets)         // Add this
+	ticketGroup.GET("/:id", ticketHandler.GetTicketByID)       // Add this
+	ticketGroup.PUT("/:id", ticketHandler.UpdateTicket)       // Add this
+	ticketGroup.POST("/:id/comments", ticketHandler.AddTicketComment) // Add this
+	ticketGroup.POST("/:id/attachments", ticketHandler.UploadAttachment) // Add this
+	ticketGroup.GET("/:id/attachments/:attachmentId", ticketHandler.GetAttachment) // Add this
+	ticketGroup.GET("/search", ticketHandler.SearchTickets)     // Add this
+
+	// --- End Changes ---
+
 	// User routes
 	userGroup := authGroup.Group("/users")
 	user.RegisterRoutes(userGroup, userHandler, adminMiddleware)
 
-	// Ticket routes
-	ticketGroup := authGroup.Group("/tickets")
-	ticket.RegisterRoutes(ticketGroup, ticketHandler)
-
 	// Task routes
 	taskGroup := authGroup.Group("/tasks")
 	task.RegisterRoutes(taskGroup, taskHandler)
-
-	// Faq Route
-	faqGroup := authGroup.Group("/faq")
-	faq.RegisterRoutes(faqGroup, faqHandler, adminMiddleware)
-
-	// Tag Route
-	tagGroup := authGroup.Group("/tag")
-	tag.RegisterRoutes(tagGroup, tagHandler, adminMiddleware)
 
 	return &Server{
 		echo:        e,

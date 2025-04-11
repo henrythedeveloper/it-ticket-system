@@ -322,15 +322,6 @@ func (h *Handler) GetTicketByID(c echo.Context) error {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to scan attachment")
 		}
 
-		// Generate signed URL for attachment
-		url, err := h.fileService.GetFileURL(ctx, attachment.StoragePath)
-		if err != nil {
-			// Don't fail the whole request for a URL generation error
-			fmt.Printf("Failed to generate URL for attachment %s: %v\n", attachment.ID, err)
-		} else {
-			attachment.URL = url
-		}
-
 		attachments = append(attachments, attachment)
 	}
 	ticket.Attachments = attachments

@@ -30,6 +30,7 @@ const TicketDetailPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [updateType, setUpdateType] = useState<'comment' | 'status' | null>(null);
+  const [imageUrls, setImageUrls] = useState<{ [key: string]: string }>({});
   
   const isAdmin = user?.role === 'Admin';
   const isAssignedToMe = ticket?.assigned_to_user_id === user?.id;
@@ -67,6 +68,14 @@ const TicketDetailPage: React.FC = () => {
     }
   }, [id]);
   
+  // Add cleanup for object URLs when component unmounts
+  useEffect(() => {
+    // This runs when the component unmounts
+    return () => {
+        Object.values(imageUrls).forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [imageUrls]);
+
   const handleAddComment = async (values: TicketUpdateCreate, { resetForm }: { resetForm: () => void }) => {
     try {
       const response = await api.post<APIResponse<TicketUpdate>>(`/tickets/${id}/comments`, values);
@@ -145,6 +154,41 @@ const TicketDetailPage: React.FC = () => {
       setError(err.response?.data?.error || 'Failed to upload file');
     }
   };
+
+  const handleLoadOrDownloadAttachment = async (attachment: Attachment) => {
+    if (!ticket?.id) return;
+    setError(null);
+
+    try {
+        const response = await api.get(
+            `/api/tickets/<span class="math-inline">\{ticket\.id\}/attachments/download/</span>{attachment.id}`,
+            {
+                responseType: 'blob', // Fetch as Blob
+            }
+        );
+
+        const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: attachment.mime_type }));
+
+        if (attachment.mime_type.startsWith('image/')) {
+            // It's an image, store the blob URL in state for display
+            setImageUrls(prev => ({ ...prev, [attachment.id]: blobUrl }));
+        } else {
+            // Not an image, trigger download as before
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.setAttribute('download', attachment.filename);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+            // Revoke immediately for downloads, but not for images until unmount/replacement
+            window.URL.revokeObjectURL(blobUrl);
+        }
+
+    } catch (error: any) {
+        console.error("Error loading/downloading file:", error);
+        setError(error.response?.data?.message || 'Failed to load/download file.');
+    }
+};
   
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -235,18 +279,50 @@ const TicketDetailPage: React.FC = () => {
                 <ul className="attachment-list">
                   {ticket.attachments.map(attachment => (
                     <li key={attachment.id} className="attachment-item">
-                      <a 
-                        href={attachment.url || `#`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="attachment-link"
-                      >
-                        <span className="attachment-icon">📎</span>
-                        <span className="attachment-name">{attachment.filename}</span>
-                        <span className="attachment-size">
-                          {(attachment.size / 1024).toFixed(1)} KB
-                        </span>
-                      </a>
+                      {attachment.mime_type.startsWith('image/') ? (
+                        // Display Image
+                        <div className="image-attachment">
+                            <div className="image-preview">
+                                {imageUrls[attachment.id] ? (
+                                    <img src={imageUrls[attachment.id]} alt={attachment.filename} />
+                                ) : (
+                                    <div className="image-placeholder">
+                                        <span>Preview N/A</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleLoadOrDownloadAttachment(attachment)}
+                                            className="load-image-btn"
+                                        >
+                                            Load Image
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                            <span className="attachment-filename">{attachment.filename}</span>
+                            {/* Optionally add a separate download button even for images */}
+                            <button
+                                 type="button"
+                                 onClick={() => handleLoadOrDownloadAttachment(attachment)}
+                                 title="Download"
+                                 className="download-icon-btn" // Style as needed
+                            >
+                                &#x2913; {/* Down arrow symbol */}
+                            </button>
+                        </div>
+                    ) : (
+                        // Display Download Link/Button for non-images
+                        <button
+                            type="button"
+                            onClick={() => handleLoadOrDownloadAttachment(attachment)}
+                            className="attachment-link-button" // Style as needed
+                        >
+                          <span className="attachment-icon">📎</span>
+                          <span className="attachment-name">{attachment.filename}</span>
+                          <span className="attachment-size">
+                            {(attachment.size / 1024).toFixed(1)} KB
+                          </span>
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>

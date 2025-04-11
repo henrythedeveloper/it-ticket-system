@@ -52,6 +52,15 @@ func main() {
 	// Setup API server
 	server := api.NewServer(database, emailService, fileService, cfg)
 
+	// --- Add this block to list routes ---
+    log.Println("Registered Routes:")
+    routes := server.EchoInstance().Routes() // Use the new method
+    for _, r := range routes {
+        log.Printf("  METHOD=%s, PATH=%s, NAME=%s\n", r.Method, r.Path, r.Name)
+    }
+    log.Println("---------------------")
+    // --- End block ---
+
 	// Start the server in a goroutine
 	go func() {
 		address := fmt.Sprintf(":%d", cfg.Server.Port)

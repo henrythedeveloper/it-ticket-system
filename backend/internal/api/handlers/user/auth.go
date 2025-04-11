@@ -1,10 +1,11 @@
 package user
 
 import (
-	"net/http"
+    "net/http"
+    "time"
 
-	"github.com/labstack/echo/v4"
-	"github.com/henrythedeveloper/bus-it-ticket/internal/models"
+    "github.com/labstack/echo/v4"
+    "github.com/henrythedeveloper/bus-it-ticket/internal/models"
 )
 
 // Login handles user login
@@ -36,8 +37,23 @@ func (h *Handler) Login(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate token")
 	}
 
+	type LoginResponse struct {
+		AccessToken string     `json:"access_token"`
+		TokenType   string     `json:"token_type"`
+		ExpiresAt   string     `json:"expires_at"`
+		User        models.User `json:"user"`
+	}
+	
+	// Combine token and user data
+	response := LoginResponse{
+	    AccessToken: token.AccessToken,
+	    TokenType:   token.TokenType,
+	    ExpiresAt:   token.ExpiresAt.Format(time.RFC3339),
+	    User:        user,
+	}
+	
 	return c.JSON(http.StatusOK, models.APIResponse{
 		Success: true,
-		Data:    token,
+		Data:    response,
 	})
 }

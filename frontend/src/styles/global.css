@@ -1943,29 +1943,109 @@
   margin: 0;
 }
 .ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f3f4f6;
 }
-.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .attachment-link {
+.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .image-attachment {
   display: flex;
   align-items: center;
-  text-decoration: none;
-  color: #2563eb;
-  padding: 0.5rem;
+  gap: 0.75rem;
+}
+.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .image-attachment .image-preview {
+  flex-shrink: 0;
+  width: 100px;
+  height: 75px;
+  background-color: #f3f4f6;
   border-radius: 0.25rem;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .image-attachment .image-preview img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  -o-object-fit: cover;
+     object-fit: cover;
+}
+.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .image-attachment .image-preview .image-placeholder {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .image-attachment .image-preview .image-placeholder span {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .image-attachment .image-preview .image-placeholder .load-image-btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  background-color: #e5e7eb;
+  color: #374151;
+  border: none;
+  border-radius: 0.125rem;
+  cursor: pointer;
   transition: background-color 150ms ease;
 }
-.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .attachment-link:hover {
-  background-color: #f9fafb;
+.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .image-attachment .image-preview .image-placeholder .load-image-btn:hover {
+  background-color: #d1d5db;
 }
-.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .attachment-link .attachment-icon {
-  margin-right: 0.5rem;
-}
-.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .attachment-link .attachment-name {
+.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .image-attachment .attachment-filename {
   flex-grow: 1;
-}
-.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .attachment-link .attachment-size {
-  color: #4b5563;
   font-size: 0.875rem;
+  color: #1f2937;
+  word-break: break-all;
+}
+.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .image-attachment .download-icon-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 1.125rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.25rem;
+  transition: color 150ms ease;
+}
+.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .image-attachment .download-icon-btn:hover {
+  color: #2563eb;
+}
+.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .attachment-link-button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  border-radius: 0.25rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+  gap: 0.5rem;
+}
+.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .attachment-link-button:hover {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+}
+.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .attachment-link-button .attachment-icon {
+  color: #6b7280;
+}
+.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .attachment-link-button .attachment-name {
+  flex-grow: 1;
+  color: #2563eb;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+.ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .attachment-link-button .attachment-size {
+  color: #4b5563;
+  font-size: 0.75rem;
+  white-space: nowrap;
 }
 .ticket-detail-page .ticket-card .resolution-notes {
   margin-top: 1.5rem;

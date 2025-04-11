@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/url"
+	"log"
 	"path/filepath"
 	"time"
 
@@ -26,7 +26,7 @@ type StorageConfig struct {
 // Service defines the file storage service interface
 type Service interface {
 	UploadFile(ctx context.Context, ticketID, filename string, fileContent io.Reader, contentType string) (string, error)
-	GetFileURL(ctx context.Context, filePath string) (string, error)
+	GetObject(ctx context.Context, filePath string) (io.ReadCloser, error)
 }
 
 // S3Service is an implementation of the file Service using S3/MinIO
@@ -88,22 +88,15 @@ func (s *S3Service) UploadFile(ctx context.Context, ticketID, filename string, f
 	return storageKey, nil
 }
 
-// GetFileURL generates a pre-signed URL to access a file
-func (s *S3Service) GetFileURL(ctx context.Context, filePath string) (string, error) {
-	// Create a presigned URL with an expiration time
-	presignClient := s3.NewPresignClient(s.client)
-	presignedURL, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
+func (s *S3Service) GetObject(ctx context.Context, filePath string) (io.ReadCloser, error) {
+	output, err := s.client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.bucketName),
 		Key:    aws.String(filePath),
-	}, func(o *s3.PresignOptions) {
-		o.Expires = 15 * time.Minute
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to generate presigned URL: %w", err)
+		log.Printf("ERROR: S3 GetObject failed for key %s: %v", filePath, err)
+		return nil, fmt.Errorf("S3 GetObject failed: %w", err)
 	}
-
-	// URL encode the path for safety
-	escapedURL := url.QueryEscape(presignedURL.URL)
-
-	return escapedURL, nil
+	// The Body field is an io.ReadCloser
+	return output.Body, nil
 }
