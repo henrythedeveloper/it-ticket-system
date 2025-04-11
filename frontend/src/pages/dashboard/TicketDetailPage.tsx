@@ -230,7 +230,7 @@ const TicketDetailPage: React.FC = () => {
           <button onClick={() => navigate('/tickets')} className="back-button">
             ← Back to Tickets
           </button>
-          <h1>Ticket #{ticket.id.substring(0, 8)}</h1>
+          <h1>Ticket #{ticket.id}</h1>
         </div>
         <div className="header-right">
           {canUpdateTicket && ticket.status !== 'Closed' && (

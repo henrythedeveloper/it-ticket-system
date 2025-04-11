@@ -203,7 +203,7 @@ const DashboardPage: React.FC = () => {
                 <tbody>
                   {recentTickets.map(ticket => (
                     <tr key={ticket.id}>
-                      <td><Link to={`/tickets/${ticket.id}`}>#{ticket.id.substring(0, 8)}</Link></td>
+                      <td><Link to={`/tickets/${ticket.id}`}>#{ticket.id}</Link></td>
                       <td><Link to={`/tickets/${ticket.id}`}>{ticket.subject}</Link></td>
                       <td>{formatDate(ticket.createdAt)}</td>
                       <td><span className={`status-badge ${getStatusClass(ticket.status)}`}>{ticket.status}</span></td>
@@ -238,7 +238,7 @@ const DashboardPage: React.FC = () => {
                 <tbody>
                   {myTickets.map(ticket => (
                     <tr key={ticket.id}>
-                      <td><Link to={`/tickets/${ticket.id}`}>#{ticket.id.substring(0, 8)}</Link></td>
+                      <td><Link to={`/tickets/${ticket.id}`}>#{ticket.id}</Link></td>
                       <td><Link to={`/tickets/${ticket.id}`}>{ticket.subject}</Link></td>
                       <td>{formatDate(ticket.createdAt)}</td>
                       <td><span className={`status-badge ${getStatusClass(ticket.status)}`}>{ticket.status}</span></td>

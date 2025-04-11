@@ -280,7 +280,7 @@ const TicketsPage: React.FC = () => {
             <tbody>
               {tickets.map(ticket => (
                 <tr key={ticket.id} onClick={() => navigate(`/tickets/${ticket.id}`)}>
-                  <td>#{ticket.id.substring(0, 8)}</td>
+                  <td>#{ticket.id}</td>
                   <td className="subject-cell">
                     <Link to={`/tickets/${ticket.id}`}>{ticket.subject}</Link>
                   </td>
