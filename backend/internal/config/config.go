@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"log/slog" // Import slog for logging config loading
+	"os"       // Import os for slog handler
 	"time"
 
 	"github.com/spf13/viper"
@@ -18,7 +20,8 @@ type Config struct {
 
 // ServerConfig holds server-specific configurations
 type ServerConfig struct {
-	Port int
+	Port          int
+	PortalBaseURL string
 }
 
 // DatabaseConfig holds database connection parameters
@@ -56,16 +59,24 @@ type StorageConfig struct {
 
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
+	// Configure slog for logging during loading
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
+	logger.Info("Loading configuration...")
+
+	// Set defaults
 	viper.SetDefault("PORT", 8080)
 	viper.SetDefault("JWT_EXPIRES", "24h")
 	viper.SetDefault("S3_DISABLE_SSL", false)
+	viper.SetDefault("DB_SSL_MODE", "disable") // Example default if often used
 
-	viper.AutomaticEnv()
+	viper.AutomaticEnv() // Read environment variables
 
-	// Read environment variables
+	// Read environment variables into the Config struct
 	config := &Config{
 		Server: ServerConfig{
-			Port: viper.GetInt("PORT"),
+			Port:          viper.GetInt("PORT"),
+			PortalBaseURL: viper.GetString("PORTAL_BASE_URL"),
 		},
 		Database: DatabaseConfig{
 			Host:     viper.GetString("DB_HOST"),
@@ -94,14 +105,64 @@ func Load() (*Config, error) {
 		},
 	}
 
-	// Validate required configuration
-	if config.Database.Host == "" || config.Database.User == "" || config.Database.Password == "" || config.Database.Name == "" {
-		return nil, fmt.Errorf("missing required database configuration")
+	// --- Start Validation ---
+	var missingConfig []string
+
+	if config.Server.PortalBaseURL == "" { 
+		missingConfig = append(missingConfig, "PORTAL_BASE_URL")
+	}
+	if config.Database.Host == "" {
+		missingConfig = append(missingConfig, "DB_HOST")
+	}
+	if config.Database.User == "" {
+		missingConfig = append(missingConfig, "DB_USER")
+	}
+	if config.Database.Password == "" {
+		missingConfig = append(missingConfig, "DB_PASSWORD")
+	}
+	if config.Database.Name == "" {
+		missingConfig = append(missingConfig, "DB_NAME")
+	}
+	if config.Auth.JWTSecret == "" {
+		missingConfig = append(missingConfig, "JWT_SECRET")
+	}
+	if config.Email.Provider != "" { // Only validate email creds if provider is set
+		if config.Email.APIKey == "" {
+			missingConfig = append(missingConfig, "EMAIL_API_KEY")
+		}
+		if config.Email.From == "" {
+			missingConfig = append(missingConfig, "EMAIL_FROM")
+		}
+	}
+	if config.Storage.Endpoint != "" { // Only validate storage creds if endpoint is set
+		if config.Storage.Bucket == "" {
+			missingConfig = append(missingConfig, "S3_BUCKET")
+		}
+		if config.Storage.AccessKey == "" {
+			missingConfig = append(missingConfig, "S3_ACCESS_KEY")
+		}
+		if config.Storage.SecretKey == "" {
+			missingConfig = append(missingConfig, "S3_SECRET_KEY")
+		}
 	}
 
-	if config.Auth.JWTSecret == "" {
-		return nil, fmt.Errorf("missing required JWT secret")
+	if len(missingConfig) > 0 {
+		errMsg := fmt.Sprintf("missing required configuration variables: %v", missingConfig)
+		logger.Error(errMsg)
+		return nil, errors.New(errMsg)
 	}
+	// --- End Validation ---
+
+	logger.Info("Configuration loaded successfully.")
+	// Log loaded values cautiously - avoid logging secrets!
+	logger.Debug("Loaded configuration details",
+		slog.Int("port", config.Server.Port),
+		slog.String("portalBaseURL", config.Server.PortalBaseURL),
+		slog.String("dbHost", config.Database.Host),
+		slog.String("dbName", config.Database.Name),
+		slog.String("emailProvider", config.Email.Provider),
+		slog.String("s3Endpoint", config.Storage.Endpoint),
+	)
 
 	return config, nil
 }

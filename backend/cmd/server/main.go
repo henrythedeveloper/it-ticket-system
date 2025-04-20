@@ -38,8 +38,9 @@ func main() {
 	}
 
 	// Initialize email service
-	emailService, err := email.NewService(cfg.Email)
+	emailService, err := email.NewService(cfg.Email, cfg.Server.PortalBaseURL)
 	if err != nil {
+		// Reverted to log.Fatalf for consistency with other fatal errors in main
 		log.Fatalf("Failed to initialize email service: %v", err)
 	}
 

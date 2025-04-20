@@ -11,12 +11,12 @@ import (
 	"github.com/resend/resend-go/v2"
 )
 
-// Embed template files
+//go:embed templates/*.html 
 var templateFS embed.FS
 
 var (
 	templates *template.Template
-	// Define a placeholder URL
+	// Define a placeholder URL 
 	// Example: portalURL = cfg.Server.BaseURL + "/tasks"
 	portalURL = "#" // Replace with actual URL or load from config
 )
@@ -44,12 +44,11 @@ type Service interface {
 type ResendService struct {
 	client *resend.Client
 	from   string
-	// Add portalURL here if loaded from config
-	// portalURL string
+	portalURL string
 }
 
 // NewService creates a new email service
-func NewService(cfg config.EmailConfig) (Service, error) {
+func NewService(cfg config.EmailConfig,  portalURL string) (Service, error) {
 	switch cfg.Provider {
 	case "resend":
 		if cfg.APIKey == "" {
@@ -58,11 +57,10 @@ func NewService(cfg config.EmailConfig) (Service, error) {
 		if cfg.From == "" {
 			return nil, errors.New("sender email address is required")
 		}
-		// You could potentially load the portalURL from cfg here if added
 		return &ResendService{
 			client: resend.NewClient(cfg.APIKey),
 			from:   cfg.From,
-			// portalURL: cfg.PortalURL, // Example if loaded from config
+			portalURL: portalURL,
 		}, nil
 	default:
 		// Use slog for errors where applicable
