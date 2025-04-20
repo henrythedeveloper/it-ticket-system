@@ -1,0 +1,31 @@
+# Ignore git directory
+.git/
+.gitignore
+
+# Ignore local environment files (should be passed during run, not build)
+.env
+.env.*
+
+# Ignore compiled binary if built locally (it's built inside the container)
+helpdesk-api
+*.exe
+*.out
+
+# Ignore IDE/Editor specific files
+.vscode/
+.idea/
+*.sublime-workspace
+*.suo
+
+# Ignore OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Ignore frontend files (shouldn't be needed in backend context)
+# If your build context was the root, you'd need /frontend here.
+# Since the context is ./backend, these are less critical but good practice.
+/frontend/
+
+# Add any other backend-specific files/dirs to ignore if needed
+# e.g., local test reports, temporary files, etc.

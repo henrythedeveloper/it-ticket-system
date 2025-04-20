@@ -1,0 +1,49 @@
+# Ignore git directory
+.git/
+.gitignore
+
+# CRITICAL: Ignore local node_modules. Let npm ci handle it inside container.
+node_modules/
+
+# Ignore local build output (it's built inside the container)
+build/
+
+# Ignore local environment files
+.env
+.env.*
+*.env.local
+
+# Ignore logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Ignore IDE/Editor specific files
+.vscode/
+.idea/
+*.sublime-workspace
+*.suo
+
+# Ignore OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Ignore test coverage reports
+coverage/
+.jest-cache
+
+# Ignore backend files (shouldn't be needed in frontend context)
+# If your build context was the root, you'd need /backend here.
+# Since the context is ./frontend, these are less critical but good practice.
+/backend/
+
+# Ignore specific files from user's .gitignore if not needed for build
+repomix-output.xml
+repomix-output.md
+yup-readme.md
+todo.md
+plan-and-architecture.md
+project-structure.md
+icons8-tech-ios-17-filled-favicons.zip
