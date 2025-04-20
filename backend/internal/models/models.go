@@ -42,6 +42,7 @@ type UserLogin struct {
 // Ticket represents a support ticket
 type Ticket struct {
 	ID               string         `json:"id"`
+	TicketNumber     int32  		`json:"ticket_number"` // User-facing number
 	EndUserEmail     string         `json:"end_user_email"`
 	IssueType        string         `json:"issue_type"`
 	Urgency          TicketUrgency  `json:"urgency"`
@@ -136,6 +137,7 @@ type Attachment struct {
 // Task represents a task assigned to IT staff
 type Task struct {
 	ID               string     `json:"id"`
+	TaskNumber       int32  	`json:"task_number"`
 	Title            string     `json:"title"`
 	Description      *string    `json:"description,omitempty"`
 	Status           TaskStatus `json:"status"`

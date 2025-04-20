@@ -1,11 +1,10 @@
--- Ensure uuid-ossp extension is created (usually done in 000001)
--- CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; 
 
 CREATE TYPE ticket_status AS ENUM ('Unassigned', 'Assigned', 'In Progress', 'Closed');
 CREATE TYPE ticket_urgency AS ENUM ('Low', 'Medium', 'High', 'Critical');
 
 CREATE TABLE tickets (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    end_user_email VARCHAR(255) NOT NULL,
     issue_type VARCHAR(100) NOT NULL,
     urgency ticket_urgency NOT NULL DEFAULT 'Medium',
     subject VARCHAR(200) NOT NULL,

@@ -171,7 +171,7 @@ const TaskDetailPage: React.FC = () => {
           <button onClick={() => navigate('/tasks')} className="back-button">
             ← Back to Tasks
           </button>
-          <h1>{isNewTask ? 'Create New Task' : `Task: ${task?.title}`}</h1>
+          <h1>{isNewTask ? 'Create New Task' : `Task #${task?.task_number}: ${task?.title}`}</h1>
         </div>
         {!isNewTask && !editMode && canEdit && (
           <div className="header-right">
@@ -330,6 +330,15 @@ const TaskDetailPage: React.FC = () => {
               </div>
               
               <div className="meta-section">
+                <div className="meta-item">
+                  <span className="meta-label">Task #:</span>
+                  {/* Display task_number */}
+                  <span className="meta-value">{task?.task_number}</span> 
+                </div>
+                <div className="meta-item">
+                    <span className="meta-label">Internal ID:</span>
+                    <span className="meta-value" style={{ fontSize: '0.8em', wordBreak: 'break-all' }}>({task?.id})</span>
+                </div>
                 <div className="meta-item">
                   <span className="meta-label">Assigned To:</span>
                   <span className="meta-value">

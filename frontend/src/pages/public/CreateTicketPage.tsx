@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import api from '../../services/api';
-import { TicketCreate, Tag, APIResponse } from '../../types/models';
+import { TicketCreate, Tag, APIResponse, Ticket } from '../../types/models';
 
 const TicketSchema = Yup.object().shape({
   end_user_email: Yup.string()
@@ -26,7 +26,7 @@ const CreateTicketPage: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [ticketId, setTicketId] = useState<string | null>(null);
+  const [displayTicketId, setDisplayTicketId] = useState<number | null>(null);
 
   useEffect(() => {
     // Fetch available tags
@@ -74,10 +74,10 @@ const CreateTicketPage: React.FC = () => {
         tags: selectedTags.length > 0 ? selectedTags : undefined
       };
       
-      const response = await api.post<APIResponse<{ id: string }>>('/tickets', ticketData);
+      const response = await api.post<APIResponse<Ticket>>('/tickets', ticketData); 
       
       if (response.data.success && response.data.data) {
-        setTicketId(response.data.data.id);
+        setDisplayTicketId(response.data.data.ticket_number); 
         setSuccess(true);
         resetForm();
         setSelectedTags([]);
@@ -103,13 +103,13 @@ const CreateTicketPage: React.FC = () => {
       {success && (
         <div className="success-message">
           <h2>Ticket Submitted Successfully!</h2>
-          <p>Your support ticket (ID: {ticketId}) has been created. You will receive a confirmation email shortly.</p>
+          <p>Your support ticket (ID: #{displayTicketId}) has been created. You will receive a confirmation email shortly.</p>
           <p>We will respond to your request as soon as possible.</p>
           <button 
             className="new-ticket-btn"
             onClick={() => {
               setSuccess(false);
-              setTicketId(null);
+              setDisplayTicketId(null);
             }}
           >
             Submit Another Ticket

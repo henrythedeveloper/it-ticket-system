@@ -33,7 +33,7 @@ func (h *Handler) CreateTask(c echo.Context) error {
 			due_date, is_recurring, recurrence_rule, created_at, updated_at
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		RETURNING id, title, description, status, assigned_to_user_id, created_by_user_id,
+		RETURNING id, task_number, title, description, status, assigned_to_user_id, created_by_user_id,
 			due_date, is_recurring, recurrence_rule, created_at, updated_at, completed_at
 	`,
 		taskCreate.Title,
@@ -48,6 +48,7 @@ func (h *Handler) CreateTask(c echo.Context) error {
 		time.Now(),
 	).Scan(
 		&task.ID,
+		&task.TaskNumber,
 		&task.Title,
 		&task.Description,
 		&task.Status,

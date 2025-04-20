@@ -28,7 +28,7 @@ func (h *Handler) GetAllTickets(c echo.Context) error {
 
 	// Build query based on filters
 	query := `
-		SELECT t.id, t.end_user_email, t.issue_type, t.urgency, t.subject, t.body, 
+		SELECT t.id, t.ticket_number, t.end_user_email, t.issue_type, t.urgency, t.subject, t.body, 
 			t.status, t.assigned_to_user_id, t.created_at, t.updated_at, t.closed_at, 
 			t.resolution_notes, u.id, u.name, u.email, u.role, u.created_at, u.updated_at
 		FROM tickets t
@@ -93,6 +93,7 @@ func (h *Handler) GetAllTickets(c echo.Context) error {
 
 		if err := rows.Scan(
 			&ticket.ID,
+			&ticket.TicketNumber,
 			&ticket.EndUserEmail,
 			&ticket.IssueType,
 			&ticket.Urgency,

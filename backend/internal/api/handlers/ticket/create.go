@@ -36,7 +36,7 @@ func (h Handler) CreateTicket(c echo.Context) error {
             status, created_at, updated_at
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING id, end_user_email, issue_type, urgency, subject, body,
+        RETURNING id, ticket_number, end_user_email, issue_type, urgency, subject, body,
                 status, assigned_to_user_id, created_at, updated_at, closed_at,
                 resolution_notes
         `,
@@ -47,8 +47,10 @@ func (h Handler) CreateTicket(c echo.Context) error {
 		ticketCreate.Body,
 		models.StatusUnassigned,
 		time.Now(),
+		time.Now(),
 	).Scan(
 		&ticket.ID,
+		&ticket.TicketNumber,
 		&ticket.EndUserEmail,
 		&ticket.IssueType,
 		&ticket.Urgency,

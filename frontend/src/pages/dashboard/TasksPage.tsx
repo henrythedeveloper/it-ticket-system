@@ -221,6 +221,7 @@ const TasksPage: React.FC = () => {
           <table className="tasks-table">
             <thead>
               <tr>
+                <th>Task #</th>
                 <th>Title</th>
                 <th>Status</th>
                 <th>Assigned To</th>
@@ -233,6 +234,7 @@ const TasksPage: React.FC = () => {
             <tbody>
               {tasks.map(task => (
                 <tr key={task.id}>
+                  <td>#{task.task_number}</td> 
                   <td className="title-cell">
                     <Link to={`/tasks/${task.id}`}>{task.title}</Link>
                   </td>

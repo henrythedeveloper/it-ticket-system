@@ -230,7 +230,7 @@ const TicketDetailPage: React.FC = () => {
           <button onClick={() => navigate('/tickets')} className="back-button">
             ← Back to Tickets
           </button>
-          <h1>Ticket #{ticket.id}</h1>
+          <h1>Ticket #{ticket.ticket_number}</h1>
         </div>
         <div className="header-right">
           {canUpdateTicket && ticket.status !== 'Closed' && (
@@ -523,8 +523,8 @@ const TicketDetailPage: React.FC = () => {
           <div className="sidebar-card">
             <h3>Ticket Information</h3>
             <div className="info-group">
-              <label>Ticket ID:</label>
-              <span>{ticket.id}</span>
+              <label>Ticket #:</label>
+              <span>{ticket.ticket_number}</span>
             </div>
             <div className="info-group">
               <label>Created:</label>

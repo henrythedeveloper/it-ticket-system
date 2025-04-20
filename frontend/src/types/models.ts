@@ -54,6 +54,7 @@ export interface Attachment {
 
 export interface Ticket {
   id: string;
+  ticket_number: number;
   end_user_email: string;
   issue_type: string;
   urgency: TicketUrgency;
@@ -119,6 +120,7 @@ export type TaskStatus = 'Open' | 'In Progress' | 'Completed';
 
 export interface Task {
   id: string;
+  task_number: number;
   title: string;
   description?: string;
   status: TaskStatus;
