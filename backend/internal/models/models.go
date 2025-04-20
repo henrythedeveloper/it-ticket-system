@@ -41,7 +41,7 @@ type UserLogin struct {
 
 // Ticket represents a support ticket
 type Ticket struct {
-	ID               int32          `json:"id"` // <<< Changed from string to int32
+	ID               string          `json:"id"` // <<< Changed from string to int32
 	EndUserEmail     string         `json:"end_user_email"`
 	IssueType        string         `json:"issue_type"`
 	Urgency          TicketUrgency  `json:"urgency"`
@@ -99,9 +99,9 @@ type TicketCreate struct {
 
 // TicketUpdate represents an update or comment on a ticket
 type TicketUpdate struct {
-	ID             string    `json:"id"` // Assuming ticket_updates.id remains UUID
-	TicketID       int32     `json:"ticket_id"` // <<< Changed from string to int32 (references tickets.id)
-	UserID         *string   `json:"user_id,omitempty"` // Assuming users.id is still UUID (string)
+	ID             string    `json:"id"` 
+	TicketID       string   `json:"ticket_id"` 
+	UserID         *string   `json:"user_id,omitempty"` 
 	User           *User     `json:"user,omitempty"`
 	Comment        string    `json:"comment"`
 	IsInternalNote bool      `json:"is_internal_note"`
@@ -123,25 +123,25 @@ type TicketStatusUpdate struct {
 
 // Attachment represents a file attached to a ticket
 type Attachment struct {
-	ID          int32     `json:"id"` // <<< Changed from string to int32
-	TicketID    int32     `json:"ticket_id"` // <<< Changed from string to int32 (references tickets.id)
+	ID          string     `json:"id"` 
+	TicketID    string    `json:"ticket_id"`
 	Filename    string    `json:"filename"`
 	StoragePath string    `json:"storage_path"`
 	MimeType    string    `json:"mime_type"`
-	Size        int       `json:"size"` // This was already int, which is correct for INTEGER
+	Size        int       `json:"size"` 
 	UploadedAt  time.Time `json:"uploaded_at"`
-	URL         string    `json:"url,omitempty"` // Used for returning a presigned URL
+	URL         string    `json:"url,omitempty"` 
 }
 
 // Task represents a task assigned to IT staff
 type Task struct {
-	ID               int32      `json:"id"` // <<< Changed from string to int32
+	ID               string      `json:"id"`
 	Title            string     `json:"title"`
 	Description      *string    `json:"description,omitempty"`
 	Status           TaskStatus `json:"status"`
-	AssignedToUserID *string    `json:"assigned_to_user_id,omitempty"` // Assuming users.id is still UUID (string)
+	AssignedToUserID *string    `json:"assigned_to_user_id,omitempty"` 
 	AssignedToUser   *User      `json:"assigned_to_user,omitempty"`
-	CreatedByUserID  string     `json:"created_by_user_id"` // Assuming users.id is still UUID (string)
+	CreatedByUserID  string     `json:"created_by_user_id"` 
 	CreatedByUser    *User      `json:"created_by_user,omitempty"`
 	DueDate          *time.Time `json:"due_date,omitempty"`
 	IsRecurring      bool       `json:"is_recurring"`
@@ -168,7 +168,7 @@ const (
 type TaskCreate struct {
 	Title          string     `json:"title" validate:"required"`
 	Description    *string    `json:"description,omitempty"`
-	AssignedToID   *string    `json:"assigned_to_user_id,omitempty"` // Assuming users.id is still UUID (string)
+	AssignedToID   *string    `json:"assigned_to_user_id,omitempty"`
 	DueDate        *time.Time `json:"due_date,omitempty"`
 	IsRecurring    bool       `json:"is_recurring"`
 	RecurrenceRule *string    `json:"recurrence_rule,omitempty"`
@@ -181,7 +181,7 @@ type TaskStatusUpdate struct {
 
 // FAQEntry represents a frequently asked question entry
 type FAQEntry struct {
-	ID        string    `json:"id"` // Assuming faq_entries.id remains UUID
+	ID        string    `json:"id"` 
 	Question  string    `json:"question"`
 	Answer    string    `json:"answer"`
 	Category  string    `json:"category"`
@@ -198,7 +198,7 @@ type FAQCreate struct {
 
 // Tag represents a tag that can be attached to tickets
 type Tag struct {
-	ID        string    `json:"id"` // Assuming tags.id remains UUID
+	ID        string    `json:"id"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
 }
