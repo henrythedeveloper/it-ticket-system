@@ -47,9 +47,8 @@ func (h Handler) CreateTicket(c echo.Context) error {
 		ticketCreate.Body,
 		models.StatusUnassigned,
 		time.Now(),
-		time.Now(),
 	).Scan(
-		&ticket.ID, // Ensure models.Ticket.ID is int or int32
+		&ticket.ID,
 		&ticket.EndUserEmail,
 		&ticket.IssueType,
 		&ticket.Urgency,
@@ -69,10 +68,10 @@ func (h Handler) CreateTicket(c echo.Context) error {
 
 	// Add tags if provided
 	if len(ticketCreate.Tags) > 0 {
-		// Use the provided tag names (assuming ticketCreate.Tags is []string)
+		// Use the provided tag names
 		for _, tagName := range ticketCreate.Tags {
 			// Get tag ID or create if it doesn't exist
-			var tagID string                                             // Assuming tags.id is UUID, pgx can scan into string
+			var tagID string
 			log.Printf("DEBUG: Checking for tag with name: %s", tagName) // Added log
 			err := tx.QueryRow(ctx,
 				`SELECT id FROM tags WHERE name = $1`, tagName).Scan(&tagID)

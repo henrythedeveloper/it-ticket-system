@@ -6,7 +6,7 @@ import (
 
 // User represents a user of the system
 type User struct {
-	ID           string    `json:"id"` // Assuming users.id remains UUID
+	ID           string    `json:"id"`
 	Name         string    `json:"name"`
 	Email        string    `json:"email"`
 	PasswordHash string    `json:"-"` // Never expose password hash in JSON responses
@@ -41,20 +41,20 @@ type UserLogin struct {
 
 // Ticket represents a support ticket
 type Ticket struct {
-	ID               string          `json:"id"` // <<< Changed from string to int32
+	ID               string         `json:"id"`
 	EndUserEmail     string         `json:"end_user_email"`
 	IssueType        string         `json:"issue_type"`
 	Urgency          TicketUrgency  `json:"urgency"`
 	Subject          string         `json:"subject"`
 	Body             string         `json:"body"`
 	Status           TicketStatus   `json:"status"`
-	AssignedToUserID *string        `json:"assigned_to_user_id,omitempty"` // Assuming users.id is still UUID (string)
+	AssignedToUserID *string        `json:"assigned_to_user_id,omitempty"`
 	AssignedToUser   *User          `json:"assigned_to_user,omitempty"`
 	CreatedAt        time.Time      `json:"created_at"`
 	UpdatedAt        time.Time      `json:"updated_at"`
 	ClosedAt         *time.Time     `json:"closed_at,omitempty"`
 	ResolutionNotes  *string        `json:"resolution_notes,omitempty"`
-	Tags             []Tag          `json:"tags,omitempty"` // Assuming tags.id is still UUID (string)
+	Tags             []Tag          `json:"tags,omitempty"`
 	Updates          []TicketUpdate `json:"updates,omitempty"`
 	Attachments      []Attachment   `json:"attachments,omitempty"`
 }
@@ -99,9 +99,9 @@ type TicketCreate struct {
 
 // TicketUpdate represents an update or comment on a ticket
 type TicketUpdate struct {
-	ID             string    `json:"id"` 
-	TicketID       string   `json:"ticket_id"` 
-	UserID         *string   `json:"user_id,omitempty"` 
+	ID             string    `json:"id"`
+	TicketID       string    `json:"ticket_id"`
+	UserID         *string   `json:"user_id,omitempty"`
 	User           *User     `json:"user,omitempty"`
 	Comment        string    `json:"comment"`
 	IsInternalNote bool      `json:"is_internal_note"`
@@ -117,31 +117,31 @@ type TicketUpdateCreate struct {
 // TicketStatusUpdate represents data needed to update a ticket's status
 type TicketStatusUpdate struct {
 	Status           TicketStatus `json:"status" validate:"required,oneof=Unassigned Assigned In Progress Closed"`
-	AssignedToUserID *string      `json:"assigned_to_user_id,omitempty"` // Assuming users.id is still UUID (string)
+	AssignedToUserID *string      `json:"assigned_to_user_id,omitempty"`
 	ResolutionNotes  *string      `json:"resolution_notes,omitempty"`
 }
 
 // Attachment represents a file attached to a ticket
 type Attachment struct {
-	ID          string     `json:"id"` 
+	ID          string    `json:"id"`
 	TicketID    string    `json:"ticket_id"`
 	Filename    string    `json:"filename"`
 	StoragePath string    `json:"storage_path"`
 	MimeType    string    `json:"mime_type"`
-	Size        int       `json:"size"` 
+	Size        int       `json:"size"`
 	UploadedAt  time.Time `json:"uploaded_at"`
-	URL         string    `json:"url,omitempty"` 
+	URL         string    `json:"url,omitempty"`
 }
 
 // Task represents a task assigned to IT staff
 type Task struct {
-	ID               string      `json:"id"`
+	ID               string     `json:"id"`
 	Title            string     `json:"title"`
 	Description      *string    `json:"description,omitempty"`
 	Status           TaskStatus `json:"status"`
-	AssignedToUserID *string    `json:"assigned_to_user_id,omitempty"` 
+	AssignedToUserID *string    `json:"assigned_to_user_id,omitempty"`
 	AssignedToUser   *User      `json:"assigned_to_user,omitempty"`
-	CreatedByUserID  string     `json:"created_by_user_id"` 
+	CreatedByUserID  string     `json:"created_by_user_id"`
 	CreatedByUser    *User      `json:"created_by_user,omitempty"`
 	DueDate          *time.Time `json:"due_date,omitempty"`
 	IsRecurring      bool       `json:"is_recurring"`
@@ -181,7 +181,7 @@ type TaskStatusUpdate struct {
 
 // FAQEntry represents a frequently asked question entry
 type FAQEntry struct {
-	ID        string    `json:"id"` 
+	ID        string    `json:"id"`
 	Question  string    `json:"question"`
 	Answer    string    `json:"answer"`
 	Category  string    `json:"category"`
@@ -258,7 +258,7 @@ type TicketFilter struct {
 type TaskFilter struct {
 	Status      *TaskStatus `json:"status,omitempty"`
 	AssignedTo  *string     `json:"assigned_to,omitempty"` // Can be user ID (string UUID) or "me" / "unassigned"
-	CreatedBy   *string     `json:"created_by,omitempty"` // Can be user ID (string UUID) or "me"
+	CreatedBy   *string     `json:"created_by,omitempty"`  // Can be user ID (string UUID) or "me"
 	DueFromDate *time.Time  `json:"due_from_date,omitempty"`
 	DueToDate   *time.Time  `json:"due_to_date,omitempty"`
 	IsRecurring *bool       `json:"is_recurring,omitempty"`

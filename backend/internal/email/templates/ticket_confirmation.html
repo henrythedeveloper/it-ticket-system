@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>Ticket Received</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type="text/css">
+        /* Basic Styles (customize as needed) */
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+        body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; font-family: Helvetica, Arial, sans-serif; }
+        a { color: #3b82f6; }
+        .container { padding: 20px; }
+        .content { background-color: #ffffff; padding: 40px; border-radius: 4px; }
+        .footer { color: #999999; font-size: 12px; padding-top: 20px; text-align: center; }
+    </style>
+</head>
+<body style="background-color: #f3f4f6;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+            <td align="center" bgcolor="#f3f4f6" class="container">
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px;">
+                    <tr>
+                        <td align="left" bgcolor="#ffffff" class="content">
+                            <h1 style="font-size: 24px; font-weight: bold; margin: 0 0 20px;">Ticket Received</h1>
+                            <p style="margin-bottom: 15px;">Hello,</p>
+                            <p style="margin-bottom: 15px;">Thank you for submitting your support request. Your ticket (ID: <strong>{{.TicketID}}</strong>) has been received and is being reviewed by our team.</p>
+                            <p style="margin-bottom: 15px;"><strong>Subject:</strong> {{.Subject}}</p>
+                            <p style="margin-bottom: 15px;">We will respond to your request as soon as possible. You can reply directly to this email to add more information to your ticket.</p>
+                            <p style="margin-bottom: 0;">Regards,<br>IT Helpdesk Team</p>
+                        </td>
+                    </tr>
+                     <tr>
+                        <td align="center" class="footer">
+                           You received this email because you submitted a ticket to the IT Helpdesk.
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
