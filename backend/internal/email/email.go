@@ -1,12 +1,37 @@
 package email
 
 import (
+	"bytes"
+	"embed" // Import embed package
 	"errors"
-	"fmt"
+	"html/template" // Import html/template package
+	"log/slog"      // Import slog for structured logging
 
 	"github.com/henrythedeveloper/bus-it-ticket/internal/config"
 	"github.com/resend/resend-go/v2"
 )
+
+// Embed template files
+var templateFS embed.FS
+
+var (
+	templates *template.Template
+	// Define a placeholder URL
+	// Example: portalURL = cfg.Server.BaseURL + "/tasks"
+	portalURL = "#" // Replace with actual URL or load from config
+)
+
+func init() {
+	// Parse all templates once at startup
+	var err error
+	templates, err = template.ParseFS(templateFS, "templates/*.html")
+	if err != nil {
+		// Use log.Fatal or panic during init if templates can't load
+		slog.Error("Failed to parse email templates", "error", err)
+		panic("Failed to parse email templates: " + err.Error())
+	}
+	slog.Info("Email templates parsed successfully")
+}
 
 // Service defines the email service interface
 type Service interface {
@@ -15,11 +40,12 @@ type Service interface {
 	SendTaskAssignment(recipient, taskTitle, dueDate string) error
 }
 
-
 // ResendService is an implementation of the email Service using Resend
 type ResendService struct {
 	client *resend.Client
 	from   string
+	// Add portalURL here if loaded from config
+	// portalURL string
 }
 
 // NewService creates a new email service
@@ -32,23 +58,42 @@ func NewService(cfg config.EmailConfig) (Service, error) {
 		if cfg.From == "" {
 			return nil, errors.New("sender email address is required")
 		}
+		// You could potentially load the portalURL from cfg here if added
 		return &ResendService{
 			client: resend.NewClient(cfg.APIKey),
 			from:   cfg.From,
+			// portalURL: cfg.PortalURL, // Example if loaded from config
 		}, nil
 	default:
-		return nil, fmt.Errorf("unsupported email provider: %s", cfg.Provider)
+		// Use slog for errors where applicable
+		err := errors.New("unsupported email provider")
+		slog.Error("Email service initialization failed", "provider", cfg.Provider, "error", err)
+		return nil, err
 	}
+}
+
+// renderTemplate executes the named template with the given data
+func renderTemplate(templateName string, data interface{}) (string, error) {
+	var body bytes.Buffer
+	if err := templates.ExecuteTemplate(&body, templateName, data); err != nil {
+		slog.Error("Failed to execute email template", "template", templateName, "error", err)
+		return "", err // Return error
+	}
+	return body.String(), nil
 }
 
 // SendTicketConfirmation sends a confirmation email when a ticket is created
 func (s *ResendService) SendTicketConfirmation(recipient, ticketID, subject string) error {
-	htmlContent := fmt.Sprintf(`
-		<h2>Ticket Received</h2>
-		<p>Thank you for submitting your support request. Your ticket (ID: <strong>%s</strong>) has been received.</p>
-		<p><strong>Subject:</strong> %s</p>
-		<p>We will respond to your request as soon as possible. You can reply to this email to add more information to your ticket.</p>
-	`, ticketID, subject)
+	templateName := "ticket_confirmation.html"
+	data := map[string]string{
+		"TicketID": ticketID,
+		"Subject":  subject,
+	}
+
+	htmlContent, err := renderTemplate(templateName, data)
+	if err != nil {
+		return err // Error already logged by renderTemplate
+	}
 
 	params := &resend.SendEmailRequest{
 		From:    s.from,
@@ -58,24 +103,28 @@ func (s *ResendService) SendTicketConfirmation(recipient, ticketID, subject stri
 		ReplyTo: s.from,
 	}
 
-	_, err := s.client.Emails.Send(params)
+	_, err = s.client.Emails.Send(params)
 	if err != nil {
-		return fmt.Errorf("failed to send email: %w", err)
+		slog.Error("Failed to send ticket confirmation email via Resend", "recipient", recipient, "ticketID", ticketID, "error", err)
+		return errors.New("failed to send email") // Return generic error to caller
 	}
-
+	slog.Info("Sent ticket confirmation email", "recipient", recipient, "ticketID", ticketID)
 	return nil
 }
 
-
 // SendTicketClosure sends an email when a ticket is closed
 func (s *ResendService) SendTicketClosure(recipient, ticketID, subject, resolution string) error {
-	htmlContent := fmt.Sprintf(`
-		<h2>Ticket Closed</h2>
-		<p>Your support ticket (ID: <strong>%s</strong>) has been closed.</p>
-		<p><strong>Subject:</strong> %s</p>
-		<p><strong>Resolution:</strong> %s</p>
-		<p>If you have any further questions or if the issue reoccurs, please let us know by creating a new ticket or by replying to this email.</p>
-	`, ticketID, subject, resolution)
+	templateName := "ticket_closure.html"
+	data := map[string]string{
+		"TicketID":   ticketID,
+		"Subject":    subject,
+		"Resolution": resolution,
+	}
+
+	htmlContent, err := renderTemplate(templateName, data)
+	if err != nil {
+		return err
+	}
 
 	params := &resend.SendEmailRequest{
 		From:    s.from,
@@ -85,35 +134,42 @@ func (s *ResendService) SendTicketClosure(recipient, ticketID, subject, resoluti
 		ReplyTo: s.from,
 	}
 
-	_, err := s.client.Emails.Send(params)
+	_, err = s.client.Emails.Send(params)
 	if err != nil {
-		return fmt.Errorf("failed to send email: %w", err)
+		slog.Error("Failed to send ticket closure email via Resend", "recipient", recipient, "ticketID", ticketID, "error", err)
+		return errors.New("failed to send email")
 	}
-
+	slog.Info("Sent ticket closure email", "recipient", recipient, "ticketID", ticketID)
 	return nil
 }
 
 // SendTaskAssignment sends an email when a task is assigned
 func (s *ResendService) SendTaskAssignment(recipient, taskTitle, dueDate string) error {
-	htmlContent := fmt.Sprintf(`
-		<h2>Task Assigned</h2>
-		<p>You have been assigned a new task.</p>
-		<p><strong>Task:</strong> %s</p>
-		<p><strong>Due Date:</strong> %s</p>
-		<p>Please log in to the <a href="#">IT Helpdesk portal</a> to view more details and update the task status.</p>
-	`, taskTitle, dueDate)
+	templateName := "task_assignment.html"
+	data := map[string]string{
+		"TaskTitle": taskTitle,
+		"DueDate":   dueDate,
+		"PortalURL": portalURL, // Use the defined portal URL
+	}
+
+	htmlContent, err := renderTemplate(templateName, data)
+	if err != nil {
+		return err
+	}
 
 	params := &resend.SendEmailRequest{
 		From:    s.from,
 		To:      []string{recipient},
 		Subject: "IT Helpdesk - Task Assigned",
 		Html:    htmlContent,
+		// No ReplyTo needed usually for task assignments
 	}
 
-	_, err := s.client.Emails.Send(params)
+	_, err = s.client.Emails.Send(params)
 	if err != nil {
-		return fmt.Errorf("failed to send email: %w", err)
+		slog.Error("Failed to send task assignment email via Resend", "recipient", recipient, "taskTitle", taskTitle, "error", err)
+		return errors.New("failed to send email")
 	}
-
+	slog.Info("Sent task assignment email", "recipient", recipient, "taskTitle", taskTitle)
 	return nil
 }
