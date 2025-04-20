@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"log/slog" // Import slog for logging config loading
 	"os"       // Import os for slog handler
@@ -108,7 +109,7 @@ func Load() (*Config, error) {
 	// --- Start Validation ---
 	var missingConfig []string
 
-	if config.Server.PortalBaseURL == "" { 
+	if config.Server.PortalBaseURL == "" {
 		missingConfig = append(missingConfig, "PORTAL_BASE_URL")
 	}
 	if config.Database.Host == "" {

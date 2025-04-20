@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog" 
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,56 +18,80 @@ import (
 )
 
 func main() {
+	// --- Setup slog Logger ---
+	// Use TextHandler for development, JSONHandler for production environments
+	logLevel := new(slog.LevelVar) // Defaults to Info
+	// TODO: Optionally set log level from config/env var later
+	// Example: logLevel.Set(slog.LevelDebug)
+	opts := slog.HandlerOptions{
+		Level: logLevel,
+	}
+	handler := slog.NewTextHandler(os.Stdout, &opts) // Or slog.NewJSONHandler
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
+	// --- End Logger Setup ---
+
+	slog.Info("Application starting...")
+
 	// Load configuration
-	cfg, err := config.Load()
+	cfg, err := config.Load() // config.Load already logs errors using slog
 	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
+		// config.Load already logged the specific error
+		os.Exit(1) // Exit after config load failure
 	}
 
 	// Initialize database connection
 	database, err := db.Connect(cfg.Database)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		slog.Error("Failed to connect to database", "error", err)
+		os.Exit(1)
 	}
 	defer database.Close()
+	slog.Info("Database connection established")
 
 	// Run database migrations
-	err = db.RunMigrations(cfg.Database)
+	err = db.RunMigrations(cfg.Database) // db.RunMigrations logs success/failure
 	if err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
+		slog.Error("Failed to run database migrations", "error", err)
+		os.Exit(1)
 	}
 
 	// Initialize email service
 	emailService, err := email.NewService(cfg.Email, cfg.Server.PortalBaseURL)
 	if err != nil {
-		// Reverted to log.Fatalf for consistency with other fatal errors in main
-		log.Fatalf("Failed to initialize email service: %v", err)
+		slog.Error("Failed to initialize email service", "error", err)
+		os.Exit(1)
 	}
+	slog.Info("Email service initialized", "provider", cfg.Email.Provider)
 
 	// Initialize file storage service
 	fileService, err := file.NewService(cfg.Storage)
 	if err != nil {
-		log.Fatalf("Failed to initialize file storage service: %v", err)
+		slog.Error("Failed to initialize file storage service", "error", err)
+		os.Exit(1)
 	}
+	slog.Info("File storage service initialized", "endpoint", cfg.Storage.Endpoint) // Be careful logging endpoints if sensitive
 
 	// Setup API server
 	server := api.NewServer(database, emailService, fileService, cfg)
+	slog.Info("API server setup complete")
 
-	// --- Add this block to list routes ---
-    log.Println("Registered Routes:")
-    routes := server.EchoInstance().Routes() // Use the new method
-    for _, r := range routes {
-        log.Printf("  METHOD=%s, PATH=%s, NAME=%s\n", r.Method, r.Path, r.Name)
-    }
-    log.Println("---------------------")
-    // --- End block ---
+	// --- Log Registered Routes (Use Debug level) ---
+	slog.Debug("Registering routes...") 
+	routes := server.EchoInstance().Routes()
+	for _, r := range routes {
+		slog.Debug("Route registered", "method", r.Method, "path", r.Path, "name", r.Name) // Structured logging
+	}
+	slog.Debug("Route registration complete") 
+	// --- End block ---
 
 	// Start the server in a goroutine
 	go func() {
 		address := fmt.Sprintf(":%d", cfg.Server.Port)
-		log.Printf("Starting server on %s", address)
+		slog.Info("Starting server", "address", address)
 		if err := server.Start(address); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Failed to start server: %v", err)
+			slog.Error("Server failed to start", "error", err)
+			os.Exit(1) // Exit if server can't start
 		}
 	}()
 
@@ -75,7 +99,7 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
-	log.Println("Shutting down server...")
+	slog.Info("Shutting down server...")
 
 	// Create a deadline to wait for
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -83,8 +107,9 @@ func main() {
 
 	// Doesn't block if no connections, but will otherwise wait until the timeout
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("Server forced to shutdown: %v", err)
+		slog.Error("Server forced to shutdown", "error", err)
+		os.Exit(1)
 	}
 
-	log.Println("Server exited properly")
+	slog.Info("Server exited properly")
 }
