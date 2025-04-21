@@ -214,7 +214,7 @@ func (h *Handler) GetTaskByID(c echo.Context) error {
 	var createdUserCreatedAt, createdUserUpdatedAt time.Time
 
 	err = h.db.Pool.QueryRow(ctx, `
-		SELECT t.id, t.title, t.description, t.status, t.assigned_to_user_id, t.created_by_user_id,
+		SELECT t.id, t.task_number, t.title, t.description, t.status, t.assigned_to_user_id, t.created_by_user_id,
 			t.due_date, t.is_recurring, t.recurrence_rule, t.created_at, t.updated_at, t.completed_at,
 			a.id, a.name, a.email, a.role, a.created_at, a.updated_at,
 			c.id, c.name, c.email, c.role, c.created_at, c.updated_at
@@ -224,6 +224,7 @@ func (h *Handler) GetTaskByID(c echo.Context) error {
 		WHERE t.id = $1
 	`, taskID).Scan(
 		&task.ID,
+		&task.TaskNumber,
 		&task.Title,
 		&task.Description,
 		&task.Status,

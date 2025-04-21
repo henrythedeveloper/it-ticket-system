@@ -14,6 +14,7 @@ type TicketCounts = {
 
 type TicketGroup = {
   id: string;
+  ticket_number: number;
   subject: string;
   createdAt: string;
   status: string;
@@ -53,6 +54,7 @@ const DashboardPage: React.FC = () => {
           setRecentTickets(
             recentResponse.data.data.map(ticket => ({
               id: ticket.id,
+              ticket_number: ticket.ticket_number,
               subject: ticket.subject,
               createdAt: ticket.created_at,
               status: ticket.status,
@@ -67,6 +69,7 @@ const DashboardPage: React.FC = () => {
           setMyTickets(
             myTicketsResponse.data.data.map(ticket => ({
               id: ticket.id,
+              ticket_number: ticket.ticket_number,
               subject: ticket.subject,
               createdAt: ticket.created_at,
               status: ticket.status,
@@ -193,7 +196,7 @@ const DashboardPage: React.FC = () => {
               <table className="dashboard-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
+                    <th>#</th>
                     <th>Subject</th>
                     <th>Date</th>
                     <th>Status</th>
@@ -202,8 +205,8 @@ const DashboardPage: React.FC = () => {
                 </thead>
                 <tbody>
                   {recentTickets.map(ticket => (
-                    <tr key={ticket.id}>
-                      <td><Link to={`/tickets/${ticket.id}`}>#{ticket.id}</Link></td>
+                    <tr key={ticket.ticket_number}>
+                      <td><Link to={`/tickets/${ticket.id}`}>#{ticket.ticket_number}</Link></td>
                       <td><Link to={`/tickets/${ticket.id}`}>{ticket.subject}</Link></td>
                       <td>{formatDate(ticket.createdAt)}</td>
                       <td><span className={`status-badge ${getStatusClass(ticket.status)}`}>{ticket.status}</span></td>
@@ -228,7 +231,7 @@ const DashboardPage: React.FC = () => {
               <table className="dashboard-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
+                    <th>#</th>
                     <th>Subject</th>
                     <th>Date</th>
                     <th>Status</th>
@@ -237,8 +240,8 @@ const DashboardPage: React.FC = () => {
                 </thead>
                 <tbody>
                   {myTickets.map(ticket => (
-                    <tr key={ticket.id}>
-                      <td><Link to={`/tickets/${ticket.id}`}>#{ticket.id}</Link></td>
+                    <tr key={ticket.ticket_number}>
+                      <td><Link to={`/tickets/${ticket.id}`}>#{ticket.ticket_number}</Link></td>
                       <td><Link to={`/tickets/${ticket.id}`}>{ticket.subject}</Link></td>
                       <td>{formatDate(ticket.createdAt)}</td>
                       <td><span className={`status-badge ${getStatusClass(ticket.status)}`}>{ticket.status}</span></td>
@@ -262,7 +265,7 @@ const DashboardPage: React.FC = () => {
             {upcomingTasks.length > 0 ? (
               <ul className="task-list">
                 {upcomingTasks.map(task => (
-                  <li key={task.id} className="task-item">
+                  <li key={task.task_number} className="task-item">
                     <Link to={`/tasks/${task.id}`} className="task-link">
                       <span className="task-title">{task.title}</span>
                       {task.due_date && (
