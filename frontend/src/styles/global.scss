@@ -35,10 +35,14 @@
   padding: 0;
 }
 
+.icon { 
+  font-style: normal !important; 
+}
 html {
   font-size: 16px;
   height: 100%;
 }
+
 
 body {
   font-family: $font-family-sans;
@@ -50,9 +54,6 @@ body {
   height: 100%;
 }
 
-.icon { 
-  font-style: normal !important; 
-}
 
 #root {
   height: 100%;
