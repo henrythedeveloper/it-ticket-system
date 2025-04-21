@@ -67,7 +67,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
           </span>
         </div>
         <div className="ticket-id">
-          #{ticket.id}
+          #{ticket.ticket_number}
         </div>
       </div>
       

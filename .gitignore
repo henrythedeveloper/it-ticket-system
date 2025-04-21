@@ -65,6 +65,7 @@ pnpm-debug.log*
 # Tool outputs
 repomix-output.xml
 repomix-output.md
+repomix-output-4.md
 
 # Documentation/Notes (Keep if you don't want these in Git)
 yup-readme.md
