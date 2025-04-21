@@ -404,6 +404,10 @@
     }
     
     .updates-timeline {
+      max-height: 70vh;
+      overflow-y: auto;
+      padding-right: $spacing-2; 
+      
       .update-item {
         padding: $spacing-4;
         border-left: 3px solid $gray-300;

@@ -466,7 +466,7 @@ const TicketDetailPage: React.FC = () => {
             
             <div className="updates-timeline">
               {ticket.updates && ticket.updates.length > 0 ? (
-                ticket.updates.map(update => (
+                [...ticket.updates].reverse().map(update => (
                   <div 
                     key={update.id} 
                     className={`update-item ${update.is_internal_note ? 'internal-note' : ''}`}

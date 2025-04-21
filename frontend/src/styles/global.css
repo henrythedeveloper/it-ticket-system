@@ -2180,6 +2180,11 @@
   background-color: #9ca3af;
   cursor: not-allowed;
 }
+.ticket-detail-page .ticket-updates .updates-timeline {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
 .ticket-detail-page .ticket-updates .updates-timeline .update-item {
   padding: 1rem;
   border-left: 3px solid #d1d5db;
