@@ -23,3 +23,11 @@ VALUES (
     '$2a$12$2JziQOW//48h3cL2IZLVf.5ehvVwzjF/G4KprN220GQMq5.BzfR6m',
     'Admin'
 );
+
+INSERT INTO users (name, email, password_hash, role)
+VALUES (
+    'Staff User',
+    'staff@example.com',
+    '$2a$12$2JziQOW//48h3cL2IZLVf.5ehvVwzjF/G4KprN220GQMq5.BzfR6m',
+    'Staff'
+);
