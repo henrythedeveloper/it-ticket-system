@@ -8,9 +8,7 @@
   width: 100%;
   margin: 0 auto;
 }
-.icon {
-  font-style: normal; 
-}
+
 .form-group {
   margin-bottom: 1rem;
 }
@@ -517,6 +515,7 @@
 }
 .header .header-right .dropdown .dropdown-toggle .profile-icon {
   font-size: 1.25rem;
+  font-style: normal;
 }
 .header .header-right .dropdown .dropdown-menu {
   position: absolute;
@@ -3576,6 +3575,10 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   height: 100%;
+}
+
+.icon {
+  font-style: normal !important;
 }
 
 #root {
