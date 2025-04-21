@@ -66,16 +66,16 @@ const DashboardPage: React.FC = () => {
         // Fetch my assigned tickets
         const myTicketsResponse = await api.get<APIResponse<Ticket[]>>('/tickets?assigned_to=me&limit=5');
         if (myTicketsResponse.data.success && myTicketsResponse.data.data) {
-          setMyTickets(
-            myTicketsResponse.data.data.map(ticket => ({
-              id: ticket.id,
-              ticket_number: ticket.ticket_number,
+          const mappedTickets = myTicketsResponse.data.data.map(ticket => ({
+              id: ticket.id, 
+              ticket_number: ticket.ticket_number, 
               subject: ticket.subject,
               createdAt: ticket.created_at,
               status: ticket.status,
               urgency: ticket.urgency
-            }))
-          );
+          }));
+          console.log("Setting My Assigned Tickets State:", mappedTickets);
+          setMyTickets(mappedTickets);
         }
         
         // Fetch upcoming tasks
