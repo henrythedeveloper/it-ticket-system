@@ -1,174 +1,197 @@
+// src/styles/components/tickets/_TicketCard.scss
+
 @use '../../variables' as *;
 
 .ticket-card {
-  background-color: $white;
+  background-color: var(--surface-bg); // Use CSS variable
+  border: 1px solid var(--border-color); // Add border for dark mode
   border-radius: $border-radius-lg;
-  box-shadow: $shadow;
+  box-shadow: $shadow; // Shadow might need adjustment
   padding: $spacing-4;
   margin-bottom: $spacing-4;
-  transition: transform $transition-fast, box-shadow $transition-fast;
-  
+  transition: transform $transition-fast, box-shadow $transition-fast, background-color $transition-medium, border-color $transition-medium;
+
   &:hover {
     transform: translateY(-2px);
-    box-shadow: $shadow-md;
+    box-shadow: $shadow-md; // Shadow might need adjustment
+    border-color: var(--border-color-strong); // Use CSS variable
   }
-  
+
   .ticket-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: $spacing-3;
-    
+
     .ticket-badges {
       display: flex;
       gap: $spacing-2;
     }
-    
+
     .ticket-id {
       font-size: $font-size-sm;
-      color: $gray-500;
+      color: var(--text-muted); // Use CSS variable
       font-family: $font-family-mono;
+      transition: color $transition-medium;
     }
   }
-  
+
   .ticket-title {
     display: block;
     font-size: $font-size-lg;
     font-weight: $font-weight-semibold;
-    color: $gray-900;
+    color: var(--text-primary); // Use CSS variable
     margin-bottom: $spacing-3;
     text-decoration: none;
-    
+    transition: color $transition-fast;
+
     &:hover {
-      color: $primary-color;
+      color: var(--text-link); // Use CSS variable
     }
   }
-  
+
   .ticket-meta {
     display: flex;
     justify-content: space-between;
+    flex-wrap: wrap; // Allow wrapping
+    gap: $spacing-2; // Add gap
     margin-bottom: $spacing-2;
     font-size: $font-size-sm;
-    
+
     .meta-label {
-      color: $gray-600;
+      color: var(--text-muted); // Use CSS variable
       margin-right: $spacing-1;
+      transition: color $transition-medium;
     }
-    
+
     .meta-value {
-      color: $gray-800;
+      color: var(--text-secondary); // Use CSS variable
+      transition: color $transition-medium;
     }
   }
-  
+
   .ticket-assignment {
     margin-bottom: $spacing-3;
     font-size: $font-size-sm;
-    
+
     .meta-label {
-      color: $gray-600;
+      color: var(--text-muted); // Use CSS variable
       margin-right: $spacing-1;
+      transition: color $transition-medium;
     }
-    
+
     .meta-value {
-      color: $gray-800;
+      color: var(--text-primary); // Use CSS variable (make assignee stand out more)
       font-weight: $font-weight-medium;
+      transition: color $transition-medium;
     }
   }
-  
+
   .ticket-excerpt {
-    color: $gray-700;
+    color: var(--text-secondary); // Use CSS variable
     font-size: $font-size-sm;
     margin-bottom: $spacing-3;
     line-height: 1.5;
+    transition: color $transition-medium;
   }
-  
+
   .ticket-tags {
     display: flex;
     flex-wrap: wrap;
     gap: $spacing-2;
     margin-bottom: $spacing-3;
-    
+
     .tag {
-      background-color: $gray-100;
-      color: $gray-700;
+      background-color: var(--surface-alt-bg); // Use CSS variable
+      color: var(--text-secondary); // Use CSS variable
       padding: $spacing-1 $spacing-2;
       border-radius: $border-radius-full;
       font-size: $font-size-xs;
+      transition: background-color $transition-medium, color $transition-medium;
     }
   }
-  
+
   .view-ticket-btn {
     display: inline-block;
-    background-color: $gray-100;
-    color: $gray-700;
+    background-color: var(--surface-alt-bg); // Use CSS variable
+    color: var(--text-secondary); // Use CSS variable
     padding: $spacing-2 $spacing-4;
     border-radius: $border-radius;
     text-decoration: none;
     font-size: $font-size-sm;
-    transition: background-color $transition-fast, color $transition-fast;
-    
+    border: 1px solid var(--border-color); // Use CSS variable
+    transition: background-color $transition-fast, color $transition-fast, border-color $transition-fast;
+
     &:hover {
-      background-color: $primary-color;
-      color: $white;
+      background-color: var(--primary-color); // Use CSS variable
+      color: var(--text-inverted); // Use CSS variable
+      border-color: var(--primary-color); // Use CSS variable
     }
   }
 }
 
-// Status badges
-.status-badge {
+// Status & Urgency badges (Using CSS variables for colors)
+// Base styles
+.status-badge, .urgency-badge {
   padding: $spacing-1 $spacing-2;
   border-radius: $border-radius-full;
   font-size: $font-size-xs;
   font-weight: $font-weight-medium;
-  
-  &.badge-unassigned {
-    background-color: rgba($status-unassigned, 0.1);
-    color: $status-unassigned;
+  transition: background-color $transition-medium, color $transition-medium;
+}
+
+// Status badges - Light mode uses alpha, Dark mode might need adjustment
+.status-badge {
+  &.badge-unassigned { background-color: rgba($status-unassigned, 0.1); color: $status-unassigned; }
+  &.badge-assigned { background-color: rgba($status-assigned, 0.1); color: $status-assigned; }
+  &.badge-progress { background-color: rgba($status-progress, 0.1); color: $status-progress; }
+  &.badge-closed { background-color: rgba($status-closed, 0.1); color: $status-closed; }
+}
+
+// Urgency badges - Light mode uses alpha, Dark mode might need adjustment
+.urgency-badge {
+  &.badge-low { background-color: rgba($urgency-low, 0.1); color: $urgency-low; }
+  &.badge-medium { background-color: rgba($urgency-medium, 0.1); color: $urgency-medium; }
+  &.badge-high { background-color: rgba($urgency-high, 0.1); color: $urgency-high; }
+  &.badge-critical { background-color: rgba($urgency-critical, 0.1); color: $urgency-critical; }
+}
+
+// --- Corrected Dark Mode Overrides for Badges ---
+// Rule for .dark-mode class
+body.dark-mode {
+  .status-badge {
+    &.badge-unassigned { background-color: rgba(var(--status-unassigned-color), 0.2); color: var(--status-unassigned-color); }
+    &.badge-assigned { background-color: rgba(var(--status-assigned-color), 0.2); color: var(--status-assigned-color); }
+    &.badge-progress { background-color: rgba(var(--status-progress-color), 0.2); color: var(--status-progress-color); }
+    &.badge-closed { background-color: rgba(var(--status-closed-color), 0.2); color: var(--status-closed-color); }
   }
-  
-  &.badge-assigned {
-    background-color: rgba($status-assigned, 0.1);
-    color: $status-assigned;
-  }
-  
-  &.badge-progress {
-    background-color: rgba($status-progress, 0.1);
-    color: $status-progress;
-  }
-  
-  &.badge-closed {
-    background-color: rgba($status-closed, 0.1);
-    color: $status-closed;
+  .urgency-badge {
+    &.badge-low { background-color: rgba(var(--urgency-low-color), 0.2); color: var(--urgency-low-color); }
+    &.badge-medium { background-color: rgba(var(--urgency-medium-color), 0.2); color: var(--urgency-medium-color); }
+    &.badge-high { background-color: rgba(var(--urgency-high-color), 0.2); color: var(--urgency-high-color); }
+    &.badge-critical { background-color: rgba(var(--urgency-critical-color), 0.2); color: var(--urgency-critical-color); }
   }
 }
 
-// Urgency badges
-.urgency-badge {
-  padding: $spacing-1 $spacing-2;
-  border-radius: $border-radius-full;
-  font-size: $font-size-xs;
-  font-weight: $font-weight-medium;
-  
-  &.badge-low {
-    background-color: rgba($urgency-low, 0.1);
-    color: $urgency-low;
+// Rule for OS preference
+@media (prefers-color-scheme: dark) {
+  .status-badge {
+    // Apply the same overrides
+    &.badge-unassigned { background-color: rgba(var(--status-unassigned-color), 0.2); color: var(--status-unassigned-color); }
+    &.badge-assigned { background-color: rgba(var(--status-assigned-color), 0.2); color: var(--status-assigned-color); }
+    &.badge-progress { background-color: rgba(var(--status-progress-color), 0.2); color: var(--status-progress-color); }
+    &.badge-closed { background-color: rgba(var(--status-closed-color), 0.2); color: var(--status-closed-color); }
   }
-  
-  &.badge-medium {
-    background-color: rgba($urgency-medium, 0.1);
-    color: $urgency-medium;
-  }
-  
-  &.badge-high {
-    background-color: rgba($urgency-high, 0.1);
-    color: $urgency-high;
-  }
-  
-  &.badge-critical {
-    background-color: rgba($urgency-critical, 0.1);
-    color: $urgency-critical;
+  .urgency-badge {
+    // Apply the same overrides
+    &.badge-low { background-color: rgba(var(--urgency-low-color), 0.2); color: var(--urgency-low-color); }
+    &.badge-medium { background-color: rgba(var(--urgency-medium-color), 0.2); color: var(--urgency-medium-color); }
+    &.badge-high { background-color: rgba(var(--urgency-high-color), 0.2); color: var(--urgency-high-color); }
+    &.badge-critical { background-color: rgba(var(--urgency-critical-color), 0.2); color: var(--urgency-critical-color); }
   }
 }
+// --- End Correction ---
+
 
 // Responsive adjustments
 @media (max-width: $breakpoint-md) {

@@ -1,57 +1,64 @@
-@use '../../variables' as *;;
+// src/styles/pages/public/_HomePage.scss
+
+@use '../../variables' as *;
+@use 'sass:math';
 
 .home-page {
   max-width: 100%;
   overflow-x: hidden;
-  
+
   .hero {
-    background: linear-gradient(135deg, $primary-dark, $primary-color);
-    color: $white;
+    // Gradient might need dark mode adjustment if desired, keeping simple for now
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+    color: var(--text-inverted); // Use CSS variable
     padding: $spacing-16 $spacing-6;
     text-align: center;
     border-radius: 0 0 $border-radius-xl $border-radius-xl;
-    
+
     .hero-content {
       max-width: 800px;
       margin: 0 auto;
-      
+
       h1 {
         font-size: $font-size-4xl;
         margin-bottom: $spacing-4;
+        color: var(--text-inverted); // Use CSS variable
       }
-      
+
       p {
         font-size: $font-size-xl;
         margin-bottom: $spacing-8;
         opacity: 0.9;
+        color: var(--text-inverted); // Use CSS variable (adjust opacity if needed)
       }
-      
+
       .hero-buttons {
         display: flex;
         justify-content: center;
         gap: $spacing-4;
-        
+        flex-wrap: wrap; // Allow buttons to wrap
+
         .btn {
           padding: $spacing-3 $spacing-6;
           border-radius: $border-radius;
           font-weight: $font-weight-semibold;
           transition: all $transition-fast;
           text-decoration: none;
-          
+
           &.btn-primary {
-            background-color: $white;
-            color: $primary-dark;
-            
+            background-color: $white; // Keep white for contrast on gradient
+            color: var(--primary-dark); // Use CSS variable
+
             &:hover {
               background-color: rgba($white, 0.9);
               transform: translateY(-2px);
             }
           }
-          
+
           &.btn-outline {
-            border: 2px solid $white;
-            color: $white;
-            
+            border: 2px solid $white; // Keep white border
+            color: var(--text-inverted); // Use CSS variable
+
             &:hover {
               background-color: rgba($white, 0.1);
               transform: translateY(-2px);
@@ -61,132 +68,149 @@
       }
     }
   }
-  
+
   .features {
     padding: $spacing-16 $spacing-6;
-    background-color: $gray-50;
-    
+    background-color: var(--surface-alt-bg); // Use CSS variable
+    transition: background-color $transition-medium;
+
     h2 {
       text-align: center;
       font-size: $font-size-3xl;
       margin-bottom: $spacing-10;
-      color: $gray-900;
+      color: var(--text-primary); // Use CSS variable
+      transition: color $transition-medium;
     }
-    
+
     .feature-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: $spacing-6;
-      
+
       .feature-card {
-        background-color: $white;
+        background-color: var(--surface-bg); // Use CSS variable
+        border: 1px solid var(--border-color); // Use CSS variable
         padding: $spacing-6;
         border-radius: $border-radius-lg;
-        box-shadow: $shadow-md;
-        transition: transform $transition-medium, box-shadow $transition-medium;
-        
+        box-shadow: $shadow; // Shadow might need adjustment
+        transition: transform $transition-medium, box-shadow $transition-medium, background-color $transition-medium, border-color $transition-medium;
+
         &:hover {
           transform: translateY(-5px);
-          box-shadow: $shadow-lg;
+          box-shadow: $shadow-lg; // Shadow might need adjustment
+          border-color: var(--border-color-strong); // Use CSS variable
         }
-        
+
         .feature-icon {
           font-size: 2.5rem;
           margin-bottom: $spacing-4;
+          color: var(--primary-color); // Use CSS variable
         }
-        
+
         h3 {
           font-size: $font-size-xl;
           margin-bottom: $spacing-3;
-          color: $primary-color;
+          color: var(--primary-dark); // Use CSS variable (slightly darker for heading)
+          transition: color $transition-medium;
         }
-        
+
         p {
-          color: $gray-700;
+          color: var(--text-secondary); // Use CSS variable
           line-height: 1.6;
+          transition: color $transition-medium;
         }
       }
     }
   }
-  
+
   .how-it-works {
     padding: $spacing-16 $spacing-6;
-    
+    background-color: var(--body-bg); // Use CSS variable
+    transition: background-color $transition-medium;
+
     h2 {
       text-align: center;
       font-size: $font-size-3xl;
       margin-bottom: $spacing-10;
-      color: $gray-900;
+      color: var(--text-primary); // Use CSS variable
+      transition: color $transition-medium;
     }
-    
+
     .steps {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: $spacing-8;
-      
+
       .step {
         flex: 1;
         min-width: 200px;
         max-width: 250px;
         text-align: center;
         position: relative;
-        
+
+        // Connector line - color needs to adapt
         &:not(:last-child)::after {
           content: '';
           position: absolute;
-          top: 30px;
-          right: -40px;
-          width: 80px;
+          top: 30px; // Align with center of number circle
+          right: -(math.div($spacing-8, 2)); // Position between steps
+          width: $spacing-8;
           height: 2px;
-          background-color: $gray-300;
+          background-color: var(--border-color-strong); // Use CSS variable
           display: none;
-          
+          transition: background-color $transition-medium;
+
           @media (min-width: $breakpoint-lg) {
             display: block;
           }
         }
-        
+
         .step-number {
           width: 60px;
           height: 60px;
           border-radius: 50%;
-          background-color: $primary-color;
-          color: $white;
+          background-color: var(--primary-color); // Use CSS variable
+          color: var(--text-inverted); // Use CSS variable
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: $font-size-2xl;
           font-weight: $font-weight-bold;
           margin: 0 auto $spacing-4 auto;
+          transition: background-color $transition-medium, color $transition-medium;
         }
-        
+
         h3 {
           font-size: $font-size-lg;
           margin-bottom: $spacing-2;
-          color: $gray-900;
+          color: var(--text-primary); // Use CSS variable
+          transition: color $transition-medium;
         }
-        
+
         p {
-          color: $gray-700;
+          color: var(--text-secondary); // Use CSS variable
           font-size: $font-size-sm;
+          transition: color $transition-medium;
         }
       }
     }
   }
-  
+
   .cta {
     padding: $spacing-16 $spacing-6;
-    background-color: $primary-dark;
-    color: $white;
+    background-color: var(--primary-dark); // Use CSS variable
+    color: var(--text-inverted); // Use CSS variable
     text-align: center;
     border-radius: $border-radius-xl $border-radius-xl 0 0;
-    
+    transition: background-color $transition-medium, color $transition-medium;
+
     h2 {
       font-size: $font-size-3xl;
       margin-bottom: $spacing-4;
+      color: var(--text-inverted); // Use CSS variable
     }
-    
+
     p {
       font-size: $font-size-lg;
       margin-bottom: $spacing-8;
@@ -194,57 +218,53 @@
       max-width: 600px;
       margin-left: auto;
       margin-right: auto;
+      color: var(--text-inverted); // Use CSS variable (adjust opacity if needed)
     }
-    
+
     .btn-primary {
-      display: inline-block;
-      padding: $spacing-3 $spacing-8;
-      border-radius: $border-radius;
-      background-color: $white;
-      color: $primary-dark;
-      font-weight: $font-weight-semibold;
-      text-decoration: none;
-      transition: all $transition-fast;
-      
+      // Use styles from _forms.scss .btn
+      @extend .btn;
+      background-color: $white; // Keep white for contrast
+      color: var(--primary-dark); // Use CSS variable
+
       &:hover {
         background-color: rgba($white, 0.9);
         transform: translateY(-2px);
       }
     }
   }
-  
+
+  // Responsive adjustments
   @media (max-width: $breakpoint-md) {
     .hero {
       padding: $spacing-10 $spacing-4;
-      
+
       .hero-content {
-        h1 {
-          font-size: $font-size-3xl;
-        }
-        
-        p {
-          font-size: $font-size-lg;
-        }
+        h1 { font-size: $font-size-3xl; }
+        p { font-size: $font-size-lg; }
       }
     }
-    
+
     .features, .how-it-works, .cta {
       padding: $spacing-10 $spacing-4;
-      
-      h2 {
-        font-size: $font-size-2xl;
-      }
+
+      h2 { font-size: $font-size-2xl; }
     }
-    
+
     .hero-buttons {
       flex-direction: column;
       align-items: center;
       gap: $spacing-3;
-      
+
       .btn {
         width: 100%;
         max-width: 250px;
       }
     }
+
+     .how-it-works .steps .step:not(:last-child)::after {
+        display: none; // Hide connector lines on smaller screens
+     }
   }
 }
+

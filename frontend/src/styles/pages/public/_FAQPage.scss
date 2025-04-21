@@ -1,269 +1,227 @@
-@use '../../variables' as *;;
+// src/styles/pages/public/_FAQPage.scss
+
+@use '../../variables' as *;
 
 .faq-page {
   max-width: 1200px;
   margin: 0 auto;
   padding: $spacing-8 $spacing-4;
-  
+
   .faq-header {
     text-align: center;
     margin-bottom: $spacing-10;
-    
+
     h1 {
       font-size: $font-size-3xl;
       margin-bottom: $spacing-4;
-      color: $gray-900;
+      color: var(--text-primary); // Use CSS variable
+      transition: color $transition-medium;
     }
-    
+
     p {
       font-size: $font-size-lg;
-      color: $gray-600;
+      color: var(--text-secondary); // Use CSS variable
       max-width: 600px;
       margin: 0 auto $spacing-6;
+      transition: color $transition-medium;
     }
-    
+
     .search-form {
       max-width: 600px;
       margin: 0 auto;
       display: flex;
-      
+
       .search-input {
+        // Inherits from _forms.scss
         flex: 1;
-        padding: $spacing-3 $spacing-4;
-        border: 1px solid $gray-300;
         border-radius: $border-radius 0 0 $border-radius;
-        font-size: $font-size-base;
-        
-        &:focus {
-          outline: none;
-          border-color: $primary-color;
-          box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
-        }
       }
-      
+
       .search-button {
-        padding: $spacing-3 $spacing-5;
-        background-color: $primary-color;
-        color: $white;
-        border: none;
-        border-radius: 0 $border-radius $border-radius 0;
-        font-weight: $font-weight-medium;
-        cursor: pointer;
-        transition: background-color $transition-fast;
-        
-        &:hover {
-          background-color: $primary-dark;
-        }
+         // Use styles from _forms.scss .btn
+         @extend .btn;
+         padding: $spacing-3 $spacing-5; // Keep specific padding
+         border-radius: 0 $border-radius $border-radius 0;
       }
     }
   }
-  
+
   .loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: $spacing-12;
-    
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba($primary-color, 0.3);
-      border-radius: 50%;
-      border-top-color: $primary-color;
-      animation: spin 1s ease-in-out infinite;
-      margin-bottom: $spacing-4;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    p {
-      color: $gray-600;
-    }
+    // Styles inherited from global.scss
+    p { color: var(--text-muted); } // Use CSS variable
   }
-  
+
   .error-message {
     text-align: center;
     padding: $spacing-10;
-    
+
     p {
-      color: $error-color;
+      color: var(--error-color); // Use CSS variable
       margin-bottom: $spacing-4;
     }
-    
+
     .btn {
-      display: inline-block;
-      padding: $spacing-2 $spacing-4;
-      background-color: $primary-color;
-      color: $white;
-      border-radius: $border-radius;
-      text-decoration: none;
-      transition: background-color $transition-fast;
-      
-      &:hover {
-        background-color: $primary-dark;
-      }
+      // Use styles from _forms.scss .btn
+      @extend .btn;
+      padding: $spacing-2 $spacing-4; // Adjust padding
     }
   }
-  
+
   .faq-content {
     display: grid;
     grid-template-columns: 1fr;
     gap: $spacing-8;
-    
+
     @media (min-width: $breakpoint-md) {
       grid-template-columns: 250px 1fr;
     }
-    
+
     .category-filters {
       display: flex;
       flex-wrap: wrap;
       gap: $spacing-2;
       margin-bottom: $spacing-6;
-      
+
       @media (min-width: $breakpoint-md) {
         flex-direction: column;
         margin-bottom: 0;
       }
-      
+
       button {
         padding: $spacing-2 $spacing-4;
-        background-color: $gray-100;
-        border: none;
+        background-color: var(--surface-alt-bg); // Use CSS variable
+        border: 1px solid var(--border-color); // Use CSS variable
         border-radius: $border-radius;
         cursor: pointer;
         font-size: $font-size-sm;
-        color: $gray-700;
+        color: var(--text-secondary); // Use CSS variable
         transition: all $transition-fast;
-        
+
         &:hover {
-          background-color: $gray-200;
+          background-color: var(--surface-bg); // Use CSS variable
+          border-color: var(--border-color-strong); // Use CSS variable
+          color: var(--text-primary); // Use CSS variable
         }
-        
+
         &.active {
-          background-color: $primary-color;
-          color: $white;
+          background-color: var(--primary-color); // Use CSS variable
+          color: var(--text-inverted); // Use CSS variable
+          border-color: var(--primary-color); // Use CSS variable
         }
       }
     }
-    
+
     .faq-list {
       .faq-item {
         margin-bottom: $spacing-4;
-        border: 1px solid $gray-200;
+        border: 1px solid var(--border-color); // Use CSS variable
         border-radius: $border-radius;
         overflow: hidden;
-        
+        background-color: var(--surface-bg); // Use CSS variable
+        transition: background-color $transition-medium, border-color $transition-medium;
+
         .faq-question {
           display: flex;
           justify-content: space-between;
           align-items: center;
           padding: $spacing-4 $spacing-5;
           cursor: pointer;
-          background-color: $white;
           transition: background-color $transition-fast;
-          
+
           h3 {
             margin: 0;
             font-size: $font-size-lg;
             font-weight: $font-weight-medium;
-            color: $gray-800;
+            color: var(--text-primary); // Use CSS variable
+            transition: color $transition-medium;
           }
-          
+
           .expand-icon {
             font-size: $font-size-xl;
-            color: $gray-500;
-            transition: transform $transition-fast;
+            color: var(--text-muted); // Use CSS variable
+            transition: transform $transition-fast, color $transition-medium;
           }
-          
+
           &:hover {
-            background-color: $gray-50;
+            background-color: var(--surface-alt-bg); // Use CSS variable
           }
-          
+
           &.expanded {
-            background-color: $gray-50;
-            border-bottom: 1px solid $gray-200;
-            
+            background-color: var(--surface-alt-bg); // Use CSS variable
+            border-bottom: 1px solid var(--border-color); // Use CSS variable
+
             .expand-icon {
-              color: $primary-color;
+              color: var(--primary-color); // Use CSS variable
             }
           }
         }
-        
+
         .faq-answer {
           padding: $spacing-4 $spacing-5;
-          background-color: $white;
-          
+          // Background color inherited from .faq-item
+
           p {
             margin: 0;
-            color: $gray-700;
+            color: var(--text-secondary); // Use CSS variable
             line-height: 1.6;
+            transition: color $transition-medium;
           }
         }
       }
-      
+
       .no-results {
         text-align: center;
         padding: $spacing-8;
-        
+        color: var(--text-muted); // Use CSS variable
+
         p {
-          color: $gray-600;
           margin-bottom: $spacing-4;
         }
-        
+
         .clear-search {
-          padding: $spacing-2 $spacing-4;
-          background-color: $primary-light;
-          color: $white;
-          border: none;
-          border-radius: $border-radius;
-          cursor: pointer;
-          transition: background-color $transition-fast;
-          
-          &:hover {
-            background-color: $primary-color;
-          }
+          // Use styles from _forms.scss .btn
+          @extend .btn;
+          background-color: var(--primary-light);
+          padding: $spacing-2 $spacing-4; // Adjust padding
+
+           &:hover {
+             background-color: var(--primary-color);
+           }
         }
       }
     }
   }
-  
+
   .faq-footer {
     margin-top: $spacing-16;
     text-align: center;
     padding: $spacing-8;
-    background-color: $gray-50;
+    background-color: var(--surface-alt-bg); // Use CSS variable
+    border: 1px solid var(--border-color); // Use CSS variable
     border-radius: $border-radius-lg;
-    
+    transition: background-color $transition-medium, border-color $transition-medium;
+
     h2 {
       font-size: $font-size-2xl;
       margin-bottom: $spacing-4;
-      color: $gray-900;
+      color: var(--text-primary); // Use CSS variable
+      transition: color $transition-medium;
     }
-    
+
     p {
-      color: $gray-700;
+      color: var(--text-secondary); // Use CSS variable
       margin-bottom: $spacing-6;
       max-width: 600px;
       margin-left: auto;
       margin-right: auto;
+      transition: color $transition-medium;
     }
-    
+
     .cta-button {
-      display: inline-block;
-      padding: $spacing-3 $spacing-6;
-      background-color: $primary-color;
-      color: $white;
-      font-weight: $font-weight-medium;
-      border-radius: $border-radius;
-      text-decoration: none;
-      transition: background-color $transition-fast;
-      
-      &:hover {
-        background-color: $primary-dark;
-      }
+      // Use styles from _forms.scss .btn
+      @extend .btn;
+      padding: $spacing-3 $spacing-6; // Adjust padding
     }
   }
 }
+

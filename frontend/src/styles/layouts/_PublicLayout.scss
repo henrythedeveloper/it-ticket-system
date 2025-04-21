@@ -1,36 +1,74 @@
-// Import variables if needed (adjust path as necessary)
+// src/styles/layouts/_PublicLayout.scss
+
 @use '../variables' as *;
+
+// Sticky Theme Toggle Button Styles
+.theme-toggle-sticky {
+  position: fixed;
+  top: $spacing-4;
+  right: $spacing-4;
+  z-index: $z-index-sticky + 10; // Ensure it's above other fixed elements like header
+  background-color: var(--surface-bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 50%; // Make it circular
+  width: 40px; // Fixed size
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: $shadow-md;
+  transition: background-color $transition-fast, color $transition-fast, border-color $transition-fast, transform $transition-fast;
+  font-size: $font-size-lg; // Adjust icon size
+
+  &:hover {
+    background-color: var(--surface-alt-bg);
+    color: var(--text-primary);
+    transform: scale(1.1);
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.4); // Use CSS var if primary changes drastically
+  }
+}
+
 
 .public-layout {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
-  background-color: $gray-50;
+  background-color: var(--body-bg); // Use CSS variable
 
   .side-nav {
     width: $sidebar-width;
-    background-color: $white;
+    background-color: var(--surface-bg); // Use CSS variable
     box-shadow: $shadow;
     padding: $spacing-4;
     position: fixed;
     height: 100vh;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid $gray-200;
+    border-right: 1px solid var(--border-color); // Use CSS variable
+    transition: background-color $transition-medium, border-color $transition-medium;
 
     .logo-container {
       padding: $spacing-4 0;
       text-align: center;
       margin-bottom: $spacing-6;
-      border-bottom: 1px solid $gray-200;
+      border-bottom: 1px solid var(--border-color); // Use CSS variable
+      transition: border-color $transition-medium;
 
       .logo {
         font-size: $font-size-xl;
         font-weight: $font-weight-bold;
-        color: $primary-color;
+        color: var(--primary-color); // Use CSS variable
         text-decoration: none;
-        
+        transition: color $transition-fast;
+
         &:hover {
-          color: $primary-dark;
+          color: var(--primary-dark); // Use CSS variable
         }
       }
     }
@@ -48,7 +86,7 @@
           display: flex;
           align-items: center;
           padding: $spacing-3 $spacing-4;
-          color: $gray-700;
+          color: var(--text-secondary); // Use CSS variable
           text-decoration: none;
           font-weight: $font-weight-medium;
           border-radius: $border-radius;
@@ -60,8 +98,8 @@
           }
 
           &:hover {
-            color: $primary-color;
-            background-color: rgba($primary-color, 0.1);
+            color: var(--primary-color); // Use CSS variable
+            background-color: rgba(var(--primary-color), 0.1); // Use CSS variable
           }
         }
       }
@@ -69,12 +107,13 @@
 
     .auth-buttons {
       padding-top: $spacing-4;
-      border-top: 1px solid $gray-200;
+      border-top: 1px solid var(--border-color); // Use CSS variable
+      transition: border-color $transition-medium;
 
       .login-btn, .dashboard-btn {
         width: 100%;
-        background-color: $primary-color;
-        color: $white;
+        background-color: var(--primary-color); // Use CSS variable
+        color: var(--text-inverted); // Use CSS variable (text on primary bg)
         border: none;
         padding: $spacing-3;
         border-radius: $border-radius;
@@ -90,13 +129,13 @@
         }
 
         &:hover {
-          background-color: $primary-dark;
+          background-color: var(--primary-dark); // Use CSS variable
         }
       }
     }
   }
 
-  main {
+  main.public-content { // Or just 'main'
     flex-grow: 1;
     padding: $spacing-8;
     margin-left: $sidebar-width;
@@ -104,24 +143,104 @@
   }
 
   .public-footer {
-    background-color: $gray-800; 
-    color: $gray-300;           
-    padding: $spacing-6;          
-    text-align: center;
-    font-size: $font-size-sm;     
-    // Add styles for footer links, copyright, etc.
+    margin-left: $sidebar-width;
+    background-color: var(--footer-bg); // Use CSS variable
+    color: var(--footer-text); // Use CSS variable
+    padding: $spacing-8 $spacing-6;
+    font-size: $font-size-sm;
+    transition: background-color $transition-medium, color $transition-medium;
+
+    .footer-content {
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: $spacing-8;
+      max-width: $max-content-width;
+      margin: 0 auto $spacing-6 auto;
+      text-align: left;
+
+      .footer-section {
+        flex: 1;
+        min-width: 200px;
+
+        h3 {
+          color: var(--text-inverted); // Use CSS variable (text on dark footer bg)
+          font-size: $font-size-lg;
+          margin-bottom: $spacing-4;
+          font-weight: $font-weight-semibold;
+        }
+
+        p {
+          color: var(--footer-text); // Use CSS variable
+          font-size: $font-size-sm;
+          margin-bottom: $spacing-2;
+          line-height: 1.6;
+        }
+
+        ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+
+          li {
+            margin-bottom: $spacing-2;
+
+            a {
+              color: var(--footer-link); // Use CSS variable
+              text-decoration: none;
+              transition: color $transition-fast;
+
+              &:hover {
+                color: var(--footer-link-hover); // Use CSS variable
+                text-decoration: underline;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .footer-bottom {
+      border-top: 1px solid var(--border-color-strong); // Use CSS variable (adjust if footer bg changes drastically)
+      padding-top: $spacing-4;
+      margin-top: $spacing-6;
+      text-align: center;
+      transition: border-color $transition-medium;
+
+      p {
+        color: var(--text-muted); // Use CSS variable
+        font-size: $font-size-xs;
+        margin: 0;
+      }
+    }
   }
 }
 
 
-@media (max-width: $breakpoint-md) { 
+@media (max-width: $breakpoint-md) {
   .public-layout {
-    main {
+    main.public-content { // Or just 'main'
+      margin-left: 0;
+      width: 100%;
       padding: $spacing-6 $spacing-4;
     }
-    .public-header, .public-footer {
-      padding-left: $spacing-4;
-      padding-right: $spacing-4;
+
+    .public-footer {
+      margin-left: 0;
+      padding: $spacing-6 $spacing-4;
+
+      .footer-content {
+        flex-direction: column;
+        text-align: center;
+
+        .footer-section {
+          margin-bottom: $spacing-6;
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+        }
+      }
     }
   }
 }

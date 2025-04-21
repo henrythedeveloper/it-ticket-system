@@ -1,240 +1,224 @@
-@use '../../variables' as *;;
+// src/styles/pages/dashboard/_TicketDetailPage.scss
+
+@use '../../variables' as *;
 
 .ticket-detail-page {
   width: 100%;
   margin-bottom: $spacing-8;
-  
+
   .page-header {
     .header-left {
       display: flex;
       flex-direction: column;
-      
+
       .back-button {
         background: none;
         border: none;
-        color: $primary-color;
+        color: var(--text-link); // Use CSS variable
         font-weight: $font-weight-medium;
         cursor: pointer;
         padding: 0;
         display: flex;
         align-items: center;
         margin-bottom: $spacing-2;
-        
+        transition: color $transition-fast;
+
         &:hover {
+          color: var(--text-link-hover); // Use CSS variable
           text-decoration: underline;
         }
       }
-    }
-    
-    .header-right {
-      .update-ticket-btn {
-        background-color: $primary-color;
-        color: $white;
-        border: none;
-        border-radius: $border-radius;
-        padding: $spacing-2 $spacing-4;
-        font-weight: $font-weight-medium;
-        cursor: pointer;
-        transition: background-color $transition-fast;
-        
-        &:hover {
-          background-color: $primary-dark;
-        }
+      h1 {
+         color: var(--text-primary); // Use CSS variable
       }
     }
   }
-  
+
   .ticket-grid {
     display: grid;
     grid-template-columns: 3fr 1fr;
     gap: $spacing-6;
-    
+
     @media (max-width: $breakpoint-lg) {
       grid-template-columns: 1fr;
     }
-    
+
     .ticket-main {
       display: flex;
       flex-direction: column;
       gap: $spacing-6;
     }
   }
-  
+
   .ticket-card {
-    background-color: $white;
+    background-color: var(--surface-bg); // Use CSS variable
+    border: 1px solid var(--border-color); // Use CSS variable
     border-radius: $border-radius-lg;
-    box-shadow: $shadow;
+    box-shadow: $shadow; // Shadow might need adjustment
     padding: $spacing-6;
-    
+    transition: background-color $transition-medium, border-color $transition-medium;
+
     .ticket-header {
       margin-bottom: $spacing-4;
-      
+
       h2 {
         font-size: $font-size-2xl;
-        color: $gray-900;
+        color: var(--text-primary); // Use CSS variable
         margin-bottom: $spacing-3;
+        transition: color $transition-medium;
       }
-      
+
       .ticket-meta {
         display: flex;
         gap: $spacing-3;
+        // Badges are styled below
       }
     }
-    
+
     .ticket-body {
       .ticket-description {
-        color: $gray-800;
+        color: var(--text-secondary); // Use CSS variable
         line-height: 1.6;
         white-space: pre-line;
         margin-bottom: $spacing-4;
+        transition: color $transition-medium;
       }
-      
+
       .ticket-tags {
         display: flex;
         flex-wrap: wrap;
         gap: $spacing-2;
         margin-bottom: $spacing-4;
-        
+
         .tag {
-          background-color: $gray-100;
-          color: $gray-700;
+          background-color: var(--surface-alt-bg); // Use CSS variable
+          color: var(--text-secondary); // Use CSS variable
           padding: $spacing-1 $spacing-3;
           border-radius: $border-radius-full;
           font-size: $font-size-sm;
+          transition: background-color $transition-medium, color $transition-medium;
         }
       }
     }
-    
+
     .ticket-attachments {
       margin-top: $spacing-6;
       padding-top: $spacing-4;
-      border-top: 1px solid $gray-200;
-      
+      border-top: 1px solid var(--border-color); // Use CSS variable
+      transition: border-color $transition-medium;
+
       h3 {
         font-size: $font-size-lg;
-        color: $gray-800;
+        color: var(--text-primary); // Use CSS variable
         margin-bottom: $spacing-3;
+        transition: color $transition-medium;
       }
-      
+
       .attachment-list {
         list-style: none;
         padding: 0;
         margin: 0;
-        
+
         .attachment-item {
           margin-bottom: $spacing-3;
           padding: $spacing-2 0;
-          border-bottom: 1px solid $gray-100;
+          border-bottom: 1px solid var(--border-color); // Use CSS variable
+          transition: border-color $transition-medium;
 
           &:last-child {
             border-bottom: none;
             margin-bottom: 0;
           }
 
-          // Container for Image + Filename + Download Icon
           .image-attachment {
             display: flex;
             align-items: center;
             gap: $spacing-3;
 
             .image-preview {
-              flex-shrink: 0; // Prevent shrinking
-              width: 100px; // Example size
-              height: 75px; // Example size
-              background-color: $gray-100;
+              flex-shrink: 0;
+              width: 100px;
+              height: 75px;
+              background-color: var(--surface-alt-bg); // Use CSS variable
               border-radius: $border-radius;
-              border: 1px solid $gray-200;
+              border: 1px solid var(--border-color-strong); // Use CSS variable
               display: flex;
               align-items: center;
               justify-content: center;
-              overflow: hidden; // Clip image if it's too big
+              overflow: hidden;
+              transition: background-color $transition-medium, border-color $transition-medium;
 
-              img {
-                display: block;
-                max-width: 100%;
-                max-height: 100%;
-                object-fit: cover; // Or 'contain' based on preference
-              }
+              img { display: block; max-width: 100%; max-height: 100%; object-fit: cover; }
 
               .image-placeholder {
                 text-align: center;
                 font-size: $font-size-xs;
-                color: $gray-500;
+                color: var(--text-muted); // Use CSS variable
 
-                span {
-                  display: block;
-                  margin-bottom: $spacing-1;
-                }
+                span { display: block; margin-bottom: $spacing-1; }
 
                 .load-image-btn {
                   padding: $spacing-1 $spacing-2;
                   font-size: $font-size-xs;
-                  background-color: $gray-200;
-                  color: $gray-700;
-                  border: none;
+                  background-color: var(--surface-alt-bg); // Use CSS variable
+                  color: var(--text-secondary); // Use CSS variable
+                  border: 1px solid var(--border-color); // Use CSS variable
                   border-radius: $border-radius-sm;
                   cursor: pointer;
-                  transition: background-color $transition-fast;
+                  transition: background-color $transition-fast, color $transition-fast, border-color $transition-fast;
 
-                  &:hover {
-                    background-color: $gray-300;
-                  }
+                  &:hover { background-color: var(--surface-bg); } // Use CSS variable
                 }
               }
             }
             .attachment-filename {
-              flex-grow: 1; // Take remaining space
+              flex-grow: 1;
               font-size: $font-size-sm;
-              color: $gray-800;
-              word-break: break-all; // Prevent long names overflowing badly
+              color: var(--text-secondary); // Use CSS variable
+              word-break: break-all;
             }
-    
+
             .download-icon-btn {
               flex-shrink: 0;
               background: none;
               border: none;
-              font-size: $font-size-lg; // Adjust size of icon
-              color: $gray-500;
+              font-size: $font-size-lg;
+              color: var(--text-muted); // Use CSS variable
               cursor: pointer;
               padding: $spacing-1;
               transition: color $transition-fast;
-    
-              &:hover {
-                color: $primary-color;
-              }
+
+              &:hover { color: var(--primary-color); } // Use CSS variable
             }
-    
-          } 
+          }
 
           .attachment-link-button {
             display: flex;
             align-items: center;
-            width: 100%; // Make it full width like list item
+            width: 100%;
             padding: $spacing-2;
-            border: 1px solid $gray-200;
-            background-color: $white;
+            border: 1px solid var(--border-color); // Use CSS variable
+            background-color: var(--surface-bg); // Use CSS variable
             border-radius: $border-radius;
             text-align: left;
             cursor: pointer;
             transition: background-color $transition-fast, border-color $transition-fast;
             gap: $spacing-2;
-    
+
             &:hover {
-              background-color: $gray-50;
-              border-color: $gray-300;
+              background-color: var(--surface-alt-bg); // Use CSS variable
+              border-color: var(--border-color-strong); // Use CSS variable
             }
-    
-            .attachment-icon {
-              color: $gray-500;
-            }
+
+            .attachment-icon { color: var(--text-muted); } // Use CSS variable
             .attachment-name {
               flex-grow: 1;
-              color: $primary-color;
+              color: var(--text-link); // Use CSS variable
               font-weight: $font-weight-medium;
               font-size: $font-size-sm;
             }
             .attachment-size {
-              color: $gray-600;
+              color: var(--text-muted); // Use CSS variable
               font-size: $font-size-xs;
               white-space: nowrap;
             }
@@ -242,350 +226,270 @@
         }
       }
     }
-    
+
     .resolution-notes {
       margin-top: $spacing-6;
       padding-top: $spacing-4;
-      border-top: 1px solid $gray-200;
-      
+      border-top: 1px solid var(--border-color); // Use CSS variable
+      transition: border-color $transition-medium;
+
       h3 {
         font-size: $font-size-lg;
-        color: $gray-800;
+        color: var(--text-primary); // Use CSS variable
         margin-bottom: $spacing-3;
+        transition: color $transition-medium;
       }
-      
+
       p {
-        color: $gray-700;
+        color: var(--text-secondary); // Use CSS variable
         line-height: 1.5;
+        transition: color $transition-medium;
       }
     }
   }
-  
+
   .ticket-updates {
-    background-color: $white;
+    background-color: var(--surface-bg); // Use CSS variable
+    border: 1px solid var(--border-color); // Use CSS variable
     border-radius: $border-radius-lg;
-    box-shadow: $shadow;
+    box-shadow: $shadow; // Shadow might need adjustment
     padding: $spacing-6;
-    
+    transition: background-color $transition-medium, border-color $transition-medium;
+
     .updates-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: $spacing-4;
-      
+      border-bottom: 1px solid var(--border-color); // Use CSS variable
+      padding-bottom: $spacing-3;
+      transition: border-color $transition-medium;
+
       h3 {
         font-size: $font-size-lg;
-        color: $gray-800;
+        color: var(--text-primary); // Use CSS variable
         margin: 0;
+        transition: color $transition-medium;
       }
-      
+
       .add-comment-btn {
-        background-color: $primary-color;
-        color: $white;
-        border: none;
-        border-radius: $border-radius;
-        padding: $spacing-2 $spacing-3;
+        padding: $spacing-2 $spacing-3; // Adjust padding
         font-size: $font-size-sm;
-        font-weight: $font-weight-medium;
-        cursor: pointer;
-        transition: background-color $transition-fast;
-        
-        &:hover {
-          background-color: $primary-dark;
-        }
       }
     }
-    
+
     .comment-form-container, .status-form-container {
-      background-color: $gray-50;
+      background-color: var(--surface-alt-bg); // Use CSS variable
       border-radius: $border-radius;
       padding: $spacing-4;
       margin-bottom: $spacing-4;
-      
+      border: 1px solid var(--border-color-strong); // Use CSS variable
+      transition: background-color $transition-medium, border-color $transition-medium;
+
       h4 {
         font-size: $font-size-base;
-        color: $gray-800;
+        color: var(--text-primary); // Use CSS variable
         margin-bottom: $spacing-3;
+        transition: color $transition-medium;
       }
-      
+
       .comment-form, .status-form {
+         // Inherits form-group styles from _forms.scss which now use CSS vars
         .form-group {
-          margin-bottom: $spacing-3;
-          
-          label {
-            display: block;
-            font-weight: $font-weight-medium;
-            color: $gray-700;
-            margin-bottom: $spacing-2;
-          }
-          
-          textarea, select {
-            width: 100%;
-            padding: $spacing-3;
-            border: 1px solid $gray-300;
-            border-radius: $border-radius;
-            font-size: $font-size-base;
-            
-            &:focus {
-              outline: none;
-              border-color: $primary-color;
-              box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
-            }
-          }
-          
-          textarea {
-            resize: vertical;
-            min-height: 100px;
-          }
-          
-          &.checkbox {
-            display: flex;
-            align-items: center;
-            
-            label {
-              display: flex;
-              align-items: center;
-              margin-bottom: 0;
-              cursor: pointer;
-              
-              input[type="checkbox"] {
-                margin-right: $spacing-2;
-              }
-            }
-          }
-          
-          .error {
-            color: $error-color;
-            font-size: $font-size-sm;
-            margin-top: $spacing-1;
-          }
+           margin-bottom: $spacing-3;
+           textarea { min-height: 100px; } // Specific style
         }
-        
+
         .form-actions {
           display: flex;
           justify-content: flex-end;
           gap: $spacing-3;
-          
-          button {
-            padding: $spacing-2 $spacing-4;
-            border-radius: $border-radius;
-            font-size: $font-size-sm;
-            font-weight: $font-weight-medium;
-            cursor: pointer;
-            transition: background-color $transition-fast;
-          }
-          
+
           .cancel-btn {
-            background-color: $white;
-            color: $gray-700;
-            border: 1px solid $gray-300;
-            
-            &:hover {
-              background-color: $gray-100;
-            }
-          }
-          
-          .submit-btn {
-            background-color: $primary-color;
-            color: $white;
-            border: none;
-            
-            &:hover {
-              background-color: $primary-dark;
-            }
-            
-            &:disabled {
-              background-color: $gray-400;
-              cursor: not-allowed;
-            }
+             background-color: var(--surface-bg);
+             color: var(--text-secondary);
+             border: 1px solid var(--border-color);
+             &:hover { background-color: var(--surface-alt-bg); }
           }
         }
       }
     }
-    
+
     .updates-timeline {
       max-height: 40vh;
       overflow-y: auto;
 
       .update-item {
-        padding: $spacing-4;
-        border-left: 3px solid $gray-300;
+        padding: $spacing-4 0 $spacing-4 $spacing-5;
+        border-left: 3px solid var(--border-color); // Use CSS variable
+        margin-left: $spacing-2;
         margin-bottom: $spacing-4;
         position: relative;
-        
+        transition: border-color $transition-medium;
+
         &:before {
           content: '';
           position: absolute;
           width: 12px;
           height: 12px;
-          background-color: $gray-300;
+          background-color: var(--border-color-strong); // Use CSS variable
           border-radius: 50%;
-          left: -7px;
+          left: -7.5px;
           top: $spacing-4;
+          border: 2px solid var(--surface-bg); // Use CSS variable
+          transition: background-color $transition-medium, border-color $transition-medium;
         }
 
         &.system-update {
-          background-color: rgba($gray-500, 0.05);
-          border-left-color: $gray-500;
-          
-          &:before {
-            background-color: $gray-500;
-          }
+          background-color: rgba(var(--text-muted), 0.03); // Use CSS variable alpha
+          border-left-color: var(--border-color-strong); // Use CSS variable
+
+          &:before { background-color: var(--text-muted); } // Use CSS variable
+           .update-author span { font-style: italic; }
         }
-        
+
+        &.internal-note {
+           border-left-color: var(--accent-color); // Use CSS variable
+           background-color: rgba(var(--accent-color), 0.05); // Use CSS variable alpha
+            &:before { background-color: var(--accent-color); } // Use CSS variable
+        }
+
         .update-header {
           display: flex;
           justify-content: space-between;
           margin-bottom: $spacing-2;
-          
+
           .update-author {
             font-weight: $font-weight-medium;
-            color: $gray-800;
+            color: var(--text-primary); // Use CSS variable
             display: flex;
             align-items: center;
-            
+            transition: color $transition-medium;
+
             .internal-badge {
-              background-color: $accent-light;
-              color: $white;
+              background-color: var(--accent-light); // Use CSS variable
+              color: var(--text-inverted); // Use CSS variable (check contrast)
               font-size: $font-size-xs;
               padding: 2px $spacing-1;
               border-radius: $border-radius-sm;
               margin-left: $spacing-2;
             }
           }
-          
+
           .update-time {
             font-size: $font-size-sm;
-            color: $gray-600;
+            color: var(--text-muted); // Use CSS variable
+            transition: color $transition-medium;
           }
         }
-        
+
         .update-content {
-          color: $gray-700;
+          color: var(--text-secondary); // Use CSS variable
           line-height: 1.5;
           white-space: pre-line;
+          transition: color $transition-medium;
         }
       }
-      
+
       .no-updates {
-        color: $gray-500;
+        color: var(--text-muted); // Use CSS variable
         text-align: center;
         padding: $spacing-6;
         font-style: italic;
       }
     }
   }
-  
+
   .ticket-sidebar {
     display: flex;
     flex-direction: column;
     gap: $spacing-6;
-    
+
     .sidebar-card {
-      background-color: $white;
+      background-color: var(--surface-bg); // Use CSS variable
+      border: 1px solid var(--border-color); // Use CSS variable
       border-radius: $border-radius-lg;
-      box-shadow: $shadow;
+      box-shadow: $shadow; // Shadow might need adjustment
       padding: $spacing-4;
-      
+      transition: background-color $transition-medium, border-color $transition-medium;
+
       h3 {
         font-size: $font-size-lg;
-        color: $gray-800;
+        color: var(--text-primary); // Use CSS variable
         margin-bottom: $spacing-4;
         padding-bottom: $spacing-2;
-        border-bottom: 1px solid $gray-200;
+        border-bottom: 1px solid var(--border-color); // Use CSS variable
+        transition: color $transition-medium, border-color $transition-medium;
       }
-      
+
       .info-group {
         display: flex;
         margin-bottom: $spacing-3;
-        
+
         label {
           width: 120px;
           font-weight: $font-weight-medium;
-          color: $gray-600;
+          color: var(--text-muted); // Use CSS variable
+          transition: color $transition-medium;
         }
-        
+
         span {
           flex-grow: 1;
-          color: $gray-800;
+          color: var(--text-secondary); // Use CSS variable
+          transition: color $transition-medium;
+          // Badges are styled separately below
         }
       }
-      
+
       .sidebar-actions {
         display: flex;
         flex-direction: column;
         gap: $spacing-3;
-        
+
         .file-upload-container {
           position: relative;
-          
+
           .file-upload-btn {
             display: block;
             width: 100%;
             padding: $spacing-2;
             text-align: center;
-            background-color: $gray-100;
-            color: $gray-800;
-            border: 1px dashed $gray-400;
+            background-color: var(--surface-alt-bg); // Use CSS variable
+            color: var(--text-secondary); // Use CSS variable
+            border: 1px dashed var(--border-color-strong); // Use CSS variable
             border-radius: $border-radius;
             cursor: pointer;
             transition: all $transition-fast;
-            
+
             &:hover {
-              background-color: $gray-200;
+              background-color: var(--surface-bg); // Use CSS variable
+              border-color: var(--primary-color); // Use CSS variable
             }
           }
-          
+
           .file-input {
-            position: absolute;
-            width: 0.1px;
-            height: 0.1px;
-            opacity: 0;
-            overflow: hidden;
-            z-index: -1;
+            position: absolute; width: 0.1px; height: 0.1px; opacity: 0; overflow: hidden; z-index: -1;
           }
         }
-        
-        .assign-to-me-btn, .start-work-btn, .close-ticket-btn {
-          padding: $spacing-2;
-          border: none;
-          border-radius: $border-radius;
-          font-weight: $font-weight-medium;
-          cursor: pointer;
-          transition: background-color $transition-fast;
-          text-align: center;
-        }
-        
+
+        // Use button base styles from _forms.scss
         .assign-to-me-btn {
-          background-color: $primary-light;
-          color: $white;
-          
-          &:hover {
-            background-color: $primary-dark;
-          }
+           background-color: var(--primary-light);
+           &:hover { background-color: var(--primary-color); }
         }
-        
         .start-work-btn {
-          background-color: $info-color;
-          color: $white;
-          
-          &:hover {
-            background-color: darken($info-color, 10%);
-          }
+           background-color: var(--info-color);
+           &:hover { background-color: var(--primary-dark); } // Assuming info is primary
         }
-        
         .close-ticket-btn {
-          background-color: $success-color;
-          color: $white;
-          
-          &:hover {
-            background-color: darken($success-color, 10%);
-          }
+           background-color: var(--success-color);
+           &:hover { background-color: var(--secondary-dark); } // Assuming success is secondary
         }
       }
     }
   }
-  
+
+  // Badge styles (using CSS variables set globally and in TicketCard partial)
   .status-badge, .urgency-badge {
     display: inline-block;
     padding: $spacing-1 $spacing-2;
@@ -594,76 +498,37 @@
     font-weight: $font-weight-medium;
     text-align: center;
     min-width: 80px;
-  }
-  
-  .status-badge {
-    &.status-unassigned {
-      background-color: rgba($status-unassigned, 0.1);
-      color: $status-unassigned;
-    }
-    
-    &.status-assigned {
-      background-color: rgba($status-assigned, 0.1);
-      color: $status-assigned;
-    }
-    
-    &.status-in-progress {
-      background-color: rgba($status-progress, 0.1);
-      color: $status-progress;
-    }
-    
-    &.status-closed {
-      background-color: rgba($status-closed, 0.1);
-      color: $status-closed;
-    }
-  }
-  
-  .urgency-badge {
-    &.urgency-low {
-      background-color: rgba($urgency-low, 0.1);
-      color: $urgency-low;
-    }
-    
-    &.urgency-medium {
-      background-color: rgba($urgency-medium, 0.1);
-      color: $urgency-medium;
-    }
-    
-    &.urgency-high {
-      background-color: rgba($urgency-high, 0.1);
-      color: $urgency-high;
-    }
-    
-    &.urgency-critical {
-      background-color: rgba($urgency-critical, 0.1);
-      color: $urgency-critical;
-    }
+    // Specific colors applied via classes in _TicketCard.scss using CSS vars
   }
 }
 
+// Responsive adjustments
 @media (max-width: $breakpoint-md) {
   .ticket-detail-page {
     .ticket-card, .ticket-updates, .sidebar-card {
       padding: $spacing-4;
     }
-    
+
     .updates-timeline {
       .update-item {
-        padding: $spacing-3;
-        
+        padding: $spacing-3 0 $spacing-3 $spacing-4; // Adjust padding
+         margin-left: $spacing-1; // Adjust margin
+
         .update-header {
           flex-direction: column;
-          
+          align-items: flex-start; // Align left on mobile
+          gap: $spacing-1; // Add gap
+
           .update-time {
-            margin-top: $spacing-1;
+            margin-top: 0; // Reset margin
           }
         }
       }
     }
-    
+
     .form-actions {
       flex-direction: column;
-      
+
       button {
         width: 100%;
         margin-bottom: $spacing-2;

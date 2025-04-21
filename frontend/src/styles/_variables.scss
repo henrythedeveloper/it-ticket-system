@@ -1,16 +1,26 @@
-// Colors
-$primary-color: #2563eb;
-$primary-light: #3b82f6;
-$primary-dark: #1d4ed8;
+// _variables.scss
 
-$secondary-color: #059669;
-$secondary-light: #10b981;
-$secondary-dark: #047857;
+// --- Base Color Definitions ---
 
-$accent-color: #7c3aed;
-$accent-light: #8b5cf6;
-$accent-dark: #6d28d9;
+// Primary Colors (Sky Blue)
+$sky-400: #7DD3FC; // Added this line
+$sky-500: #38bdf8;
+$sky-600: #0ea5e9;
+$sky-700: #0284c7;
 
+// Secondary Colors (Teal)
+$teal-400: #5EEAD4; // Added for consistency (used in dark mode secondary)
+$teal-500: #2dd4bf;
+$teal-600: #0d9488;
+$teal-700: #0f766e;
+
+// Accent Colors (Violet)
+$violet-300: #C4B5FD; // Added for consistency
+$violet-400: #a78bfa;
+$violet-500: #8b5cf6;
+$violet-600: #7c3aed;
+
+// Grays (Neutral)
 $gray-50: #f9fafb;
 $gray-100: #f3f4f6;
 $gray-200: #e5e7eb;
@@ -22,116 +32,257 @@ $gray-700: #374151;
 $gray-800: #1f2937;
 $gray-900: #111827;
 
+// Functional Colors (Standard Reds/Ambers)
+$amber-400: #fbbf24; // Added for consistency (used in dark warning)
+$amber-500: #f59e0b;
+$red-400: #f87171;   // Added for consistency (used in dark error)
+$red-500: #ef4444;
+
 $white: #ffffff;
 $black: #000000;
 
+
+// --- SCSS Variables (Light Mode Defaults) ---
+
+// Theme Colors
+$primary-color: $sky-600;
+$primary-light: $sky-500;
+$primary-dark: $sky-700;
+
+$secondary-color: $teal-600;
+$secondary-light: $teal-500;
+$secondary-dark: $teal-700;
+
+$accent-color: $violet-500;
+$accent-light: $violet-400;
+$accent-dark: $violet-600;
+
+// Backgrounds & Surfaces
+$body-bg: $gray-100;
+$surface-bg: $white; // Cards, sidebars, headers etc.
+$surface-alt-bg: $gray-50; // Slightly off-white surfaces
+
+// Text Colors
+$text-primary: $gray-900; // Headings, important text
+$text-secondary: $gray-700; // Body text
+$text-muted: $gray-500; // Less important text
+$text-inverted: $white; // Text on dark backgrounds
+
+// Border Colors
+$border-color: $gray-200;
+$border-color-strong: $gray-300;
+
 // Status colors
-$status-unassigned: #f59e0b;
-$status-assigned: #3b82f6;
-$status-progress: #8b5cf6;
-$status-closed: #10b981;
+$status-unassigned: $amber-500;
+$status-assigned: $primary-light;
+$status-progress: $accent-light;
+$status-closed: $secondary-light;
 
 // Urgency colors
-$urgency-low: #10b981;
-$urgency-medium: #3b82f6;
-$urgency-high: #f59e0b;
-$urgency-critical: #ef4444;
+$urgency-low: $secondary-light;
+$urgency-medium: $primary-light;
+$urgency-high: $amber-500;
+$urgency-critical: $red-500;
 
-// Error and success states
-$success-color: #10b981;
-$error-color: #ef4444;
-$warning-color: #f59e0b;
-$info-color: #3b82f6;
+// State Colors
+$success-color: $secondary-color;
+$error-color: $red-500;
+$warning-color: $amber-500;
+$info-color: $primary-color;
+
+
+// --- CSS Custom Properties (Theme Variables) ---
+// Define CSS variables based on the SCSS variables above.
+// These will be used in component styles and overridden for dark mode.
+:root {
+  // Theme Colors
+  --primary-color: #{$primary-color};
+  --primary-light: #{$primary-light};
+  --primary-dark: #{$primary-dark};
+  --secondary-color: #{$secondary-color};
+  --secondary-light: #{$secondary-light};
+  --secondary-dark: #{$secondary-dark};
+  --accent-color: #{$accent-color};
+  --accent-light: #{$accent-light};
+  --accent-dark: #{$accent-dark};
+
+  // Backgrounds & Surfaces
+  --body-bg: #{$body-bg};
+  --surface-bg: #{$surface-bg};
+  --surface-alt-bg: #{$surface-alt-bg};
+
+  // Text Colors
+  --text-primary: #{$text-primary};
+  --text-secondary: #{$text-secondary};
+  --text-muted: #{$text-muted};
+  --text-inverted: #{$text-inverted};
+  --text-link: #{$primary-color};
+  --text-link-hover: #{$primary-dark};
+
+  // Border Colors
+  --border-color: #{$border-color};
+  --border-color-strong: #{$border-color-strong};
+
+  // State Colors
+  --success-color: #{$success-color};
+  --error-color: #{$error-color};
+  --warning-color: #{$warning-color};
+  --info-color: #{$info-color};
+
+  // Status Colors (for reference, often used with background alphas)
+  --status-unassigned-color: #{$status-unassigned};
+  --status-assigned-color: #{$status-assigned};
+  --status-progress-color: #{$status-progress};
+  --status-closed-color: #{$status-closed};
+
+  // Urgency Colors (for reference)
+  --urgency-low-color: #{$urgency-low};
+  --urgency-medium-color: #{$urgency-medium};
+  --urgency-high-color: #{$urgency-high};
+  --urgency-critical-color: #{$urgency-critical};
+
+  // Component Specific (Examples - add more as needed)
+  --header-bg: var(--surface-bg);
+  --header-text: var(--text-primary);
+  --sidebar-bg: $gray-900; // Keep sidebar dark in light mode for contrast
+  --sidebar-text: $gray-300;
+  --sidebar-text-hover: $white;
+  --sidebar-active-bg: rgba($primary-color, 0.1);
+  --sidebar-active-border: $primary-color;
+  --footer-bg: $gray-800;
+  --footer-text: $gray-300;
+  --footer-link: $gray-300;
+  --footer-link-hover: $white;
+
+  // Badge Background Alphas (Example)
+  --badge-info-bg-alpha: rgba(var(--info-color), 0.1);
+  --badge-success-bg-alpha: rgba(var(--success-color), 0.1);
+  --badge-warning-bg-alpha: rgba(var(--warning-color), 0.1);
+  --badge-error-bg-alpha: rgba(var(--error-color), 0.1);
+}
+
+
+// --- Dark Mode SCSS Variables ---
+// Define the dark mode palette using SCSS variables first
+$primary-color-dark: $primary-light; // Use lighter primary in dark mode
+$primary-light-dark: $primary-color;
+$primary-dark-dark: $sky-400; // Use the now defined sky-400
+
+$secondary-color-dark: $secondary-light;
+$secondary-light-dark: $secondary-color;
+$secondary-dark-dark: $teal-400; // Use the now defined teal-400
+
+$accent-color-dark: $accent-light;
+$accent-light-dark: $accent-color;
+$accent-dark-dark: $violet-400; // Use lighter shade
+
+// Dark Backgrounds & Surfaces
+$body-bg-dark: $gray-900;
+$surface-bg-dark: $gray-800;
+$surface-alt-bg-dark: $gray-700; // Slightly lighter surface
+
+// Dark Text Colors
+$text-primary-dark: $gray-100;
+$text-secondary-dark: $gray-300;
+$text-muted-dark: $gray-400;
+$text-inverted-dark: $gray-900; // Text on light backgrounds in dark mode
+
+// Dark Border Colors
+$border-color-dark: $gray-700;
+$border-color-strong-dark: $gray-600;
+
+// Dark State Colors (Adjust brightness/saturation for dark bg)
+$success-color-dark: $secondary-light; // Use lighter teal
+$error-color-dark: $red-400; // Use the now defined red-400
+$warning-color-dark: $amber-400; // Use the now defined amber-400
+$info-color-dark: $primary-light; // Use lighter sky blue
+
+// Dark Status Colors
+$status-unassigned-dark: $warning-color-dark;
+$status-assigned-dark: $info-color-dark;
+$status-progress-dark: $accent-color-dark;
+$status-closed-dark: $success-color-dark;
+
+// Dark Urgency Colors
+$urgency-low-dark: $success-color-dark;
+$urgency-medium-dark: $info-color-dark;
+$urgency-high-dark: $warning-color-dark;
+$urgency-critical-dark: $error-color-dark;
+
+
+// --- Non-Color Variables (Keep as is) ---
 
 // Typography
 $font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 $font-family-mono: 'Fira Code', 'Source Code Pro', Menlo, Monaco, Consolas, 'Courier New', monospace;
-
-$font-size-xs: 0.75rem;    // 12px
-$font-size-sm: 0.875rem;   // 14px
-$font-size-base: 1rem;     // 16px
-$font-size-lg: 1.125rem;   // 18px
-$font-size-xl: 1.25rem;    // 20px
-$font-size-2xl: 1.5rem;    // 24px
-$font-size-3xl: 1.875rem;  // 30px
-$font-size-4xl: 2.25rem;   // 36px
-
+// Font sizes...
+$font-size-xs: 0.75rem;
+$font-size-sm: 0.875rem;
+$font-size-base: 1rem;
+$font-size-lg: 1.125rem;
+$font-size-xl: 1.25rem;
+$font-size-2xl: 1.5rem;
+$font-size-3xl: 1.875rem;
+$font-size-4xl: 2.25rem;
+// Font weights...
 $font-weight-light: 300;
 $font-weight-normal: 400;
 $font-weight-medium: 500;
 $font-weight-semibold: 600;
 $font-weight-bold: 700;
 
-// Spacing
+// Spacing...
 $spacing-0: 0;
-$spacing-0-5: 0.125rem;  // 2px
-$spacing-1: 0.25rem;     // 4px
-$spacing-1-5: 0.375rem;  // 6px
-$spacing-2: 0.5rem;      // 8px
-$spacing-2-5: 0.625rem;  // 10px
-$spacing-3: 0.75rem;     // 12px
-$spacing-3-5: 0.875rem;  // 14px
-$spacing-4: 1rem;        // 16px
-$spacing-5: 1.25rem;     // 20px
-$spacing-6: 1.5rem;      // 24px
-$spacing-7: 1.75rem;     // 28px
-$spacing-8: 2rem;        // 32px
-$spacing-9: 2.25rem;     // 36px
-$spacing-10: 2.5rem;     // 40px
-$spacing-12: 3rem;       // 48px
-$spacing-16: 4rem;       // 64px
-$spacing-20: 5rem;       // 80px
-$spacing-24: 6rem;       // 96px
-$spacing-32: 8rem;       // 128px
-$spacing-40: 10rem;      // 160px
-$spacing-48: 12rem;      // 192px
-$spacing-56: 14rem;      // 224px
-$spacing-64: 16rem;      // 256px
+$spacing-1: 0.25rem;
+$spacing-2: 0.5rem;
+$spacing-3: 0.75rem;
+$spacing-4: 1rem;
+$spacing-5: 1.25rem;
+$spacing-6: 1.5rem;
+$spacing-8: 2rem;
+$spacing-10: 2.5rem;
+$spacing-12: 3rem;
+$spacing-16: 4rem;
+// ... other spacing variables
 
-// Borders
-$border-radius-sm: 0.125rem;   // 2px
-$border-radius: 0.25rem;       // 4px
-$border-radius-md: 0.375rem;   // 6px
-$border-radius-lg: 0.5rem;     // 8px
-$border-radius-xl: 0.75rem;    // 12px
-$border-radius-2xl: 1rem;      // 16px
-$border-radius-3xl: 1.5rem;    // 24px
+// Borders...
+$border-radius-sm: 0.125rem;
+$border-radius: 0.25rem;
+$border-radius-md: 0.375rem;
+$border-radius-lg: 0.5rem;
+$border-radius-xl: 0.75rem;
 $border-radius-full: 9999px;
+// ... other border variables
 
-// Shadows
+// Shadows (Shadows might need adjustment for dark mode, but keeping simple for now)
 $shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 $shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 $shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-$shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-$shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+// ... other shadow variables
 
-// Layout
+// Layout...
 $header-height: 4rem;
-$footer-height: 4rem;
 $sidebar-width: 16rem;
 $sidebar-collapsed-width: 4.5rem;
 $max-content-width: 1280px;
-$content-padding: $spacing-6;
+// ... other layout variables
 
-// Z-index levels
+// Z-index levels...
 $z-index-dropdown: 1000;
 $z-index-sticky: 1020;
 $z-index-fixed: 1030;
-$z-index-modal-backdrop: 1040;
-$z-index-modal: 1050;
-$z-index-popover: 1060;
-$z-index-tooltip: 1070;
+// ... other z-index variables
 
-// Transitions
+// Transitions...
 $transition-fast: 150ms ease;
 $transition-medium: 300ms ease;
 $transition-slow: 500ms ease;
 
-// Media queries
+// Media queries...
 $breakpoint-sm: 640px;
 $breakpoint-md: 768px;
 $breakpoint-lg: 1024px;
 $breakpoint-xl: 1280px;
 $breakpoint-2xl: 1536px;
+

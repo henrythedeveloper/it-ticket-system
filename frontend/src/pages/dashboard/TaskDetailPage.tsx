@@ -279,7 +279,7 @@ const TaskDetailPage: React.FC = () => {
         </div>
         {!isNewTask && !editMode && canEdit && (
           <div className="header-right">
-            <button className="edit-task-btn" onClick={() => setEditMode(true)}>Edit Task</button>
+            <button className="edit-task-btn btn" onClick={() => setEditMode(true)}>Edit Task</button>
           </div>
         )}
       </div>
@@ -383,8 +383,8 @@ const TaskDetailPage: React.FC = () => {
 
               {/* --- Task Actions Section --- */}
               <div className="task-actions">
-                {task.status !== 'Completed' && !task.assigned_to_user_id && currentUser && (<button className="assign-to-me-btn" onClick={handleAssignToMe}>Assign to Me</button>)}
-                {canEdit && (<button className="delete-btn" onClick={handleDeleteTask}>Delete Task</button>)}
+                {task.status !== 'Completed' && !task.assigned_to_user_id && currentUser && (<button className="assign-to-me-btn btn" onClick={handleAssignToMe}>Assign to Me</button>)}
+                {canEdit && (<button className="delete-btn btn btn-danger" onClick={handleDeleteTask}>Delete Task</button>)}
               </div>
 
               {/* --- Task Updates Section --- */}
@@ -392,7 +392,7 @@ const TaskDetailPage: React.FC = () => {
                 <div className="updates-header">
                   <h3>Task Updates</h3>
                   {canAddUpdate && !showUpdateForm && (
-                    <button className="add-comment-btn" onClick={() => { setShowUpdateForm(true); setError(null); }}>
+                    <button className="add-comment-btn btn" onClick={() => { setShowUpdateForm(true); setError(null); }}>
                       Add Update
                     </button>
                   )}
@@ -411,8 +411,8 @@ const TaskDetailPage: React.FC = () => {
                             <ErrorMessage name="comment" component="div" className="error" />
                           </div>
                           <div className="form-actions">
-                            <button type="button" onClick={() => { setShowUpdateForm(false); setError(null); }} className="cancel-btn" disabled={isSubmitting}>Cancel</button>
-                            <button type="submit" disabled={isSubmitting} className="submit-btn">{isSubmitting ? 'Posting...' : 'Post Update'}</button>
+                            <button type="button" onClick={() => { setShowUpdateForm(false); setError(null); }} className="cancel-btn btn" disabled={isSubmitting}>Cancel</button>
+                            <button type="submit" disabled={isSubmitting} className="submit-btn btn">{isSubmitting ? 'Posting...' : 'Post Update'}</button>
                           </div>
                         </Form>
                       )}

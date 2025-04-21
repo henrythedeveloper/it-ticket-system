@@ -204,14 +204,14 @@ const UserFormPage: React.FC = () => {
                 <button 
                   type="button" 
                   onClick={() => navigate('/users')}
-                  className="cancel-btn"
+                  className="cancel-btn btn"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className="submit-btn"
+                  className="submit-btn btn"
                 >
                   {isSubmitting ? 'Saving...' : isNewUser ? 'Create User' : 'Update User'}
                 </button>

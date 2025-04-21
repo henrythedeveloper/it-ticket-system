@@ -1,244 +1,208 @@
-@use '../../variables' as *;;
+// src/styles/pages/dashboard/_TicketsPage.scss
+
+@use '../../variables' as *;
 
 .tickets-page {
   max-width: 100%;
   margin-bottom: $spacing-8;
-  
+
   .filter-section {
-    background-color: $white;
+    background-color: var(--surface-bg); // Use CSS variable
+    border: 1px solid var(--border-color); // Use CSS variable
     border-radius: $border-radius-lg;
-    box-shadow: $shadow;
+    box-shadow: $shadow; // Shadow might need adjustment
     padding: $spacing-4;
     margin-bottom: $spacing-6;
-    
+    transition: background-color $transition-medium, border-color $transition-medium;
+
     .search-form {
       display: flex;
       margin-bottom: $spacing-4;
-      
+
       .search-input {
+        // Inherits from _forms.scss
         flex: 1;
-        padding: $spacing-3;
-        border: 1px solid $gray-300;
         border-radius: $border-radius 0 0 $border-radius;
-        font-size: $font-size-base;
-        
-        &:focus {
-          outline: none;
-          border-color: $primary-color;
-        }
       }
-      
+
       .search-button {
-        padding: $spacing-3 $spacing-5;
-        background-color: $primary-color;
-        color: $white;
-        border: none;
-        border-radius: 0 $border-radius $border-radius 0;
-        font-weight: $font-weight-medium;
-        cursor: pointer;
-        transition: background-color $transition-fast;
-        
-        &:hover {
-          background-color: $primary-dark;
-        }
+         padding: $spacing-3 $spacing-5; // Keep specific padding
+         border-radius: 0 $border-radius $border-radius 0;
       }
     }
-    
+
     .filters {
       display: flex;
       flex-wrap: wrap;
       gap: $spacing-4;
       align-items: center;
       margin-bottom: $spacing-4;
-      
+
       .filter-group {
         display: flex;
         align-items: center;
-        
+
         label {
           margin-right: $spacing-2;
           font-weight: $font-weight-medium;
-          color: $gray-700;
+          color: var(--text-primary); // Use CSS variable
+          transition: color $transition-medium;
         }
-        
+
         .filter-select {
-          padding: $spacing-2;
-          border: 1px solid $gray-300;
-          border-radius: $border-radius;
-          background-color: $white;
-          
-          &:focus {
-            outline: none;
-            border-color: $primary-color;
-          }
+          // Inherits from _forms.scss
+          padding: $spacing-2; // Adjust padding if needed
         }
       }
-      
+
       .clear-filters-btn {
-        border: 1px solid $gray-300;
-        background-color: $white;
-        color: $gray-700;
-        padding: $spacing-2 $spacing-3;
-        border-radius: $border-radius;
-        cursor: pointer;
-        transition: all $transition-fast;
-        
-        &:hover {
-          background-color: $gray-100;
-          color: $gray-900;
-        }
+         background-color: var(--surface-bg); // Use CSS variable
+         color: var(--text-secondary); // Use CSS variable
+         border: 1px solid var(--border-color); // Use CSS variable
+         padding: $spacing-2 $spacing-3; // Keep specific padding
+
+         &:hover {
+           background-color: var(--surface-alt-bg); // Use CSS variable
+           color: var(--text-primary); // Use CSS variable
+         }
       }
     }
-    
+
     .tag-filter {
       margin-top: $spacing-3;
-      
+
       .tag-filter-label {
         display: block;
         margin-bottom: $spacing-2;
         font-weight: $font-weight-medium;
-        color: $gray-700;
+        color: var(--text-primary); // Use CSS variable
+        transition: color $transition-medium;
       }
-      
+
       .tag-list {
         display: flex;
         flex-wrap: wrap;
         gap: $spacing-2;
-        
+
         .filter-tag {
           padding: $spacing-1 $spacing-3;
-          background-color: $gray-100;
-          color: $gray-700;
+          background-color: var(--surface-alt-bg); // Use CSS variable
+          color: var(--text-secondary); // Use CSS variable
+          border: 1px solid var(--border-color); // Use CSS variable
           border-radius: $border-radius-full;
           font-size: $font-size-sm;
           cursor: pointer;
           transition: all $transition-fast;
-          
+
           &:hover {
-            background-color: $gray-200;
+            background-color: var(--surface-bg); // Use CSS variable
+            border-color: var(--border-color-strong); // Use CSS variable
           }
-          
+
           &.selected {
-            background-color: $primary-color;
-            color: $white;
+            background-color: var(--primary-color); // Use CSS variable
+            color: var(--text-inverted); // Use CSS variable
+            border-color: var(--primary-color); // Use CSS variable
+             &:hover {
+                background-color: var(--primary-dark); // Use CSS variable
+                border-color: var(--primary-dark); // Use CSS variable
+             }
           }
         }
       }
     }
   }
-  
-  .loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: $spacing-12;
-    
-    .loader {
-      margin-bottom: $spacing-4;
-    }
-    
-    p {
-      color: $gray-600;
-    }
-  }
-  
+
   .no-tickets {
-    background-color: $white;
+    background-color: var(--surface-bg); // Use CSS variable
+    border: 1px solid var(--border-color); // Use CSS variable
     padding: $spacing-8;
     border-radius: $border-radius-lg;
-    box-shadow: $shadow;
+    box-shadow: $shadow; // Shadow might need adjustment
     text-align: center;
-    
+    transition: background-color $transition-medium, border-color $transition-medium;
+
     p {
-      color: $gray-600;
+      color: var(--text-muted); // Use CSS variable
       margin-bottom: $spacing-4;
     }
+     .clear-filters-btn { 
+        background-color: var(--primary-light);
+         &:hover {
+           background-color: var(--primary-color);
+         }
+    }
   }
-  
+
   .tickets-table-container {
-    background-color: $white;
+    background-color: var(--surface-bg); // Use CSS variable
+    border: 1px solid var(--border-color); // Use CSS variable
     border-radius: $border-radius-lg;
-    box-shadow: $shadow;
+    box-shadow: $shadow; // Shadow might need adjustment
     overflow: hidden;
-    overflow-x: auto;
+    overflow-x: auto; // Keep horizontal scroll if needed
+    transition: background-color $transition-medium, border-color $transition-medium;
   }
-  
+
   .tickets-table {
     width: 100%;
     border-collapse: collapse;
-    
+
+    // th, td, tr hover styles inherited from global.scss using CSS vars
+
     th {
-      background-color: $gray-50;
       padding: $spacing-3 $spacing-4;
-      text-align: left;
-      font-weight: $font-weight-semibold;
-      color: $gray-700;
-      border-bottom: 1px solid $gray-200;
       white-space: nowrap;
     }
-    
+
     td {
       padding: $spacing-3 $spacing-4;
-      border-bottom: 1px solid $gray-200;
-      color: $gray-800;
-      
+
       &.subject-cell {
         max-width: 300px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        
+
         a {
-          color: $primary-color;
+          color: var(--text-link); // Use CSS variable
           text-decoration: none;
-          
+
           &:hover {
             text-decoration: underline;
+            color: var(--text-link-hover); // Use CSS variable
           }
         }
       }
-      
+
       &.tags-cell {
         min-width: 150px;
-        
+
         .table-tags {
           display: flex;
           flex-wrap: wrap;
           gap: $spacing-1;
-          
+
           .table-tag {
-            background-color: $gray-100;
-            color: $gray-700;
+            background-color: var(--surface-alt-bg); // Use CSS variable
+            color: var(--text-secondary); // Use CSS variable
             padding: 2px $spacing-2;
             border-radius: $border-radius-full;
             font-size: $font-size-xs;
             white-space: nowrap;
+            transition: background-color $transition-medium, color $transition-medium;
           }
         }
-        
+
         .no-tags {
-          color: $gray-400;
-        }
-      }
-    }
-    
-    tr {
-      cursor: pointer;
-      
-      &:hover {
-        background-color: $gray-50;
-      }
-      
-      &:last-child {
-        td {
-          border-bottom: none;
+          color: var(--text-muted); // Use CSS variable
         }
       }
     }
   }
-  
-  .status-badge {
+
+  // Badge styles (using CSS variables set globally and in TicketCard partial)
+  .status-badge, .urgency-badge {
     display: inline-block;
     padding: $spacing-1 $spacing-2;
     border-radius: $border-radius-full;
@@ -246,67 +210,17 @@
     font-weight: $font-weight-medium;
     text-align: center;
     min-width: 80px;
-    
-    &.badge-unassigned {
-      background-color: rgba($status-unassigned, 0.1);
-      color: $status-unassigned;
-    }
-    
-    &.badge-assigned {
-      background-color: rgba($status-assigned, 0.1);
-      color: $status-assigned;
-    }
-    
-    &.badge-progress {
-      background-color: rgba($status-progress, 0.1);
-      color: $status-progress;
-    }
-    
-    &.badge-closed {
-      background-color: rgba($status-closed, 0.1);
-      color: $status-closed;
-    }
-  }
-  
-  .urgency-badge {
-    display: inline-block;
-    padding: $spacing-1 $spacing-2;
-    border-radius: $border-radius-full;
-    font-size: $font-size-xs;
-    font-weight: $font-weight-medium;
-    text-align: center;
-    min-width: 80px;
-    
-    &.badge-low {
-      background-color: rgba($urgency-low, 0.1);
-      color: $urgency-low;
-    }
-    
-    &.badge-medium {
-      background-color: rgba($urgency-medium, 0.1);
-      color: $urgency-medium;
-    }
-    
-    &.badge-high {
-      background-color: rgba($urgency-high, 0.1);
-      color: $urgency-high;
-    }
-    
-    &.badge-critical {
-      background-color: rgba($urgency-critical, 0.1);
-      color: $urgency-critical;
-    }
+    // Specific colors applied via classes in _TicketCard.scss using CSS vars
   }
 }
 
+// Responsive adjustments
 @media (max-width: $breakpoint-lg) {
   .tickets-page {
     .tickets-table {
-      th:nth-child(5),
-      th:nth-child(6),
-      th:nth-child(8),
+      th:nth-child(5), // Created
+      th:nth-child(8), // Tags
       td:nth-child(5),
-      td:nth-child(6),
       td:nth-child(8) {
         display: none;
       }
@@ -320,30 +234,30 @@
       .filters {
         flex-direction: column;
         align-items: flex-start;
-        
+
         .filter-group {
           width: 100%;
           margin-bottom: $spacing-2;
-          
+
           label {
-            width: 100px;
+            width: 100px; // Or adjust
           }
-          
+
           .filter-select {
             flex: 1;
           }
         }
-        
+
         .clear-filters-btn {
           width: 100%;
           margin-top: $spacing-2;
         }
       }
     }
-    
+
     .tickets-table {
-      th:nth-child(4),
-      th:nth-child(7),
+      th:nth-child(4), // Urgency
+      th:nth-child(7), // Assigned To
       td:nth-child(4),
       td:nth-child(7) {
         display: none;

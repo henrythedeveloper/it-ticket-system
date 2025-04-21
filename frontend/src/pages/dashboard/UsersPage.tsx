@@ -94,7 +94,7 @@ const UsersPage: React.FC = () => {
       <div className="page-header">
         <h1>Manage Users</h1>
         <div className="header-actions">
-          <Link to="/users/new" className="add-user-btn">
+          <Link to="/users/new" className="add-user-btn btn">
             Add New User
           </Link>
         </div>
@@ -144,11 +144,11 @@ const UsersPage: React.FC = () => {
                   </td>
                   <td>{formatDate(userData.created_at)}</td>
                   <td className="actions-cell">
-                    <Link to={`/users/${userData.id}`} className="edit-btn">
+                    <Link to={`/users/${userData.id}`} className="edit-btn btn">
                       Edit
                     </Link>
                     <button
-                      className="delete-btn"
+                      className="delete-btn btn btn-danger"
                       onClick={() => handleDeleteUser(userData.id)}
                       disabled={userData.id === user?.id}
                     >

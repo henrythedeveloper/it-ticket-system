@@ -1,27 +1,32 @@
+// src/styles/components/_forms.scss
+
 @use '../variables' as *;
 
 // Form container
 .form-container {
-  background-color: $white;
+  background-color: var(--surface-bg); // Use CSS variable
+  border: 1px solid var(--border-color); // Add border for dark mode
   border-radius: $border-radius-lg;
-  box-shadow: $shadow;
+  box-shadow: $shadow; // Shadow might need dark mode adjustment if desired
   padding: $spacing-6;
   max-width: 32rem;
   width: 100%;
   margin: 0 auto;
+  transition: background-color $transition-medium, border-color $transition-medium;
 }
 
 // Form groups
 .form-group {
   margin-bottom: $spacing-4;
-  
+
   label {
     display: block;
     font-weight: $font-weight-medium;
     margin-bottom: $spacing-2;
-    color: $gray-700;
+    color: var(--text-primary); // Use CSS variable
+    transition: color $transition-medium;
   }
-  
+
   input[type="text"],
   input[type="email"],
   input[type="password"],
@@ -33,70 +38,85 @@
   textarea {
     width: 100%;
     padding: $spacing-3;
-    border: 1px solid $gray-300;
+    border: 1px solid var(--border-color-strong); // Use CSS variable
     border-radius: $border-radius;
     font-size: $font-size-base;
-    transition: border-color $transition-fast, box-shadow $transition-fast;
-    background-color: $white;
-    color: $gray-800;
-    
+    background-color: var(--surface-alt-bg); // Use CSS variable
+    color: var(--text-primary); // Use CSS variable
+    transition: border-color $transition-fast, box-shadow $transition-fast, background-color $transition-medium, color $transition-medium;
+
     &:focus {
-      border-color: $primary-color;
-      box-shadow: 0 0 0 3px rgba($primary-color, 0.2);
+      border-color: var(--primary-color); // Use CSS variable
+      // Adjust focus shadow potentially for dark mode if needed
+      box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.2); // Example using CSS var in rgba
       outline: none;
     }
-    
+
     &::placeholder {
-      color: $gray-400;
+      color: var(--text-muted); // Use CSS variable
+      transition: color $transition-medium;
     }
-    
+
     &:disabled {
-      background-color: $gray-100;
+      // Disabled styles are handled in global.scss dark mode block
       cursor: not-allowed;
     }
   }
-  
+
   textarea {
     min-height: 120px;
     resize: vertical;
   }
-  
+
   select {
     appearance: none;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); // Default arrow
     background-position: right 0.5rem center;
     background-repeat: no-repeat;
     background-size: 1.5em 1.5em;
     padding-right: 2.5rem;
+
+    // --- Corrected Dark Mode Arrow Styles ---
+    // Rule for .dark-mode class
+    body.dark-mode & {
+       background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); // Use a lighter gray
+    }
+    // Rule for OS preference
+    @media (prefers-color-scheme: dark) {
+       // Apply the same style when OS preference is dark
+       background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); // Use a lighter gray
+    }
+    // --- End Correction ---
   }
-  
+
   .error {
-    color: $error-color;
+    color: var(--error-color); // Use CSS variable
     font-size: $font-size-sm;
     margin-top: $spacing-1;
   }
-  
+
   &.checkbox {
     display: flex;
     align-items: center;
-    
+
     label {
       display: flex;
       align-items: center;
       margin-bottom: 0;
       cursor: pointer;
-      
+
       input[type="checkbox"] {
         margin-right: $spacing-2;
         cursor: pointer;
+        // Consider styling checkbox appearance for dark mode
       }
     }
   }
-  
+
   &.inline {
     display: flex;
     align-items: center;
-    
+
     label {
       margin-right: $spacing-4;
       margin-bottom: 0;
@@ -110,7 +130,7 @@
   display: flex;
   gap: $spacing-4;
   margin-bottom: $spacing-4;
-  
+
   .form-group {
     flex: 1;
     margin-bottom: 0;
@@ -125,101 +145,109 @@
   margin-top: $spacing-6;
 }
 
-// Buttons
+// Buttons (Using CSS variables for themeable properties)
 .btn {
   display: inline-block;
   padding: $spacing-3 $spacing-6;
-  background-color: $primary-color;
-  color: $white;
-  border: none;
+  background-color: var(--primary-color); // Use CSS variable
+  color: var(--text-inverted); // Use CSS variable (text on primary bg)
+  border: 1px solid transparent; // Base border
   border-radius: $border-radius;
   font-weight: $font-weight-medium;
   cursor: pointer;
   text-align: center;
   text-decoration: none;
-  transition: background-color $transition-fast, transform $transition-fast;
-  
+  transition: background-color $transition-fast, transform $transition-fast, border-color $transition-fast, color $transition-fast;
+
   &:hover {
-    background-color: $primary-dark;
+    background-color: var(--primary-dark); // Use CSS variable
     transform: translateY(-1px);
   }
-  
+
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba($primary-color, 0.4);
+    box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.4); // Use CSS variable
   }
-  
+
   &:active {
     transform: translateY(1px);
   }
-  
+
   &:disabled {
-    background-color: $gray-400;
+    background-color: $gray-400; // Keep disabled consistent? Or use CSS var?
+    border-color: $gray-400;
+    color: $gray-100;
     cursor: not-allowed;
+    opacity: 0.7;
   }
-  
+
   &.btn-secondary {
-    background-color: $secondary-color;
-    
+    background-color: var(--secondary-color); // Use CSS variable
+    color: var(--text-inverted); // Use CSS variable
+
     &:hover {
-      background-color: $secondary-dark;
+      background-color: var(--secondary-dark); // Use CSS variable
     }
-    
+
     &:focus {
-      box-shadow: 0 0 0 3px rgba($secondary-color, 0.4);
+      box-shadow: 0 0 0 3px rgba(var(--secondary-color), 0.4); // Use CSS variable
     }
   }
-  
+
   &.btn-danger {
-    background-color: $error-color;
-    
+    background-color: var(--error-color); // Use CSS variable
+    color: $white; // Keep white text on red usually
+
     &:hover {
-      background-color: darken($error-color, 10%);
+      background-color: darken($error-color, 10%); // SCSS darken is fine here
     }
-    
+
     &:focus {
-      box-shadow: 0 0 0 3px rgba($error-color, 0.4);
+      box-shadow: 0 0 0 3px rgba(var(--error-color), 0.4); // Use CSS variable
     }
   }
-  
+
   &.btn-outline {
     background-color: transparent;
-    border: 1px solid $primary-color;
-    color: $primary-color;
-    
+    border: 1px solid var(--primary-color); // Use CSS variable
+    color: var(--primary-color); // Use CSS variable
+
     &:hover {
-      background-color: $primary-color;
-      color: $white;
+      background-color: var(--primary-color); // Use CSS variable
+      color: var(--text-inverted); // Use CSS variable
     }
   }
-  
+
+  // Sizes remain the same
   &.btn-sm {
     padding: $spacing-2 $spacing-4;
     font-size: $font-size-sm;
   }
-  
+
   &.btn-lg {
     padding: $spacing-4 $spacing-8;
     font-size: $font-size-lg;
   }
-  
+
   // Loading state
   &.loading {
     position: relative;
-    padding-left: $spacing-8;
-    
+    // Color adjustments might be needed based on button bg
+    color: transparent !important; // Hide text when loading
+
     &::before {
       content: "";
       position: absolute;
-      left: $spacing-3;
+      left: 50%;
       top: 50%;
-      transform: translateY(-50%);
+      transform: translate(-50%, -50%); // Center spinner
       width: 16px;
       height: 16px;
-      border: 2px solid rgba($white, 0.3);
-      border-top-color: $white;
+      border: 2px solid currentColor; // Use button's text color (or override)
+      border-top-color: transparent; // Make spinner effect visible
       border-radius: 50%;
       animation: spinner 0.6s linear infinite;
+      opacity: 0.5;
     }
   }
 }
@@ -227,7 +255,7 @@
 // Loading spinner animation
 @keyframes spinner {
   to {
-    transform: translateY(-50%) rotate(360deg);
+    transform: translate(-50%, -50%) rotate(360deg);
   }
 }
 
@@ -237,10 +265,10 @@
     flex-direction: column;
     gap: $spacing-4;
   }
-  
+
   .form-actions {
     flex-direction: column;
-    
+
     .btn {
       width: 100%;
     }

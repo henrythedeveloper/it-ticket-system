@@ -1,10 +1,13 @@
+// src/layouts/MainLayout.tsx
 import React, { useState } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../hooks/useTheme'; // Import the theme hook
 
 const MainLayout: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme(); // Use the theme hook
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const toggleSidebar = () => {
@@ -31,14 +34,29 @@ const MainLayout: React.FC = () => {
           <h1 className="logo">IT Helpdesk</h1>
         </div>
         <div className="header-right">
+          {/* Theme Toggle Button - Placed before user info/dropdown */}
+          <button
+              onClick={toggleTheme}
+              className="theme-toggle-header" // Keep specific class
+              aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+          >
+              {theme === 'light' ? '🌙' : '☀️'}
+          </button>
+
+          {/* User Info */}
           <div className="user-info">
             <span className="user-name">{user?.name}</span>
             <span className="user-role">{user?.role}</span>
           </div>
+
+          {/* Profile Dropdown */}
           <div className="dropdown">
+             {/* Original profile icon button */}
             <button className="dropdown-toggle">
-              <i className="profile-icon">👤</i>
+              <i className="icon">👤</i>
             </button>
+            {/* Dropdown menu */}
             <div className="dropdown-menu">
               <Link to="/profile">Profile</Link>
               <Link to="/settings">Settings</Link>
@@ -50,7 +68,7 @@ const MainLayout: React.FC = () => {
 
       {/* Sidebar */}
       <aside className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
-        <nav className="sidebar-nav">
+         <nav className="sidebar-nav">
           <ul>
             <li>
               <Link to="/dashboard">

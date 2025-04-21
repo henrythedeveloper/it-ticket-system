@@ -1,142 +1,107 @@
-@use '../../variables' as *;;
+// src/styles/pages/dashboard/_UsersPage.scss
+
+@use '../../variables' as *;
 
 .users-page {
   max-width: 100%;
   margin-bottom: $spacing-8;
-  
+
   .header-actions {
     .add-user-btn {
-      display: inline-block;
-      background-color: $primary-color;
-      color: $white;
-      border: none;
-      border-radius: $border-radius;
-      padding: $spacing-2 $spacing-4;
-      font-weight: $font-weight-medium;
-      cursor: pointer;
-      text-decoration: none;
-      transition: background-color $transition-fast;
-      
-      &:hover {
-        background-color: $primary-dark;
-      }
+      // Use styles from _forms.scss .btn
+      text-decoration: none; // Ensure link looks like button
     }
   }
-  
+
   .search-filter {
-    background-color: $white;
+    background-color: var(--surface-bg); // Use CSS variable
     padding: $spacing-4;
+    border: 1px solid var(--border-color); // Use CSS variable
     border-radius: $border-radius-lg;
-    box-shadow: $shadow;
+    box-shadow: $shadow; // Shadow might need adjustment
     margin-bottom: $spacing-6;
-    
+    transition: background-color $transition-medium, border-color $transition-medium;
+
     .search-input {
+      // Inherits from _forms.scss
       width: 100%;
-      padding: $spacing-3;
-      border: 1px solid $gray-300;
-      border-radius: $border-radius;
-      font-size: $font-size-base;
-      
-      &:focus {
-        outline: none;
-        border-color: $primary-color;
-        box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
-      }
     }
   }
-  
+
   .no-users {
-    background-color: $white;
+    background-color: var(--surface-bg); // Use CSS variable
+    border: 1px solid var(--border-color); // Use CSS variable
     padding: $spacing-8;
     border-radius: $border-radius-lg;
-    box-shadow: $shadow;
+    box-shadow: $shadow; // Shadow might need adjustment
     text-align: center;
-    
+    transition: background-color $transition-medium, border-color $transition-medium;
+
     p {
-      color: $gray-600;
+      color: var(--text-muted); // Use CSS variable
       margin-bottom: $spacing-4;
     }
   }
-  
+
   .users-table-container {
-    background-color: $white;
+    background-color: var(--surface-bg); // Use CSS variable
+    border: 1px solid var(--border-color); // Use CSS variable
     border-radius: $border-radius-lg;
-    box-shadow: $shadow;
-    overflow: hidden;
+    box-shadow: $shadow; // Shadow might need adjustment
+    overflow: hidden; // Clip shadow/border radius
+    transition: background-color $transition-medium, border-color $transition-medium;
   }
-  
+
   .users-table {
     width: 100%;
     border-collapse: collapse;
-    
+
+    // th, td, tr hover styles inherited from global.scss using CSS vars
+
     th {
-      background-color: $gray-50;
       padding: $spacing-3 $spacing-4;
-      text-align: left;
-      font-weight: $font-weight-semibold;
-      color: $gray-700;
-      border-bottom: 1px solid $gray-200;
       white-space: nowrap;
     }
-    
+
     td {
       padding: $spacing-3 $spacing-4;
-      border-bottom: 1px solid $gray-200;
-      color: $gray-800;
-      
+
       &.actions-cell {
         white-space: nowrap;
         display: flex;
         gap: $spacing-2;
-        
+
         .edit-btn, .delete-btn {
           padding: $spacing-1 $spacing-3;
           border-radius: $border-radius;
           font-size: $font-size-sm;
           cursor: pointer;
           transition: all $transition-fast;
-        }
-        
-        .edit-btn {
-          background-color: $primary-light;
-          color: $white;
-          text-decoration: none;
-          
-          &:hover {
-            background-color: $primary-dark;
-          }
-        }
-        
-        .delete-btn {
-          background-color: $error-color;
-          color: $white;
+          text-decoration: none; // Ensure link looks like button
           border: none;
-          
-          &:hover {
-            background-color: darken($error-color, 10%);
-          }
-          
-          &:disabled {
-            background-color: $gray-400;
-            cursor: not-allowed;
-          }
         }
-      }
-    }
-    
-    tr {
-      &:hover {
-        background-color: $gray-50;
-      }
-      
-      &:last-child {
-        td {
-          border-bottom: none;
+
+        .edit-btn {
+          // Use styles from _forms.scss .btn
+          background-color: var(--primary-light);
+          padding: $spacing-1 $spacing-3; // Override padding
+          font-size: $font-size-sm; // Override font size
+           &:hover { background-color: var(--primary-color); }
+        }
+
+        .delete-btn {
+           // Use styles from _forms.scss .btn .btn-danger
+           padding: $spacing-1 $spacing-3; // Override padding
+           font-size: $font-size-sm; // Override font size
+
+           &:disabled {
+             // Disabled styles inherited
+           }
         }
       }
     }
   }
-  
+
   .role-badge {
     display: inline-block;
     padding: $spacing-1 $spacing-2;
@@ -145,27 +110,23 @@
     font-weight: $font-weight-medium;
     text-align: center;
     min-width: 70px;
-    
-    &.admin {
-      background-color: rgba($accent-color, 0.1);
-      color: $accent-color;
-    }
-    
-    &.staff {
-      background-color: rgba($info-color, 0.1);
-      color: $info-color;
-    }
+    transition: background-color $transition-medium, color $transition-medium;
+
+    // Use CSS variables for role colors
+    &.admin { background-color: rgba(var(--accent-color), 0.15); color: var(--accent-color); }
+    &.staff { background-color: rgba(var(--info-color), 0.15); color: var(--info-color); }
   }
 }
 
+// Responsive adjustments
 @media (max-width: $breakpoint-md) {
   .users-page {
     .users-table {
       th, td {
         padding: $spacing-2;
       }
-      
-      th:nth-child(4), 
+
+      th:nth-child(4), // Created
       td:nth-child(4) {
         display: none;
       }

@@ -1,34 +1,39 @@
+// src/styles/pages/dashboard/_ProfilePage.scss
+
 @use '../../variables' as *;
 
 .profile-page {
   width: 100%;
   margin-bottom: $spacing-8;
-  
+
   .profile-container {
     display: grid;
     grid-template-columns: 1fr;
     gap: $spacing-6;
-    
+
     @media (min-width: $breakpoint-lg) {
       grid-template-columns: 1fr 2fr;
     }
-    
+
     .profile-info {
-      background-color: $white;
+      background-color: var(--surface-bg); // Use CSS variable
+      border: 1px solid var(--border-color); // Use CSS variable
       border-radius: $border-radius-lg;
-      box-shadow: $shadow;
+      box-shadow: $shadow; // Shadow might need adjustment
       padding: $spacing-6;
-      
+      transition: background-color $transition-medium, border-color $transition-medium;
+
+
       .profile-header {
         display: flex;
         align-items: center;
         margin-bottom: $spacing-4;
-        
+
         .avatar {
           width: 80px;
           height: 80px;
-          background-color: $primary-color;
-          color: $white;
+          background-color: var(--primary-color); // Use CSS variable
+          color: var(--text-inverted); // Use CSS variable
           border-radius: 50%;
           display: flex;
           justify-content: center;
@@ -37,21 +42,23 @@
           font-weight: $font-weight-bold;
           margin-right: $spacing-4;
           flex-shrink: 0;
+          transition: background-color $transition-medium, color $transition-medium;
         }
-        
+
         .profile-meta {
           h2 {
             font-size: $font-size-2xl;
-            color: $gray-900;
+            color: var(--text-primary); // Use CSS variable
             margin-bottom: $spacing-2;
+            transition: color $transition-medium;
           }
-          
+
           .profile-details {
             display: flex;
             flex-wrap: wrap;
             gap: $spacing-3;
             align-items: center;
-            
+
             .role-badge {
               display: inline-block;
               padding: $spacing-1 $spacing-2;
@@ -59,91 +66,70 @@
               font-size: $font-size-xs;
               font-weight: $font-weight-medium;
               text-align: center;
-              
+              transition: background-color $transition-medium, color $transition-medium;
+
+              // Use CSS vars for badge colors
               &.admin {
-                background-color: rgba($accent-color, 0.1);
-                color: $accent-color;
+                background-color: rgba(var(--accent-color), 0.15);
+                color: var(--accent-color);
               }
-              
+
               &.staff {
-                background-color: rgba($info-color, 0.1);
-                color: $info-color;
+                background-color: rgba(var(--info-color), 0.15);
+                color: var(--info-color);
               }
             }
-            
+
             .join-date {
               font-size: $font-size-sm;
-              color: $gray-600;
+              color: var(--text-muted); // Use CSS variable
+              transition: color $transition-medium;
             }
           }
         }
       }
     }
-    
+
     .profile-form-container {
-      background-color: $white;
+      background-color: var(--surface-bg); // Use CSS variable
+      border: 1px solid var(--border-color); // Use CSS variable
       border-radius: $border-radius-lg;
-      box-shadow: $shadow;
+      box-shadow: $shadow; // Shadow might need adjustment
       padding: $spacing-6;
-      
+      transition: background-color $transition-medium, border-color $transition-medium;
+
+
       h3 {
-        color: $gray-900;
+        color: var(--text-primary); // Use CSS variable
         font-size: $font-size-xl;
         margin-bottom: $spacing-4;
         padding-bottom: $spacing-3;
-        border-bottom: 1px solid $gray-200;
+        border-bottom: 1px solid var(--border-color); // Use CSS variable
+        transition: color $transition-medium, border-color $transition-medium;
       }
-      
+
       .profile-form {
         display: flex;
         flex-direction: column;
         gap: $spacing-4;
-        
+
+        // Inherits form-group styles from _forms.scss which now use CSS vars
         .form-group {
-          margin-bottom: $spacing-4;
-          
-          label {
-            display: block;
-            font-weight: $font-weight-medium;
-            margin-bottom: $spacing-2;
-            color: $gray-700;
-          }
-          
-          input[type="text"],
-          input[type="email"],
-          input[type="password"] {
-            width: 100%;
-            padding: $spacing-3;
-            border: 1px solid $gray-300;
-            border-radius: $border-radius;
-            font-size: $font-size-base;
-            
-            &:focus {
-              outline: none;
-              border-color: $primary-color;
-              box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
-            }
-          }
-          
-          .static-field {
-            padding: $spacing-3;
-            background-color: $gray-100;
-            border: 1px solid $gray-300;
-            border-radius: $border-radius;
-            color: $gray-700;
-          }
-          
-          .field-note {
-            font-size: $font-size-sm;
-            color: $gray-600;
-            margin-top: $spacing-1;
-          }
-          
-          .error {
-            color: $error-color;
-            font-size: $font-size-sm;
-            margin-top: $spacing-1;
-          }
+           .static-field {
+             padding: $spacing-3;
+             background-color: var(--surface-alt-bg); // Use CSS variable
+             border: 1px solid var(--border-color-strong); // Use CSS variable
+             border-radius: $border-radius;
+             color: var(--text-secondary); // Use CSS variable
+             transition: background-color $transition-medium, border-color $transition-medium, color $transition-medium;
+           }
+
+           .field-note {
+             font-size: $font-size-sm;
+             color: var(--text-muted); // Use CSS variable
+             margin-top: $spacing-1;
+             transition: color $transition-medium;
+           }
         }
       }
     }
@@ -177,32 +163,33 @@
   }
 }
 
+// Responsive adjustments
 @media (max-width: $breakpoint-md) {
   .profile-page {
     .profile-container {
       gap: $spacing-4;
-      
+
       .profile-info {
         padding: $spacing-4;
-        
+
         .profile-header {
           flex-direction: column;
           text-align: center;
-          
+
           .avatar {
             margin-right: 0;
             margin-bottom: $spacing-3;
           }
         }
       }
-      
+
       .profile-form-container {
         padding: $spacing-4;
       }
     }
-    
+
     .form-actions {
-      .submit-btn {
+      .submit-btn { // Ensure button takes full width if needed
         width: 100%;
       }
     }

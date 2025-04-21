@@ -1,198 +1,136 @@
-@use '../../variables' as *;;
+// src/styles/pages/public/_CreateTicketPage.scss
+
+@use '../../variables' as *;
 
 .create-ticket-page {
   max-width: 800px;
   margin: 0 auto;
   padding: $spacing-6 $spacing-4;
-  
+
   .page-header {
     text-align: center;
     margin-bottom: $spacing-8;
-    
+
     h1 {
       font-size: $font-size-3xl;
-      color: $gray-900;
+      color: var(--text-primary); // Use CSS variable
       margin-bottom: $spacing-3;
+      transition: color $transition-medium;
     }
-    
+
     p {
-      color: $gray-600;
+      color: var(--text-secondary); // Use CSS variable
       max-width: 600px;
       margin: 0 auto;
+      transition: color $transition-medium;
     }
   }
-  
+
   .success-message {
-    background-color: rgba($success-color, 0.1);
-    border: 1px solid rgba($success-color, 0.3);
+    background-color: rgba(var(--success-color), 0.1); // Use CSS variable alpha
+    border: 1px solid rgba(var(--success-color), 0.3); // Use CSS variable alpha
     border-radius: $border-radius-lg;
     padding: $spacing-6;
     margin-bottom: $spacing-8;
     text-align: center;
-    
+    transition: background-color $transition-medium, border-color $transition-medium;
+
     h2 {
-      color: $success-color;
+      color: var(--success-color); // Use CSS variable
       margin-bottom: $spacing-4;
+      transition: color $transition-medium;
     }
-    
+
     p {
       margin-bottom: $spacing-3;
-      color: $gray-700;
+      color: var(--text-secondary); // Use CSS variable
+      transition: color $transition-medium;
     }
-    
+
     .new-ticket-btn {
-      display: inline-block;
-      background-color: $success-color;
-      color: $white;
-      border: none;
-      border-radius: $border-radius;
-      padding: $spacing-3 $spacing-6;
-      font-weight: $font-weight-medium;
-      cursor: pointer;
-      margin-top: $spacing-4;
-      transition: background-color $transition-fast;
-      
+      background-color: var(--success-color); // Use CSS variable
+      color: $white; // Keep white text on success green
+
       &:hover {
-        background-color: darken($success-color, 10%);
+        background-color: var(--secondary-dark); // Use CSS variable (assuming success is secondary)
       }
     }
   }
-  
+
   .ticket-form {
-    background-color: $white;
+    background-color: var(--surface-bg); // Use CSS variable
+    border: 1px solid var(--border-color); // Use CSS variable
     border-radius: $border-radius-lg;
-    box-shadow: $shadow;
+    box-shadow: $shadow; // Shadow might need adjustment
     padding: $spacing-6;
-    
+    transition: background-color $transition-medium, border-color $transition-medium;
+
+    // Inherits form-group styles from _forms.scss which now use CSS vars
     .form-group {
       margin-bottom: $spacing-6;
-      
-      label {
-        display: block;
-        font-weight: $font-weight-medium;
-        color: $gray-800;
-        margin-bottom: $spacing-2;
-      }
-      
-      input[type="email"],
-      input[type="text"],
-      select,
-      textarea {
-        width: 100%;
-        padding: $spacing-3;
-        border: 1px solid $gray-300;
-        border-radius: $border-radius;
-        font-size: $font-size-base;
-        background-color: $white;
-        
-        &:focus {
-          outline: none;
-          border-color: $primary-color;
-          box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
-        }
-      }
-      
-      textarea {
-        min-height: 200px;
-        resize: vertical;
-      }
-      
-      .error {
-        color: $error-color;
-        font-size: $font-size-sm;
-        margin-top: $spacing-2;
-      }
-      
+
+      textarea { min-height: 200px; } // Specific style
+
       .tags-container {
         display: flex;
         flex-wrap: wrap;
         gap: $spacing-2;
         margin-top: $spacing-3;
-        
+
         .tag {
-          background-color: $gray-100;
-          color: $gray-700;
+          background-color: var(--surface-alt-bg); // Use CSS variable
+          color: var(--text-secondary); // Use CSS variable
           padding: $spacing-2 $spacing-3;
+          border: 1px solid var(--border-color); // Use CSS variable
           border-radius: $border-radius;
           font-size: $font-size-sm;
           cursor: pointer;
           transition: all $transition-fast;
-          
+
           &:hover {
-            background-color: $gray-200;
+            background-color: var(--surface-bg); // Use CSS variable
+            border-color: var(--border-color-strong); // Use CSS variable
           }
-          
+
           &.selected {
-            background-color: $primary-color;
-            color: $white;
-            
+            background-color: var(--primary-color); // Use CSS variable
+            color: var(--text-inverted); // Use CSS variable
+            border-color: var(--primary-color); // Use CSS variable
+
             &:hover {
-              background-color: $primary-dark;
+              background-color: var(--primary-dark); // Use CSS variable
+              border-color: var(--primary-dark); // Use CSS variable
             }
           }
         }
       }
     }
-    
+
     .submit-button {
+      // Use styles from _forms.scss .btn
       display: block;
       width: 100%;
-      background-color: $primary-color;
-      color: $white;
-      border: none;
-      border-radius: $border-radius;
-      padding: $spacing-4;
-      font-size: $font-size-lg;
-      font-weight: $font-weight-medium;
-      cursor: pointer;
-      transition: background-color $transition-fast;
-      
-      &:hover {
-        background-color: $primary-dark;
-      }
-      
-      &:disabled {
-        background-color: $gray-400;
-        cursor: not-allowed;
-      }
-      
+      padding: $spacing-4; // Keep specific padding
+      font-size: $font-size-lg; // Keep specific font size
+
+      // Loading styles inherited from _forms.scss
       &.loading {
-        position: relative;
-        padding-left: 40px;
-        
-        &:before {
-          content: "";
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          margin-top: -10px;
-          margin-left: -80px;
-          width: 20px;
-          height: 20px;
-          border: 2px solid rgba($white, 0.3);
-          border-top-color: $white;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        }
+        // Inherited
       }
     }
   }
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
+// Responsive adjustments
 @media (max-width: $breakpoint-md) {
   .create-ticket-page {
     .ticket-form {
       padding: $spacing-4;
-      
+
       .form-group {
         margin-bottom: $spacing-4;
       }
     }
   }
 }
+

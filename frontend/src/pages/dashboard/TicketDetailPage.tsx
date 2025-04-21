@@ -235,7 +235,7 @@ const TicketDetailPage: React.FC = () => {
         <div className="header-right">
           {canUpdateTicket && ticket.status !== 'Closed' && (
             <button 
-              className="update-ticket-btn"
+              className="update-ticket-btn btn"
               onClick={() => setUpdateType('status')}
             >
               Update Status
@@ -342,7 +342,7 @@ const TicketDetailPage: React.FC = () => {
               <h3>Updates & Comments</h3>
               {ticket.status !== 'Closed' && (
                 <button 
-                  className="add-comment-btn"
+                  className="add-comment-btn btn"
                   onClick={() => setUpdateType('comment')}
                 >
                   Add Comment
@@ -374,14 +374,14 @@ const TicketDetailPage: React.FC = () => {
                         <button 
                           type="button" 
                           onClick={() => setUpdateType(null)}
-                          className="cancel-btn"
+                          className="cancel-btn btn"
                         >
                           Cancel
                         </button>
                         <button 
                           type="submit" 
                           disabled={isSubmitting}
-                          className="submit-btn"
+                          className="submit-btn btn"
                         >
                           {isSubmitting ? 'Posting...' : 'Post Comment'}
                         </button>
@@ -579,7 +579,7 @@ const TicketDetailPage: React.FC = () => {
                 
                 {ticket.assigned_to_user_id !== user?.id && (
                   <button 
-                    className="assign-to-me-btn"
+                    className="assign-to-me-btn btn"
                     onClick={() => handleUpdateTicket({
                       status: 'Assigned',
                       assigned_to_user_id: user?.id
@@ -591,7 +591,7 @@ const TicketDetailPage: React.FC = () => {
                 
                 {ticket.status === 'Assigned' && isAssignedToMe && (
                   <button 
-                    className="start-work-btn"
+                    className="start-work-btn btn"
                     onClick={() => handleUpdateTicket({
                       status: 'In Progress',
                       assigned_to_user_id: user?.id
@@ -603,7 +603,7 @@ const TicketDetailPage: React.FC = () => {
                 
                 {(ticket.status === 'Assigned' || ticket.status === 'In Progress') && isAssignedToMe && (
                   <button 
-                    className="close-ticket-btn"
+                    className="close-ticket-btn btn"
                     onClick={() => setUpdateType('status')}
                   >
                     Close Ticket

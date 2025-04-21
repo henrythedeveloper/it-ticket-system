@@ -106,7 +106,7 @@ const CreateTicketPage: React.FC = () => {
           <p>Your support ticket (ID: #{displayTicketId}) has been created. You will receive a confirmation email shortly.</p>
           <p>We will respond to your request as soon as possible.</p>
           <button 
-            className="new-ticket-btn"
+            className="new-ticket-btn btn"
             onClick={() => {
               setSuccess(false);
               setDisplayTicketId(null);
@@ -209,7 +209,7 @@ const CreateTicketPage: React.FC = () => {
 
                 <button
                   type="submit"
-                  className={`submit-button ${isSubmitting ? 'loading' : ''}`}
+                  className={`submit-button btn ${isSubmitting ? 'loading' : ''}`}
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Ticket'}

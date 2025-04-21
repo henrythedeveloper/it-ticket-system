@@ -167,7 +167,7 @@ const TicketsPage: React.FC = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input"
           />
-          <button type="submit" className="search-button">Search</button>
+          <button type="submit" className="search-button btn">Search</button>
         </form>
 
         {/* Filter Dropdowns & Clear Button */}
@@ -222,7 +222,7 @@ const TicketsPage: React.FC = () => {
           <button
             type="button"
             onClick={handleClearFilters}
-            className="clear-filters-btn"
+            className="clear-filters-btn btn"
           >
             Clear Filters
           </button>
@@ -264,7 +264,7 @@ const TicketsPage: React.FC = () => {
              {(statusFilter || urgencyFilter || assignedToFilter || searchQuery || selectedTags.length > 0) && (
                 <button 
                 onClick={handleClearFilters}
-                className="clear-filters-btn" // Reuse class or create new
+                className="clear-filters-btn btn" // Reuse class or create new
                 >
                 Clear Filters to See All Tickets
                 </button>

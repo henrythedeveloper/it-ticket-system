@@ -1,29 +1,72 @@
-// Import variables if needed (adjust path as necessary)
+// src/styles/layouts/_AuthLayout.scss
+
 @use '../variables' as *;
 
 .auth-layout {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh; // Full viewport height
-  background-color: $gray-100; // Or another suitable background
-  padding: $spacing-6; // Use defined spacing variable
+  min-height: 100vh;
+  background-color: var(--body-bg); // Use CSS variable
+  padding: $spacing-6;
+  transition: background-color $transition-medium;
 
   .auth-container {
-    background-color: $white; // White background for the form container
-    padding: $spacing-8;      // Generous padding
-    border-radius: $border-radius-lg; // Rounded corners 
-    box-shadow: $shadow-lg;        // Add a shadow 
+    background-color: var(--surface-bg); // Use CSS variable
+    border: 1px solid var(--border-color); // Use CSS variable
+    padding: $spacing-8;
+    border-radius: $border-radius-lg;
+    box-shadow: $shadow; // Shadow might need adjustment
     width: 100%;
-    max-width: 450px; // Limit the maximum width
+    max-width: 450px;
     text-align: center;
+    transition: background-color $transition-medium, border-color $transition-medium;
 
-    .logo {
-      margin-bottom: $spacing-6;
+    .auth-header {
+       margin-bottom: $spacing-6;
+       .auth-logo {
+         font-size: $font-size-2xl;
+         font-weight: $font-weight-bold;
+         color: var(--primary-color); // Use CSS variable
+         text-decoration: none;
+         transition: color $transition-fast;
+         &:hover {
+            color: var(--primary-dark); // Use CSS variable
+         }
+       }
     }
-    h2 {
-      margin-bottom: $spacing-4;
-      color: $gray-900; 
+
+    .auth-content {
+       h1 { // Style heading within auth content
+         color: var(--text-primary); // Use CSS variable
+         margin-bottom: $spacing-2;
+         font-size: $font-size-2xl;
+       }
+       .login-description { // Style description text
+          color: var(--text-secondary); // Use CSS variable
+          margin-bottom: $spacing-6;
+       }
+       // Form styles are handled by _forms.scss using CSS variables
+    }
+
+    .auth-footer {
+      margin-top: $spacing-6;
+      padding-top: $spacing-4;
+      border-top: 1px solid var(--border-color); // Use CSS variable
+      transition: border-color $transition-medium;
+
+      p {
+        color: var(--text-muted); // Use CSS variable
+        font-size: $font-size-sm;
+        margin-bottom: $spacing-1;
+        transition: color $transition-medium;
+        a {
+           color: var(--text-link); // Use CSS variable
+           &:hover {
+             color: var(--text-link-hover); // Use CSS variable
+           }
+        }
+      }
     }
   }
 }
@@ -34,3 +77,4 @@
     padding: $spacing-6;
   }
 }
+

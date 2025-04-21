@@ -169,7 +169,7 @@ const TasksPage: React.FC = () => {
         <h1>Tasks</h1>
         <div className="header-actions">
           <button 
-            className="create-task-btn"
+            className="create-task-btn btn"
             onClick={() => navigate('/tasks/new')} // Navigate to create task page
           >
             Create New Task
@@ -188,7 +188,7 @@ const TasksPage: React.FC = () => {
             onChange={(e) => setSearchQuery(e.target.value)} // Update state on change
             className="search-input"
           />
-          <button type="submit" className="search-button">Search</button>
+          <button type="submit" className="search-button btn">Search</button>
         </form>
         
         {/* Filter Dropdowns and Clear Button */}
@@ -245,7 +245,7 @@ const TasksPage: React.FC = () => {
           <button 
             type="button" 
             onClick={handleClearFilters}
-            className="clear-filters-btn"
+            className="clear-filters-btn btn"
           >
             Clear Filters
           </button>
@@ -270,7 +270,7 @@ const TasksPage: React.FC = () => {
           {(statusFilter || assignedToFilter || dueDateFilter || searchQuery) && (
             <button 
               onClick={handleClearFilters}
-              className="clear-filters-btn"
+              className="clear-filters-btn btn"
             >
               Clear Filters
             </button>
@@ -322,11 +322,11 @@ const TasksPage: React.FC = () => {
                   </td>
                   {/* Action Buttons */}
                   <td className="actions-cell">
-                    <Link to={`/tasks/${task.id}`} className="view-btn">View</Link>
+                    <Link to={`/tasks/${task.id}`} className="view-btn btn">View</Link>
                     {/* Delete button (conditional based on permission) */}
                     {(isAdmin || task.created_by_user_id === user?.id) && (
                       <button
-                        className="delete-btn"
+                        className="delete-btn btn btn-danger"
                         onClick={(e) => {
                           e.stopPropagation(); // Prevent row click navigation
                           if (window.confirm('Are you sure you want to delete this task?')) {
