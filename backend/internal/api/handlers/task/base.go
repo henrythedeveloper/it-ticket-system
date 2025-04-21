@@ -22,6 +22,7 @@ func NewHandler(db *db.DB, emailService email.Service) *Handler {
 
 // RegisterRoutes registers the task handler routes
 func RegisterRoutes(g *echo.Group, h *Handler) {
+	// Existing task routes
 	g.GET("", h.GetAllTasks)
 	g.POST("", h.CreateTask)
 	g.GET("/:id", h.GetTaskByID)
@@ -29,4 +30,9 @@ func RegisterRoutes(g *echo.Group, h *Handler) {
 	g.DELETE("/:id", h.DeleteTask)
 	g.PUT("/:id/status", h.UpdateTaskStatus)
 	g.GET("/count", h.GetTaskCounts)
+	g.POST("/:id/updates", h.AddTaskUpdate)
+
+	// --- TODO: Add route for getting task updates ---
+	// g.GET("/:id/updates", h.GetTaskUpdates)
 }
+

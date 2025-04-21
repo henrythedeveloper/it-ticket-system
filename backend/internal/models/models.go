@@ -42,7 +42,7 @@ type UserLogin struct {
 // Ticket represents a support ticket
 type Ticket struct {
 	ID               string         `json:"id"`
-	TicketNumber     int32  		`json:"ticket_number"` // User-facing number
+	TicketNumber     int32          `json:"ticket_number"` // User-facing number
 	EndUserEmail     string         `json:"end_user_email"`
 	IssueType        string         `json:"issue_type"`
 	Urgency          TicketUrgency  `json:"urgency"`
@@ -56,7 +56,7 @@ type Ticket struct {
 	ClosedAt         *time.Time     `json:"closed_at,omitempty"`
 	ResolutionNotes  *string        `json:"resolution_notes,omitempty"`
 	Tags             []Tag          `json:"tags,omitempty"`
-	Updates          []TicketUpdate `json:"updates,omitempty"`
+	Updates          []TicketUpdate `json:"updates,omitempty"` // Existing updates for tickets
 	Attachments      []Attachment   `json:"attachments,omitempty"`
 }
 
@@ -64,27 +64,19 @@ type Ticket struct {
 type TicketStatus string
 
 const (
-	// StatusUnassigned represents a new unassigned ticket
 	StatusUnassigned TicketStatus = "Unassigned"
-	// StatusAssigned represents a ticket assigned to a staff member
-	StatusAssigned TicketStatus = "Assigned"
-	// StatusInProgress represents a ticket being actively worked on
+	StatusAssigned   TicketStatus = "Assigned"
 	StatusInProgress TicketStatus = "In Progress"
-	// StatusClosed represents a closed/resolved ticket
-	StatusClosed TicketStatus = "Closed"
+	StatusClosed     TicketStatus = "Closed"
 )
 
 // TicketUrgency represents the urgency level of a ticket
 type TicketUrgency string
 
 const (
-	// UrgencyLow represents a low urgency ticket
-	UrgencyLow TicketUrgency = "Low"
-	// UrgencyMedium represents a medium urgency ticket
-	UrgencyMedium TicketUrgency = "Medium"
-	// UrgencyHigh represents a high urgency ticket
-	UrgencyHigh TicketUrgency = "High"
-	// UrgencyCritical represents a critical urgency ticket
+	UrgencyLow      TicketUrgency = "Low"
+	UrgencyMedium   TicketUrgency = "Medium"
+	UrgencyHigh     TicketUrgency = "High"
 	UrgencyCritical TicketUrgency = "Critical"
 )
 
@@ -98,21 +90,23 @@ type TicketCreate struct {
 	Tags         []string      `json:"tags,omitempty"` // Tag names are passed initially
 }
 
-// TicketUpdate represents an update or comment on a ticket
+// TicketUpdate represents an update or comment on a ticket (REUSED FOR TASKS)
 type TicketUpdate struct {
 	ID             string    `json:"id"`
-	TicketID       string    `json:"ticket_id"`
+	TicketID       string    `json:"ticket_id,omitempty"` // Keep for tickets
+	TaskID         string    `json:"task_id,omitempty"`   // Add for tasks
 	UserID         *string   `json:"user_id,omitempty"`
 	User           *User     `json:"user,omitempty"`
 	Comment        string    `json:"comment"`
-	IsInternalNote bool      `json:"is_internal_note"`
+	IsInternalNote bool      `json:"is_internal_note"` // You might want this for tasks too
 	CreatedAt      time.Time `json:"created_at"`
 }
 
-// TicketUpdateCreate represents data needed to add a comment or update to a ticket
+// TicketUpdateCreate represents data needed to add a comment or update (REUSED FOR TASKS)
+// Note: We might need a separate TaskUpdateCreate if fields differ significantly
 type TicketUpdateCreate struct {
 	Comment        string `json:"comment" validate:"required"`
-	IsInternalNote bool   `json:"is_internal_note"`
+	IsInternalNote bool   `json:"is_internal_note"` // Add if implementing internal notes for tasks
 }
 
 // TicketStatusUpdate represents data needed to update a ticket's status
@@ -134,10 +128,37 @@ type Attachment struct {
 	URL         string    `json:"url,omitempty"`
 }
 
-// Task represents a task assigned to IT staff
+// --- Task Related Structs ---
+
+type TaskStatus string
+
+const (
+	TaskStatusOpen       TaskStatus = "Open"
+	TaskStatusInProgress TaskStatus = "In Progress"
+	TaskStatusCompleted  TaskStatus = "Completed"
+)
+
+// --- NEW: TaskUpdate Struct ---
+type TaskUpdate struct {
+	ID        string    `json:"id"`
+	TaskID    string    `json:"task_id"`           // Specific to tasks
+	UserID    *string   `json:"user_id,omitempty"` // User who made the update
+	User      *User     `json:"user,omitempty"`    // Populated user details
+	Comment   string    `json:"comment"`           // The comment text
+	CreatedAt time.Time `json:"created_at"`        // When the comment was made
+	// Add IsInternalNote bool `json:"is_internal_note"` if needed
+}
+
+// --- NEW: TaskUpdateCreate Struct ---
+// Data needed to create a new task update/comment
+type TaskUpdateCreate struct {
+	Comment string `json:"comment" validate:"required"`
+	// Add IsInternalNote bool `json:"is_internal_note"` if needed
+}
+
 type Task struct {
 	ID               string     `json:"id"`
-	TaskNumber       int32  	`json:"task_number"`
+	TaskNumber       int32      `json:"task_number"`
 	Title            string     `json:"title"`
 	Description      *string    `json:"description,omitempty"`
 	Status           TaskStatus `json:"status"`
@@ -151,22 +172,10 @@ type Task struct {
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at"`
 	CompletedAt      *time.Time `json:"completed_at,omitempty"`
-	// Removed Tags and Attachments from Task struct as they weren't in the original DB schema for tasks
+	// --- UPDATED: Use TaskUpdate type ---
+	Updates []TaskUpdate `json:"updates,omitempty"`
 }
 
-// TaskStatus represents the status of a task
-type TaskStatus string
-
-const (
-	// TaskStatusOpen represents an open task
-	TaskStatusOpen TaskStatus = "Open"
-	// TaskStatusInProgress represents a task in progress
-	TaskStatusInProgress TaskStatus = "In Progress"
-	// TaskStatusCompleted represents a completed task
-	TaskStatusCompleted TaskStatus = "Completed"
-)
-
-// TaskCreate represents data needed to create a new task
 type TaskCreate struct {
 	Title          string     `json:"title" validate:"required"`
 	Description    *string    `json:"description,omitempty"`
@@ -176,7 +185,6 @@ type TaskCreate struct {
 	RecurrenceRule *string    `json:"recurrence_rule,omitempty"`
 }
 
-// TaskStatusUpdate represents data needed to update a task's status
 type TaskStatusUpdate struct {
 	Status TaskStatus `json:"status" validate:"required,oneof=Open In Progress Completed"`
 }

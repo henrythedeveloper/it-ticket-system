@@ -1,294 +1,272 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import api from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
-// Import TaskCreate along with other types
-import { Task, User, TaskStatusUpdate, APIResponse, TaskCreate } from '../../types/models'; 
+import api from '../../services/api'; // Assuming api service is correctly configured
+import { useAuth } from '../../contexts/AuthContext'; // Auth context for user info
+import {
+  Task,
+  User,
+  TaskStatus, // Explicitly import TaskStatus
+  TaskStatusUpdate,
+  APIResponse,
+  TaskCreate,
+  TaskUpdate, // Import new type
+  TaskUpdateCreate // Import new type
+} from '../../types/models'; // Import necessary types including new ones
 
-// Validation schema for the task form
+// --- Validation Schema for the Task Form ---
 const TaskSchema = Yup.object().shape({
   title: Yup.string().required('Title is required'),
-  description: Yup.string(),
-  // Allow assigned_to_user_id to be a string (UUID) or null
-  assigned_to_user_id: Yup.string().nullable(), 
-  due_date: Yup.date().nullable(),
-  is_recurring: Yup.boolean(),
-  // Require recurrence_rule only if is_recurring is true
+  description: Yup.string().nullable(), // Description is optional
+  assigned_to_user_id: Yup.string().nullable(), // Allow null or UUID string
+  due_date: Yup.date().nullable(), // Allow null or valid date
+  is_recurring: Yup.boolean().required(), // Now required
   recurrence_rule: Yup.string().when('is_recurring', ([isRecurring], schema) =>
-    isRecurring ? schema.required('Recurrence rule is required when task is recurring') : schema
+    // Recurrence rule required only if task is recurring
+    isRecurring ? schema.required('Recurrence rule is required when task is recurring') : schema.nullable()
   )
 });
 
-// Task Detail Page Component
+// --- Validation Schema for the Task Update/Comment Form ---
+const TaskUpdateSchema = Yup.object().shape({
+  comment: Yup.string().required('Update comment cannot be empty')
+});
+
+// --- Task Detail Page Component ---
 const TaskDetailPage: React.FC = () => {
-  // Hooks for routing and parameters
-  const { id } = useParams<{ id: string }>(); // Get task ID from URL
-  const isNewTask = id === 'new'; // Check if creating a new task
-  const navigate = useNavigate(); // Hook for navigation
-  
-  // Hooks for state management
-  const { user } = useAuth(); // Get current user from auth context
-  const [loading, setLoading] = useState(!isNewTask); // Loading state, true if editing
-  const [task, setTask] = useState<Task | null>(null); // State for task details
-  const [users, setUsers] = useState<User[]>([]); // State for list of users (for assignment)
-  const [error, setError] = useState<string | null>(null); // State for error messages
-  const [editMode, setEditMode] = useState(isNewTask); // State to toggle edit mode
+  // --- Hooks ---
+  const { id } = useParams<{ id: string }>(); // Get task ID from URL params
+  const navigate = useNavigate(); // Hook for programmatic navigation
+  const { user: currentUser } = useAuth(); // Get current logged-in user
+
+  // --- State ---
+  const [task, setTask] = useState<Task | null>(null); // Holds the fetched task data
+  const [users, setUsers] = useState<User[]>([]); // Holds the list of users for assignment dropdown
+  const [loading, setLoading] = useState<boolean>(true); // Loading state indicator
+  const [error, setError] = useState<string | null>(null); // Error message state
+  const [editMode, setEditMode] = useState<boolean>(id === 'new'); // Edit mode state (true if creating new task)
+  const [showUpdateForm, setShowUpdateForm] = useState<boolean>(false); // State to control update form visibility
+
+  // --- Derived State / Constants ---
+  const isNewTask = id === 'new'; // Flag for creating a new task
 
   // --- Permissions ---
-  const isAdmin = user?.role === 'Admin';
-  const isCreator = task?.created_by_user_id === user?.id;
-  const isAssignee = task?.assigned_to_user_id === user?.id;
-  // User can edit if they are admin or the creator of the task
-  const canEdit = isAdmin || isCreator; 
+  const isAdmin = currentUser?.role === 'Admin';
+  // *** FIX: Define isCreator and isAssignee BEFORE they are used in canAddUpdate ***
+  const isCreator = task && task.created_by_user_id === currentUser?.id;
+  const isAssignee = task && task.assigned_to_user_id === currentUser?.id;
+  // User can edit if Admin, or if they created the task
+  const canEdit = isAdmin || isCreator;
+  // User can update status if Admin, or assigned to the task
+  const canUpdateStatus = isAdmin || isAssignee;
+  // Allow adding updates if admin, creator, or assignee, and task is not completed
+  const canAddUpdate = (isAdmin || isCreator || isAssignee) && task?.status !== 'Completed';
 
-  // --- Effects ---
-  // Effect to fetch necessary data on component mount or when ID changes
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null); // Clear previous errors
 
-        // Fetch users for the assignment dropdown
-        const usersResponse = await api.get<APIResponse<User[]>>('/users');
-        if (usersResponse.data.success && usersResponse.data.data) {
-          setUsers(usersResponse.data.data);
-        } else {
-          console.error("Failed to fetch users:", usersResponse.data.error);
-          // Optionally set an error state here if users are critical
-        }
-        
-        // If editing an existing task, fetch its details
-        if (!isNewTask && id) {
-          const taskResponse = await api.get<APIResponse<Task>>(`/tasks/${id}`);
-          if (taskResponse.data.success && taskResponse.data.data) {
-            setTask(taskResponse.data.data); // Set task state
-          } else {
-            setError(taskResponse.data.error || 'Failed to load task details');
-          }
-        }
-        
-      } catch (error: any) {
-        console.error('Error fetching task details:', error);
-        setError(error.response?.data?.error || 'Failed to load task details');
-      } finally {
-        setLoading(false); // Set loading to false after fetching
+  // --- Data Fetching Effect ---
+  const fetchData = useCallback(async () => {
+    // Only fetch if not creating a new task
+    if (isNewTask) {
+       setLoading(false);
+       // Still fetch users for the form dropdown
+       try {
+           const usersResponse = await api.get<APIResponse<User[]>>('/users');
+           if (usersResponse.data.success && usersResponse.data.data) {
+               setUsers(usersResponse.data.data);
+           } else {
+               console.error("Failed to fetch users for new task form:", usersResponse.data.error);
+           }
+       } catch (err) {
+           console.error("Error fetching users for new task form:", err);
+       }
+       return; // Exit early for new tasks
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      // Fetch users for the assignment dropdown
+      const usersResponse = await api.get<APIResponse<User[]>>('/users');
+      if (usersResponse.data.success && usersResponse.data.data) {
+        setUsers(usersResponse.data.data);
+      } else {
+        console.error("Failed to fetch users:", usersResponse.data.error);
       }
-    };
-    
-    fetchData();
-  }, [id, isNewTask]); // Dependencies: re-run if id or isNewTask changes
 
-  // --- Handlers ---
+      // Fetch task details (including updates - requires backend change)
+      if (id) {
+        // *** Backend Requirement: GET /tasks/{id} must return task object with populated 'updates' array ***
+        const taskResponse = await api.get<APIResponse<Task>>(`/tasks/${id}`);
+        if (taskResponse.data.success && taskResponse.data.data) {
+          setTask(taskResponse.data.data);
+        } else {
+          setError(taskResponse.data.error || 'Failed to load task details');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching data:', err);
+      setError(err.response?.data?.error || 'An unexpected error occurred while loading data.');
+    } finally {
+      setLoading(false);
+    }
+  // Include currentUser?.id in dependencies in case it changes (e.g., re-login)
+  }, [id, isNewTask, currentUser?.id]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]); // fetchData is memoized
+
+  // --- Helper Functions ---
+  const formatDate = (dateString?: string | null): string => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      return date.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
+    } catch (e) { return 'Invalid Date'; }
+  };
+
+  const formatDateTime = (dateString?: string | null): string => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      return date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+    } catch (e) { return 'Invalid Date'; }
+  };
+
+  const getStatusClass = (status?: TaskStatus): string => {
+    if (!status) return '';
+    return `status-${status.toLowerCase().replace(' ', '-')}`;
+  };
+
+  // --- Event Handlers ---
+
   // Handle form submission for creating or updating a task
-  const handleSubmit = async (values: any) => {
+  const handleFormSubmit = async (values: TaskCreate) => {
     setError(null); // Clear previous errors
     try {
-      // Create a mutable copy of the form values to modify
-      const payload = { ...values };
+      // Prepare payload, ensuring correct undefined/string values and date format
+      const payload: TaskCreate = {
+        ...values,
+        assigned_to_user_id: values.assigned_to_user_id || undefined,
+        due_date: values.due_date ? new Date(values.due_date + 'T00:00:00Z').toISOString() : undefined,
+        recurrence_rule: values.is_recurring && values.recurrence_rule ? values.recurrence_rule : undefined,
+      };
 
-      // --- Payload Adjustments ---
-      // Handle unassigned user: Convert empty string to null
-      if (payload.assigned_to_user_id === '') {
-        payload.assigned_to_user_id = null; 
-      }
-      
-      // Handle empty or valid due date: Convert empty string to null, 
-      // otherwise format valid date to ISO string (RFC3339 compatible)
-      if (payload.due_date === '' || !payload.due_date) {
-          payload.due_date = null; 
-      } else {
-          // Convert YYYY-MM-DD to a Date object and then to ISO string (e.g., "2025-04-23T00:00:00.000Z")
-          // Appending time ensures it's parsed correctly by Go's time.Time
-          try {
-             // Create date assuming local timezone midnight, then convert to ISO string (UTC)
-             const localDate = new Date(payload.due_date + 'T00:00:00'); 
-             if (!isNaN(localDate.getTime())) { // Check if date parsing was successful
-                 payload.due_date = localDate.toISOString();
-             } else {
-                 // Handle invalid date input if necessary, though Yup should catch it
-                 console.warn("Invalid date value received from form:", payload.due_date);
-                 payload.due_date = null; // Set to null if invalid
-             }
-          } catch (dateError) {
-              console.error("Error processing date:", dateError);
-              payload.due_date = null; // Set to null on error
-          }
-      } 
-      
-      // Handle empty recurrence rule: Convert empty string to null
-      if (!payload.is_recurring || payload.recurrence_rule === '') {
-          payload.recurrence_rule = null; 
-      }
-      // --- END Payload Adjustments ---
-
-      // If it's a new task, POST to the tasks endpoint
+      let response;
       if (isNewTask) {
-        const response = await api.post<APIResponse<Task>>('/tasks', payload);
+        // Create new task
+        response = await api.post<APIResponse<Task>>('/tasks', payload);
         if (response.data.success && response.data.data) {
-          // Navigate to the newly created task's detail page
-          navigate(`/tasks/${response.data.data.id}`); 
-        } else {
-          // Set specific error message if available, otherwise generic
-          setError(response.data.error || 'Failed to create task');
-        }
-      // If editing an existing task, PUT to the specific task endpoint
+          navigate(`/tasks/${response.data.data.id}`); // Navigate to the new task's page
+        } else { setError(response.data.error || 'Failed to create task'); }
       } else {
-        const response = await api.put<APIResponse<Task>>(`/tasks/${id}`, payload);
+        // Update existing task
+        response = await api.put<APIResponse<Task>>(`/tasks/${id}`, payload);
         if (response.data.success && response.data.data) {
           setTask(response.data.data); // Update local task state
           setEditMode(false); // Exit edit mode
-        } else {
-           // Set specific error message if available, otherwise generic
-          setError(response.data.error || 'Failed to update task');
-        }
+        } else { setError(response.data.error || 'Failed to update task'); }
       }
     } catch (err: any) {
-      // Log and set error state if API call fails
       console.error('Error saving task:', err);
-       // Provide more specific feedback based on the error status
-      if (err.response?.status === 401) {
-           setError('Authentication error. Please try logging out and back in.');
-      } else if (err.response?.status === 400) {
-           // Use the specific error from backend if available
-           setError(`Invalid data: ${err.response?.data?.error || 'Please check the form fields.'}`);
-      } else {
-           setError(err.response?.data?.error || 'An unexpected error occurred while saving the task.');
-      }
+      setError(err.response?.data?.error || 'An error occurred while saving the task.');
     }
   };
-  
-  // Handle updating the task status
-  const handleStatusUpdate = async (status: string) => {
-    setError(null); // Clear previous errors
-    if (!id) return; // Should not happen if button is visible
 
+  // Handle status updates
+  const handleStatusUpdate = async (newStatus: TaskStatus) => {
+    if (!id || !task || task.status === newStatus) return; // Exit if no ID, task, or status is unchanged
+    setError(null);
     try {
-      // Prepare the status update payload
-      const statusUpdate: TaskStatusUpdate = { status: status as any }; // Cast status string to TaskStatus type
-      // PUT request to the status update endpoint
+      const statusUpdate: TaskStatusUpdate = { status: newStatus };
+      // *** Backend Requirement: PUT /tasks/{id}/status endpoint ***
       const response = await api.put<APIResponse<Task>>(`/tasks/${id}/status`, statusUpdate);
-      
       if (response.data.success && response.data.data) {
-        setTask(response.data.data); // Update local task state with new status
+        setTask(response.data.data); // Update local task state
+      } else { setError(response.data.error || `Failed to update status`); }
+    } catch (err: any) { setError(err.response?.data?.error || `Failed to update status`); }
+  };
+
+  // Handle assigning task to current user
+  const handleAssignToMe = async () => {
+    if (!id || !task || !currentUser?.id || task.assigned_to_user_id === currentUser.id) return; // Exit if already assigned or no user
+    setError(null);
+    try {
+      // Prepare payload to only update the assignee
+      const updatePayload: Partial<TaskCreate> = { assigned_to_user_id: currentUser.id };
+      // *** Backend Requirement: PUT /tasks/{id} should allow partial updates ***
+      const response = await api.put<APIResponse<Task>>(`/tasks/${id}`, updatePayload);
+      if (response.data.success && response.data.data) {
+        setTask(response.data.data); // Update local state
+      } else { setError(response.data.error || 'Failed to assign task'); }
+    } catch (err: any) { setError(err.response?.data?.error || 'Failed to assign task'); }
+  };
+
+  // Handle task deletion
+  const handleDeleteTask = async () => {
+    if (!id || !canEdit) return; // Ensure user has permission
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      setError(null);
+      try {
+        // *** Backend Requirement: DELETE /tasks/{id} endpoint ***
+        const response = await api.delete(`/tasks/${id}`);
+        if (response.data.success) {
+          navigate('/tasks'); // Navigate back to the task list on successful deletion
+        } else { setError(response.data.error || 'Failed to delete task'); }
+      } catch (err: any) { setError(err.response?.data?.error || 'Failed to delete task'); }
+    }
+  };
+
+  // Handle adding a new task update/comment
+  const handleAddTaskUpdate = async (values: TaskUpdateCreate, { resetForm }: { resetForm: () => void }) => {
+    if (!id || !canAddUpdate) return;
+    setError(null);
+    try {
+      // *** Backend Requirement: POST /tasks/{id}/updates endpoint ***
+      const response = await api.post<APIResponse<TaskUpdate>>(`/tasks/${id}/updates`, values);
+
+      if (response.data.success && response.data.data) {
+        // Add the new update to the local state
+        setTask(prevTask => prevTask ? {
+          ...prevTask,
+          updates: [...(prevTask.updates || []), response.data.data!]
+        } : null);
+        resetForm();
+        setShowUpdateForm(false); // Hide the form
       } else {
-        setError(response.data.error || `Failed to update task status to ${status}`);
+        setError(response.data.error || 'Failed to add update');
       }
     } catch (err: any) {
-      // Log and set error state if API call fails
-      console.error('Error updating task status:', err);
-      setError(err.response?.data?.error || `Failed to update task status to ${status}`);
+      console.error('Error adding task update:', err);
+      setError(err.response?.data?.error || 'Failed to add update');
     }
   };
 
-  // --- Helper Functions ---
-  // Format date string to 'Mon D, YYYY'
-  const formatDate = (dateString?: string | null): string => {
-    if (!dateString) return '';
-    try {
-      // Use UTC parsing to avoid timezone shifts from just YYYY-MM-DD
-      const date = new Date(dateString); 
-       // Check if date is valid after parsing
-      if (isNaN(date.getTime())) {
-          // Try parsing assuming it might already be YYYY-MM-DD
-          const parts = dateString.split('-');
-          if (parts.length === 3) {
-              const year = parseInt(parts[0], 10);
-              const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
-              const day = parseInt(parts[2], 10);
-              const localDate = new Date(Date.UTC(year, month, day));
-               if (!isNaN(localDate.getTime())) {
-                   return localDate.toLocaleDateString('en-US', {
-                       timeZone: 'UTC', // Specify UTC for consistency
-                       month: 'short',
-                       day: 'numeric',
-                       year: 'numeric'
-                   });
-               }
-          }
-          return 'Invalid Date'; // Return if parsing fails
-      }
-      // If parsed directly as ISO string (e.g., from backend)
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-    } catch (e) {
-      console.error("Error formatting date:", dateString, e);
-      return 'Invalid Date';
-    }
-  };
-  
-  // Format date string to include time
-  const formatDateTime = (dateString?: string | null): string => {
-    if (!dateString) return '';
-     try {
-      const date = new Date(dateString);
-      // Check if date is valid before formatting
-      if (isNaN(date.getTime())) return 'Invalid Date';
-      return date.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
-    } catch (e) {
-      console.error("Error formatting date/time:", dateString, e);
-      return 'Invalid Date';
-    }
-  };
-  
+
   // --- Render Logic ---
-  // Display loading indicator
-  if (loading) {
-    return (
-      <div className="task-detail-page loading">
-        <div className="loader"></div>
-        <p>Loading task details...</p>
-      </div>
-    );
+
+  if (loading && !isNewTask) { // Show loading only when fetching existing task
+    return <div className="task-detail-page loading"><div className="loader"></div><p>Loading task details...</p></div>;
   }
 
-  // Display error message if loading failed for an existing task
-  if (error && !isNewTask) {
-    return (
-      <div className="task-detail-page error">
-        <h1>Error</h1>
-        <p>{error}</p>
-        <button onClick={() => navigate('/tasks')} className="back-button">
-          Back to Tasks
-        </button>
-      </div>
-    );
+  if (error && !isNewTask && !task) { // Show error if fetching failed for existing task
+    return <div className="task-detail-page error"><h1>Error</h1><p>{error}</p><button onClick={() => navigate('/tasks')} className="back-button">← Back to Tasks</button></div>;
   }
 
-  // Define initial values for the Formik form
-  const initialValues = isNewTask ? {
-    // Defaults for a new task
-    title: '',
-    description: '',
-    assigned_to_user_id: '', // Default to empty string for the dropdown
-    due_date: '', // Default to empty string for date input
-    is_recurring: false,
-    recurrence_rule: '' // Default to empty string for dropdown
-  } : {
-    // Values from the fetched task for editing
+  // Initial values for the main edit form
+  const initialFormValues: TaskCreate = {
     title: task?.title || '',
     description: task?.description || '',
-    assigned_to_user_id: task?.assigned_to_user_id || '', // Use existing or empty string
-    // Format date for the date input field (YYYY-MM-DD) or empty string
-    // Ensure we handle potential timezone issues by parsing as UTC if just date is present
-    due_date: task?.due_date ? new Date(task.due_date).toISOString().split('T')[0] : '', 
-    is_recurring: task?.is_recurring || false,
-    recurrence_rule: task?.recurrence_rule || '' // Use existing or empty string
+    assigned_to_user_id: task?.assigned_to_user_id || '', // Use empty string for 'Unassigned' option
+    due_date: task?.due_date ? new Date(task.due_date).toISOString().split('T')[0] : '',
+    is_recurring: task?.is_recurring ?? false, // Default to false if null/undefined
+    recurrence_rule: task?.recurrence_rule || '',
   };
 
-  // Main component render
+  // --- Main Component Render ---
   return (
     <div className="task-detail-page">
       {/* Page Header */}
@@ -297,102 +275,55 @@ const TaskDetailPage: React.FC = () => {
           <button onClick={() => navigate('/tasks')} className="back-button">
             ← Back to Tasks
           </button>
-          <h1>{isNewTask ? 'Create New Task' : `Task #${task?.task_number}: ${task?.title}`}</h1>
+          <h1>{isNewTask ? 'Create New Task' : `Task #${task?.task_number}: ${task?.title || '...'}`}</h1>
         </div>
-        {/* Show Edit button only when viewing existing task and user has permission */}
         {!isNewTask && !editMode && canEdit && (
           <div className="header-right">
-            <button 
-              className="edit-task-btn"
-              onClick={() => setEditMode(true)} // Enter edit mode on click
-            >
-              Edit Task
-            </button>
+            <button className="edit-task-btn" onClick={() => setEditMode(true)}>Edit Task</button>
           </div>
         )}
       </div>
-      
-      {/* Display error message if any */}
-      {error && <div className="error-message">{error}</div>}
-      
+
+      {/* Display general error messages */}
+      {error && !showUpdateForm && <div className="error-message">{error}</div> /* Hide main error when update form is open */}
+
       {/* Main Task Container */}
       <div className="task-container">
-        {/* Conditional rendering: Show form if in edit mode or creating new task */}
-        {(editMode || isNewTask) ? (
+        {/* --- Edit/Create Mode --- */}
+        {editMode ? (
           <div className="task-form-container">
-            {/* Formik component for form handling and validation */}
-            <Formik
-              initialValues={initialValues}
-              validationSchema={TaskSchema}
-              onSubmit={handleSubmit} // Use the defined submit handler
-              enableReinitialize // Ensure form updates if initialValues change (e.g., after fetch)
-            >
-              {/* Render prop function providing form state and helpers */}
+            <Formik initialValues={initialFormValues} validationSchema={TaskSchema} onSubmit={handleFormSubmit} enableReinitialize>
               {({ isSubmitting, values }) => (
                 <Form className="task-form">
-                  {/* Title Field */}
+                  {/* Fields: Title, Description, Assigned To, Due Date, Recurring, Recurrence Rule */}
                   <div className="form-group">
                     <label htmlFor="title">Title</label>
-                    <Field
-                      type="text"
-                      name="title"
-                      id="title"
-                      placeholder="Enter task title"
-                    />
+                    <Field type="text" name="title" id="title" placeholder="Enter task title" />
                     <ErrorMessage name="title" component="div" className="error" />
                   </div>
-                  
-                  {/* Description Field */}
                   <div className="form-group">
                     <label htmlFor="description">Description</label>
-                    <Field
-                      as="textarea" // Use textarea for longer descriptions
-                      name="description"
-                      id="description"
-                      placeholder="Enter task description (optional)"
-                      rows={4}
-                    />
+                    <Field as="textarea" name="description" id="description" placeholder="Enter task description (optional)" rows={4} />
                     <ErrorMessage name="description" component="div" className="error" />
                   </div>
-                  
-                  {/* Assigned To Field */}
                   <div className="form-group">
                     <label htmlFor="assigned_to_user_id">Assigned To</label>
                     <Field as="select" name="assigned_to_user_id" id="assigned_to_user_id">
-                      {/* Default unassigned option */}
-                      <option value="">-- Unassigned --</option> 
-                      {/* Map fetched users to options */}
-                      {users.map(u => (
-                        <option key={u.id} value={u.id}>
-                          {u.name} ({u.email})
-                        </option>
-                      ))}
+                      <option value="">-- Unassigned --</option>
+                      {users.map(u => (<option key={u.id} value={u.id}>{u.name} ({u.email})</option>))}
                     </Field>
                     <ErrorMessage name="assigned_to_user_id" component="div" className="error" />
                   </div>
-                  
-                  {/* Due Date Field */}
                   <div className="form-group">
                     <label htmlFor="due_date">Due Date</label>
-                    <Field
-                      type="date" // HTML5 date input
-                      name="due_date"
-                      id="due_date"
-                    />
+                    <Field type="date" name="due_date" id="due_date" />
                     <ErrorMessage name="due_date" component="div" className="error" />
                   </div>
-                  
-                  {/* Recurring Task Checkbox */}
                   <div className="form-group checkbox">
-                    <label>
-                      <Field type="checkbox" name="is_recurring" />
-                      Recurring Task
-                    </label>
+                    <label><Field type="checkbox" name="is_recurring" /> Recurring Task</label>
                     <ErrorMessage name="is_recurring" component="div" className="error" />
                   </div>
-                  
-                  {/* Recurrence Pattern Field (conditional) */}
-                  {values.is_recurring && ( // Only show if recurring is checked
+                  {values.is_recurring && (
                     <div className="form-group">
                       <label htmlFor="recurrence_rule">Recurrence Pattern</label>
                       <Field as="select" name="recurrence_rule" id="recurrence_rule">
@@ -403,213 +334,118 @@ const TaskDetailPage: React.FC = () => {
                         <option value="quarterly">Quarterly</option>
                         <option value="annually">Annually</option>
                       </Field>
-                      {/* Error message specifically for recurrence rule */}
                       <ErrorMessage name="recurrence_rule" component="div" className="error" />
                     </div>
                   )}
-                  
-                  {/* Form Actions (Cancel/Submit Buttons) */}
+                  {/* Form Actions */}
                   <div className="form-actions">
-                    <button 
-                      type="button" // Important: type="button" to prevent form submission
-                      onClick={() => {
-                        if (isNewTask) {
-                          navigate('/tasks'); // Go back if creating new
-                        } else {
-                          setEditMode(false); // Exit edit mode if editing
-                          setError(null); // Clear errors on cancel
-                        }
-                      }}
-                      className="cancel-btn"
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      type="submit" // Standard submit button
-                      disabled={isSubmitting} // Disable while submitting
-                      className="submit-btn"
-                    >
-                      {/* Dynamic button text */}
-                      {isSubmitting ? 'Saving...' : isNewTask ? 'Create Task' : 'Update Task'}
-                    </button>
+                    <button type="button" onClick={() => { isNewTask ? navigate('/tasks') : setEditMode(false); setError(null); }} className="cancel-btn" disabled={isSubmitting}>Cancel</button>
+                    <button type="submit" disabled={isSubmitting} className="submit-btn">{isSubmitting ? 'Saving...' : isNewTask ? 'Create Task' : 'Update Task'}</button>
                   </div>
                 </Form>
               )}
             </Formik>
           </div>
         ) : (
-          /* --- Display Mode (when not editing) --- */
-          <>
-            <div className="task-details">
-              {/* Status Bar */}
-              <div className="status-bar">
-                <span className={`status-badge status-${task?.status?.toLowerCase()?.replace(' ', '-')}`}>
-                  {task?.status}
-                </span>
-                
-                {/* Status update buttons (conditional) */}
-                {task?.status !== 'Completed' && (isAdmin || isAssignee) && (
-                  <div className="status-actions">
-                    {task?.status === 'Open' && (
-                      <button 
-                        className="start-btn"
-                        onClick={() => handleStatusUpdate('In Progress')}
-                      >
-                        Start Working
-                      </button>
-                    )}
-                    {task?.status === 'In Progress' && (
-                      <button 
-                        className="complete-btn"
-                        onClick={() => handleStatusUpdate('Completed')}
-                      >
-                        Mark Completed
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-              
-              {/* Title and Description */}
-              <div className="detail-section">
-                <h3>{task?.title}</h3>
-                <p className="description">
-                  {/* Use pre-line to respect newlines in description */}
-                  {task?.description ? (
-                     <span style={{ whiteSpace: 'pre-line' }}>{task.description}</span>
-                  ) : ( 
-                     <span className="no-description">No description provided</span>
+          /* --- Display Mode --- */
+          task && (
+            <>
+              {/* --- Task Details Section --- */}
+              <div className="task-details">
+                {/* Status Bar */}
+                <div className="status-bar">
+                  <span className={`status-badge ${getStatusClass(task.status)}`}>{task.status}</span>
+                  {canUpdateStatus && task.status !== 'Completed' && (
+                    <div className="status-actions">
+                      {task.status === 'Open' && (<button className="start-btn" onClick={() => handleStatusUpdate('In Progress')}>Start Working</button>)}
+                      {task.status === 'In Progress' && (<button className="complete-btn" onClick={() => handleStatusUpdate('Completed')}>Mark Completed</button>)}
+                    </div>
                   )}
-                </p>
+                </div>
+                {/* Description Section */}
+                <div className="detail-section">
+                  <h3>Description</h3>
+                  <p className="description">{task.description ? <span style={{ whiteSpace: 'pre-line' }}>{task.description}</span> : <span className="no-description">No description provided.</span>}</p>
+                </div>
+                {/* Metadata Section */}
+                <div className="meta-section">
+                  <div className="meta-item"><span className="meta-label">Task #:</span><span className="meta-value">{task.task_number}</span></div>
+                  <div className="meta-item"><span className="meta-label">Internal ID:</span><span className="meta-value" style={{ fontSize: '0.8em', wordBreak: 'break-all' }}>({task.id})</span></div>
+                  <div className="meta-item"><span className="meta-label">Assigned To:</span><span className="meta-value">{task.assigned_to_user?.name ?? 'Unassigned'}</span></div>
+                  <div className="meta-item"><span className="meta-label">Due Date:</span><span className={`meta-value ${task.due_date && new Date(task.due_date) < new Date() && task.status !== 'Completed' ? 'overdue' : ''}`}>{formatDate(task.due_date)}</span></div>
+                  <div className="meta-item"><span className="meta-label">Created By:</span><span className="meta-value">{task.created_by_user?.name ?? 'System'}</span></div>
+                  <div className="meta-item"><span className="meta-label">Created:</span><span className="meta-value">{formatDateTime(task.created_at)}</span></div>
+                  <div className="meta-item"><span className="meta-label">Last Updated:</span><span className="meta-value">{formatDateTime(task.updated_at)}</span></div>
+                  {task.is_recurring && (<div className="meta-item"><span className="meta-label">Recurrence:</span><span className="meta-value">{task.recurrence_rule || 'Yes'}</span></div>)}
+                  {task.completed_at && (<div className="meta-item"><span className="meta-label">Completed:</span><span className="meta-value">{formatDateTime(task.completed_at)}</span></div>)}
+                </div>
               </div>
-              
-              {/* Metadata Section */}
-              <div className="meta-section">
-                <div className="meta-item">
-                  <span className="meta-label">Task #:</span>
-                  <span className="meta-value">{task?.task_number}</span> 
+
+              {/* --- Task Actions Section --- */}
+              <div className="task-actions">
+                {task.status !== 'Completed' && !task.assigned_to_user_id && currentUser && (<button className="assign-to-me-btn" onClick={handleAssignToMe}>Assign to Me</button>)}
+                {canEdit && (<button className="delete-btn" onClick={handleDeleteTask}>Delete Task</button>)}
+              </div>
+
+              {/* --- Task Updates Section --- */}
+              <div className="task-updates">
+                <div className="updates-header">
+                  <h3>Task Updates</h3>
+                  {canAddUpdate && !showUpdateForm && (
+                    <button className="add-comment-btn" onClick={() => { setShowUpdateForm(true); setError(null); }}>
+                      Add Update
+                    </button>
+                  )}
                 </div>
-                <div className="meta-item">
-                    <span className="meta-label">Internal ID:</span>
-                    <span className="meta-value" style={{ fontSize: '0.8em', wordBreak: 'break-all' }}>({task?.id})</span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Assigned To:</span>
-                  <span className="meta-value">
-                    {task?.assigned_to_user ? task.assigned_to_user.name : 'Unassigned'}
-                  </span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Due Date:</span>
-                  {/* Add 'overdue' class if applicable */}
-                  <span className={`meta-value ${task?.due_date && new Date(task.due_date) < new Date() && task?.status !== 'Completed' ? 'overdue' : ''}`}>
-                    {task?.due_date ? formatDate(task.due_date) : 'No due date'}
-                  </span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Created By:</span>
-                  <span className="meta-value">
-                    {task?.created_by_user ? task.created_by_user.name : 'System'}
-                  </span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Created:</span>
-                  <span className="meta-value">
-                    {task ? formatDateTime(task.created_at) : ''}
-                  </span>
-                </div>
-                {/* Display recurrence if applicable */}
-                {task?.is_recurring && (
-                  <div className="meta-item">
-                    <span className="meta-label">Recurrence:</span>
-                    <span className="meta-value">
-                      {task.recurrence_rule || 'Yes (Pattern not specified)'}
-                    </span>
+
+                {/* Add Update Form (Conditional) */}
+                {showUpdateForm && (
+                  <div className="comment-form-container">
+                    <h4>Add New Update</h4>
+                    {error && <div className="error-message">{error}</div> /* Show errors specific to this form */}
+                    <Formik initialValues={{ comment: '' }} validationSchema={TaskUpdateSchema} onSubmit={handleAddTaskUpdate}>
+                      {({ isSubmitting }) => (
+                        <Form className="comment-form">
+                          <div className="form-group">
+                            <Field as="textarea" name="comment" placeholder="Enter your update..." rows={3} />
+                            <ErrorMessage name="comment" component="div" className="error" />
+                          </div>
+                          <div className="form-actions">
+                            <button type="button" onClick={() => { setShowUpdateForm(false); setError(null); }} className="cancel-btn" disabled={isSubmitting}>Cancel</button>
+                            <button type="submit" disabled={isSubmitting} className="submit-btn">{isSubmitting ? 'Posting...' : 'Post Update'}</button>
+                          </div>
+                        </Form>
+                      )}
+                    </Formik>
                   </div>
                 )}
-                {/* Display completion date if applicable */}
-                {task?.completed_at && (
-                  <div className="meta-item">
-                    <span className="meta-label">Completed:</span>
-                    <span className="meta-value">
-                      {formatDateTime(task.completed_at)}
-                    </span>
+
+                {/* Updates Timeline */}
+                <div className="updates-timeline">
+                  {task.updates && task.updates.length > 0 ? (
+                    [...task.updates].reverse().map(update => (
+                      <div key={update.id} className="update-item">
+                        <div className="update-header">
+                          <span className="update-author">{update.user?.name || 'System'}</span>
+                          <span className="update-time">{formatDateTime(update.created_at)}</span>
+                        </div>
+                        <div className="update-content" style={{ whiteSpace: 'pre-line' }}>{update.comment}</div>
+                      </div>
+                    ))
+                  ) : (
+                    !showUpdateForm && <p className="no-updates">No updates posted yet.</p> // Only show if form isn't open
+                  )}
+                  <div className="update-item system-update">
+                    <div className="update-header">
+                      <span className="update-author">System</span>
+                      <span className="update-time">{formatDateTime(task.created_at)}</span>
+                    </div>
+                    <div className="update-content">Task created {task.created_by_user ? `by ${task.created_by_user.name}` : ''}.</div>
                   </div>
-                )}
+                </div>
               </div>
-            </div>
-            
-            {/* Action Buttons (Edit, Assign, Delete) */}
-            <div className="task-actions">
-              {/* Edit Button */}
-              {(canEdit && task?.status !== 'Completed') && (
-                <button 
-                  className="edit-btn"
-                  onClick={() => setEditMode(true)}
-                >
-                  Edit Task
-                </button>
-              )}
-              
-              {/* Assign to Me Button (if unassigned and not completed) */}
-              {task?.status !== 'Completed' && !task?.assigned_to_user_id && (
-                <button 
-                  className="assign-to-me-btn"
-                  onClick={async () => {
-                    setError(null); // Clear previous errors
-                    if (!id || !user?.id || !task) return; // Ensure task data is available
-                    try {
-                      // Prepare payload to assign to current user
-                      // Only send fields relevant for update, especially avoiding user objects
-                      // Use the TaskCreate type for the payload structure
-                      const assignPayload: Partial<TaskCreate> & { id?: string } = { 
-                          // id: task.id, // ID is usually part of the URL, not payload for PUT
-                          title: task.title,
-                          description: task.description || undefined, // Send undefined if null/empty
-                          assigned_to_user_id: user.id, // Set assignee (Corrected field name)
-                          due_date: task.due_date || undefined,
-                          is_recurring: task.is_recurring || false,
-                          recurrence_rule: task.recurrence_rule || undefined
-                      };
-                      
-                      const response = await api.put<APIResponse<Task>>(`/tasks/${id}`, assignPayload);
-                      if (response.data.success && response.data.data) {
-                        setTask(response.data.data); // Update local state
-                      } else {
-                         setError(response.data.error || 'Failed to assign task');
-                      }
-                    } catch (err: any) {
-                      console.error('Error assigning task:', err);
-                      setError(err.response?.data?.error || 'Failed to assign task');
-                    }
-                  }}
-                >
-                  Assign to Me
-                </button>
-              )}
-              
-              {/* Delete Button (if admin or creator) */}
-              {(isAdmin || isCreator) && (
-                <button 
-                  className="delete-btn"
-                  onClick={() => {
-                    if (window.confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
-                      api.delete(`/tasks/${id}`)
-                        .then(() => {
-                          navigate('/tasks'); // Navigate back to list on success
-                        })
-                        .catch(err => {
-                          console.error('Error deleting task:', err);
-                          setError(err.response?.data?.error || 'Failed to delete task');
-                        });
-                    }
-                  }}
-                >
-                  Delete Task
-                </button>
-              )}
-            </div>
-          </>
+            </>
+          )
         )}
       </div>
     </div>

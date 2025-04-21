@@ -1584,6 +1584,195 @@
   background-color: #ef4444;
   color: #ffffff;
 }
+.task-detail-page .task-updates {
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.task-detail-page .task-updates .updates-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+.task-detail-page .task-updates .updates-header h3 {
+  font-size: 1.125rem;
+  color: #1f2937;
+  margin: 0;
+}
+.task-detail-page .task-updates .updates-header .add-comment-btn {
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+.task-detail-page .task-updates .updates-header .add-comment-btn:hover {
+  background-color: #1d4ed8;
+}
+.task-detail-page .task-updates .comment-form-container {
+  background-color: #f9fafb;
+  border-radius: 0.25rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid #e5e7eb;
+}
+.task-detail-page .task-updates .comment-form-container h4 {
+  font-size: 1rem;
+  color: #1f2937;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+.task-detail-page .task-updates .comment-form-container .comment-form .form-group {
+  margin-bottom: 0.75rem;
+}
+.task-detail-page .task-updates .comment-form-container .comment-form .form-group label {
+  display: block;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+.task-detail-page .task-updates .comment-form-container .comment-form .form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  resize: vertical;
+  min-height: 100px;
+}
+.task-detail-page .task-updates .comment-form-container .comment-form .form-group textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+.task-detail-page .task-updates .comment-form-container .comment-form .form-group .error {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+.task-detail-page .task-updates .comment-form-container .comment-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+.task-detail-page .task-updates .comment-form-container .comment-form .form-actions button {
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+.task-detail-page .task-updates .comment-form-container .comment-form .form-actions .cancel-btn {
+  background-color: #ffffff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+.task-detail-page .task-updates .comment-form-container .comment-form .form-actions .cancel-btn:hover {
+  background-color: #f3f4f6;
+}
+.task-detail-page .task-updates .comment-form-container .comment-form .form-actions .submit-btn {
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+}
+.task-detail-page .task-updates .comment-form-container .comment-form .form-actions .submit-btn:hover {
+  background-color: #1d4ed8;
+}
+.task-detail-page .task-updates .comment-form-container .comment-form .form-actions .submit-btn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+.task-detail-page .task-updates .updates-timeline .update-item {
+  padding: 1rem 0 1rem 1.25rem;
+  border-left: 3px solid #e5e7eb;
+  margin-left: 0.5rem;
+  margin-bottom: 1rem;
+  position: relative;
+}
+.task-detail-page .task-updates .updates-timeline .update-item:last-child {
+  margin-bottom: 0;
+  border-left-color: transparent;
+}
+.task-detail-page .task-updates .updates-timeline .update-item:before {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background-color: #d1d5db;
+  border-radius: 50%;
+  left: -7.5px;
+  top: 1rem;
+  border: 2px solid #ffffff;
+}
+.task-detail-page .task-updates .updates-timeline .update-item.system-update {
+  background-color: rgba(107, 114, 128, 0.03);
+  border-left-color: #d1d5db;
+  padding-left: 1.25rem;
+}
+.task-detail-page .task-updates .updates-timeline .update-item.system-update:before {
+  background-color: #9ca3af;
+}
+.task-detail-page .task-updates .updates-timeline .update-item.system-update .update-author span {
+  font-style: italic;
+}
+.task-detail-page .task-updates .updates-timeline .update-item.internal-note {
+  border-left-color: #7c3aed;
+  background-color: rgba(124, 58, 237, 0.05);
+}
+.task-detail-page .task-updates .updates-timeline .update-item.internal-note:before {
+  background-color: #7c3aed;
+}
+.task-detail-page .task-updates .updates-timeline .update-item .update-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.task-detail-page .task-updates .updates-timeline .update-item .update-header .update-author {
+  font-weight: 600;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+}
+.task-detail-page .task-updates .updates-timeline .update-item .update-header .update-author .internal-badge {
+  background-color: #8b5cf6;
+  color: #ffffff;
+  font-size: 0.75rem;
+  padding: 2px 0.25rem;
+  border-radius: 0.125rem;
+  margin-left: 0.5rem;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.task-detail-page .task-updates .updates-timeline .update-item .update-header .update-time {
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+.task-detail-page .task-updates .updates-timeline .update-item .update-content {
+  color: #374151;
+  line-height: 1.5;
+  white-space: pre-line;
+  padding-top: 0.25rem;
+}
+.task-detail-page .task-updates .updates-timeline .no-updates {
+  color: #6b7280;
+  text-align: center;
+  padding: 1.5rem;
+  font-style: italic;
+}
 .task-detail-page .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -1641,6 +1830,28 @@
   }
   .task-detail-page .form-actions button {
     width: 100%;
+  }
+  .task-detail-page .task-updates {
+    padding: 1rem;
+  }
+  .task-detail-page .task-updates .updates-timeline .update-item {
+    padding: 0.75rem 0 0.75rem 1rem;
+    margin-left: 0.25rem;
+  }
+  .task-detail-page .task-updates .updates-timeline .update-item:before {
+    left: -6.5px;
+    top: 0.75rem;
+  }
+  .task-detail-page .task-updates .updates-timeline .update-item .update-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  .task-detail-page .task-updates .updates-timeline .update-item .update-header .update-time {
+    margin-top: 0;
+  }
+  .task-detail-page .task-updates .comment-form-container {
+    padding: 0.75rem;
   }
 }
 .tasks-page {
