@@ -205,7 +205,7 @@ const DashboardPage: React.FC = () => {
                 </thead>
                 <tbody>
                   {recentTickets.map(ticket => (
-                    <tr key={ticket.ticket_number}>
+                    <tr key={ticket.id}>
                       <td><Link to={`/tickets/${ticket.id}`}>#{ticket.ticket_number}</Link></td>
                       <td><Link to={`/tickets/${ticket.id}`}>{ticket.subject}</Link></td>
                       <td>{formatDate(ticket.createdAt)}</td>
@@ -240,7 +240,7 @@ const DashboardPage: React.FC = () => {
                 </thead>
                 <tbody>
                   {myTickets.map(ticket => (
-                    <tr key={ticket.ticket_number}>
+                    <tr key={ticket.id}>
                       <td><Link to={`/tickets/${ticket.id}`}>#{ticket.ticket_number}</Link></td>
                       <td><Link to={`/tickets/${ticket.id}`}>{ticket.subject}</Link></td>
                       <td>{formatDate(ticket.createdAt)}</td>
