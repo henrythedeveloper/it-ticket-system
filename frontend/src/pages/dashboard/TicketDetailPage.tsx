@@ -370,13 +370,6 @@ const TicketDetailPage: React.FC = () => {
                         <ErrorMessage name="comment" component="div" className="error" />
                       </div>
                       
-                      <div className="form-group checkbox">
-                        <label>
-                          <Field type="checkbox" name="is_internal_note" />
-                          Internal Note (not visible to end user)
-                        </label>
-                      </div>
-                      
                       <div className="form-actions">
                         <button 
                           type="button" 

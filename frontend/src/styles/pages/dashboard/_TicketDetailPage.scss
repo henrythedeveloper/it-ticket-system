@@ -420,16 +420,7 @@
           left: -7px;
           top: $spacing-4;
         }
-        
-        &.internal-note {
-          background-color: rgba($accent-light, 0.05);
-          border-left-color: $accent-light;
-          
-          &:before {
-            background-color: $accent-light;
-          }
-        }
-        
+
         &.system-update {
           background-color: rgba($gray-500, 0.05);
           border-left-color: $gray-500;

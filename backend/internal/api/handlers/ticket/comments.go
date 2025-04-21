@@ -57,21 +57,19 @@ func (h *Handler) AddTicketComment(c echo.Context) error {
 		INSERT INTO ticket_updates (ticket_id, user_id, comment, is_internal_note, created_at)
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id
-	`, ticketID, userID, commentCreate.Comment, commentCreate.IsInternalNote, time.Now()).Scan(&commentID)
+	`, ticketID, userID, commentCreate.Comment, true, time.Now()).Scan(&commentID) // Set is_internal_note to true
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to add comment")
 	}
 
-	// If not an internal note, update the ticket's updated_at timestamp
-	if !commentCreate.IsInternalNote {
-		_, err = h.db.Pool.Exec(ctx, `
-			UPDATE tickets
-			SET updated_at = $1
-			WHERE id = $2
-		`, time.Now(), ticketID)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "failed to update ticket")
-		}
+	// Always update the ticket's updated_at timestamp when a comment is added
+	_, err = h.db.Pool.Exec(ctx, `
+		UPDATE tickets
+		SET updated_at = $1
+		WHERE id = $2
+	`, time.Now(), ticketID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to update ticket")
 	}
 
 	// Get the comment with user info

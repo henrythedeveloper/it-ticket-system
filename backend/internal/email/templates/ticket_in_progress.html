@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Ticket In Progress</title>
+  <style type="text/css">/* ... styles ... */</style>
+</head>
+<body style="background-color: #f3f4f6;">
+  <table border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td align="center" bgcolor="#f3f4f6" class="container">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px;">
+          <tr>
+            <td align="left" bgcolor="#ffffff" class="content">
+              <h1 style="font-size: 24px; font-weight: bold; margin: 0 0 20px;">Ticket Update: In Progress</h1>
+              <p style="margin-bottom: 15px;">Hello,</p>
+              <p style="margin-bottom: 15px;">Your support ticket (ID: <strong>#{{.TicketNumber}}</strong>) regarding "{{.Subject}}" is now being worked on.</p>
+              <p style="margin-bottom: 15px;"><strong>Assigned Staff Member:</strong> {{.AssignedStaffName}}</p>
+              <p style="margin-bottom: 15px;">We will update you again once the issue is resolved or if we require more information.</p>
+              <p style="margin-bottom: 0;">Regards,<br>IT Helpdesk Team</p>
+            </td>
+          </tr>
+          <tr><td align="center" class="footer">IT Helpdesk Notification</td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

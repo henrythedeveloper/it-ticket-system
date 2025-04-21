@@ -6,6 +6,7 @@ import (
 	"errors"
 	"html/template" // Import html/template package
 	"log/slog"      // Import slog for structured logging
+	"fmt"
 
 	"github.com/henrythedeveloper/bus-it-ticket/internal/config"
 	"github.com/resend/resend-go/v2"
@@ -38,6 +39,7 @@ type Service interface {
 	SendTicketConfirmation(recipient, ticketID, subject string) error
 	SendTicketClosure(recipient, ticketID, subject, resolution string) error
 	SendTaskAssignment(recipient, taskTitle, dueDate string) error
+	SendTicketInProgress(recipient, ticketNumberStr, subject, assignedStaffName string) error
 }
 
 // ResendService is an implementation of the email Service using Resend
@@ -169,5 +171,36 @@ func (s *ResendService) SendTaskAssignment(recipient, taskTitle, dueDate string)
 		return errors.New("failed to send email")
 	}
 	slog.Info("Sent task assignment email", "recipient", recipient, "taskTitle", taskTitle)
+	return nil
+}
+
+// SendTicketInProgress sends an email when a ticket is marked as In Progress
+func (s *ResendService) SendTicketInProgress(recipient, ticketNumberStr, subject, assignedStaffName string) error {
+	templateName := "ticket_in_progress.html"
+	data := map[string]string{
+		"TicketNumber":      ticketNumberStr,
+		"Subject":           subject,
+		"AssignedStaffName": assignedStaffName,
+	}
+
+	htmlContent, err := renderTemplate(templateName, data)
+	if err != nil {
+		return err // Error already logged by renderTemplate
+	}
+
+	params := &resend.SendEmailRequest{
+		From:    s.from,
+		To:      []string{recipient},
+		Subject: fmt.Sprintf("IT Helpdesk - Ticket #%s In Progress", ticketNumberStr),
+		Html:    htmlContent,
+		ReplyTo: s.from, 
+	}
+
+	_, err = s.client.Emails.Send(params)
+	if err != nil {
+		slog.Error("Failed to send ticket in progress email via Resend", "recipient", recipient, "ticketNumber", ticketNumberStr, "error", err)
+		return errors.New("failed to send email") // Return generic error
+	}
+	slog.Info("Sent ticket in progress email", "recipient", recipient, "ticketNumber", ticketNumberStr)
 	return nil
 }

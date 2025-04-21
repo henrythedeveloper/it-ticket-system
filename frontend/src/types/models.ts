@@ -99,7 +99,6 @@ export interface TicketUpdate {
 
 export interface TicketUpdateCreate {
   comment: string;
-  is_internal_note: boolean;
 }
 
 export interface TicketFilter {
