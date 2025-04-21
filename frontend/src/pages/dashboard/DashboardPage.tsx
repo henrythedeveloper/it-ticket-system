@@ -7,7 +7,7 @@ import { Ticket, Task, APIResponse } from '../../types/models';
 type TicketCounts = {
   unassigned: number;
   assigned: number;
-  inProgress: number;
+  in_progress: number;
   closed: number;
   total: number;
 };
@@ -27,7 +27,7 @@ const DashboardPage: React.FC = () => {
   const [ticketCounts, setTicketCounts] = useState<TicketCounts>({
     unassigned: 0,
     assigned: 0,
-    inProgress: 0,
+    in_progress: 0,
     closed: 0,
     total: 0
   });
@@ -171,7 +171,7 @@ const DashboardPage: React.FC = () => {
         <div className="stats-card">
           <div className="card-content">
             <h3>In Progress</h3>
-            <p className="count">{ticketCounts.inProgress}</p>
+            <p className="count">{ticketCounts.in_progress}</p>
           </div>
           <Link to="/tickets?status=In%20Progress" className="card-action">View All</Link>
         </div>
@@ -179,7 +179,7 @@ const DashboardPage: React.FC = () => {
         <div className="stats-card">
           <div className="card-content">
             <h3>Total Open</h3>
-            <p className="count">{ticketCounts.unassigned + ticketCounts.assigned + ticketCounts.inProgress}</p>
+            <p className="count">{ticketCounts.unassigned + ticketCounts.assigned + ticketCounts.in_progress}</p>
           </div>
           <Link to="/tickets" className="card-action">View All</Link>
         </div>
