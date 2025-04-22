@@ -1,17 +1,25 @@
-// global.scss
+// src/styles/global.scss
+// ==========================================================================
+// Main SCSS entry point. Imports variables, mixins, components, layouts,
+// and page-specific styles. Defines global styles and theme overrides.
+// ==========================================================================
 
-@use 'variables' as *;
+// --------------------------------------------------------------------------
+// Imports
+// --------------------------------------------------------------------------
+@use 'variables' as *; // Core design tokens and CSS variable definitions
+@use 'mixins';         // Reusable SCSS mixins
 
-/* Import component styles */
+// Import component styles
 @use './components/forms';
 @use './components/tickets/TicketCard';
 
-/* Import layouts Styles */
+// Import layout styles
 @use './layouts/AuthLayout';
 @use './layouts/MainLayout';
 @use './layouts/PublicLayout';
 
-/* Import pages styles */
+// Import page-specific styles
 @use './pages/dashboard/DashboardPage';
 @use './pages/dashboard/ProfilePage';
 @use './pages/dashboard/SettingsPage';
@@ -25,7 +33,9 @@
 @use './pages/public/FAQPage';
 @use './pages/public/HomePage';
 
-/* Base Reset */
+// --------------------------------------------------------------------------
+// Base Reset & Global Styles
+// --------------------------------------------------------------------------
 *,
 *::before,
 *::after {
@@ -34,16 +44,16 @@
   padding: 0;
 }
 
+// Helper for icon elements if needed
 .icon {
-  font-style: normal !important;
-}
-html {
-  font-size: 16px;
-  height: 100%;
-  // Apply base colors using CSS variables
-  color-scheme: light dark; // Indicate support for both schemes
+    font-style: normal !important; // Prevent italics
 }
 
+html {
+  font-size: 16px; // Base font size
+  height: 100%;
+  color-scheme: light dark; // Indicate theme support to browser
+}
 
 body {
   font-family: $font-family-sans;
@@ -51,231 +61,22 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   height: 100%;
-
-  // --- Light Mode Styles (using CSS variables) ---
-  background-color: var(--body-bg);
-  color: var(--text-secondary);
-  transition: background-color $transition-medium, color $transition-medium; // Smooth transition
-
-  // --- Dark Mode Styles ---
-
-  // Style block for when the .dark-mode class is present
-  &.dark-mode {
-    // Override CSS variables for dark mode
-    --primary-color: #{$primary-color-dark};
-    --primary-light: #{$primary-light-dark};
-    --primary-dark: #{$primary-dark-dark};
-    --secondary-color: #{$secondary-color-dark};
-    --secondary-light: #{$secondary-light-dark};
-    --secondary-dark: #{$secondary-dark-dark};
-    --accent-color: #{$accent-color-dark};
-    --accent-light: #{$accent-light-dark};
-    --accent-dark: #{$accent-dark-dark};
-
-    --body-bg: #{$body-bg-dark};
-    --surface-bg: #{$surface-bg-dark};
-    --surface-alt-bg: #{$surface-alt-bg-dark};
-
-    --text-primary: #{$text-primary-dark};
-    --text-secondary: #{$text-secondary-dark};
-    --text-muted: #{$text-muted-dark};
-    --text-inverted: #{$text-inverted-dark};
-    --text-link: #{$primary-light-dark}; // Use lighter blue for links
-    --text-link-hover: #{$primary-color-dark};
-
-    --border-color: #{$border-color-dark};
-    --border-color-strong: #{$border-color-strong-dark};
-
-    --success-color: #{$success-color-dark};
-    --error-color: #{$error-color-dark};
-    --warning-color: #{$warning-color-dark};
-    --info-color: #{$info-color-dark};
-
-    --status-unassigned-color: #{$status-unassigned-dark};
-    --status-assigned-color: #{$status-assigned-dark};
-    --status-progress-color: #{$status-progress-dark};
-    --status-closed-color: #{$status-closed-dark};
-
-    --urgency-low-color: #{$urgency-low-dark};
-    --urgency-medium-color: #{$urgency-medium-dark};
-    --urgency-high-color: #{$urgency-high-dark};
-    --urgency-critical-color: #{$urgency-critical-dark};
-
-    // Component Specific Overrides (Examples)
-    --header-bg: var(--surface-bg); // Use dark surface for header
-    --header-text: var(--text-primary);
-    --sidebar-bg: $gray-900; // Keep sidebar dark
-    --sidebar-text: $gray-300;
-    --sidebar-text-hover: $white;
-    --sidebar-active-bg: rgba($primary-light-dark, 0.15); // Use lighter primary alpha
-    --sidebar-active-border: $primary-light-dark;
-    --footer-bg: $gray-900; // Darker footer
-    --footer-text: $gray-400;
-    --footer-link: $gray-300;
-    --footer-link-hover: $white;
-
-    // Badge Background Alphas (Adjust alpha or color if needed)
-    --badge-info-bg-alpha: rgba(var(--info-color), 0.15);
-    --badge-success-bg-alpha: rgba(var(--success-color), 0.15);
-    --badge-warning-bg-alpha: rgba(var(--warning-color), 0.15);
-    --badge-error-bg-alpha: rgba(var(--error-color), 0.15);
-
-    // --- Global Dark Mode Adjustments ---
-    a {
-      color: var(--text-link);
-      &:hover {
-        color: var(--text-link-hover);
-      }
-    }
-    h1, h2, h3, h4, h5, h6 { color: var(--text-primary); }
-    table th {
-       background-color: var(--surface-alt-bg);
-       color: var(--text-primary);
-       border-bottom-color: var(--border-color);
-    }
-    table td {
-        border-bottom-color: var(--border-color);
-        color: var(--text-secondary);
-    }
-    table tr:hover td { background-color: var(--surface-alt-bg); }
-    .card {
-        background-color: var(--surface-bg);
-        box-shadow: none;
-        border: 1px solid var(--border-color);
-    }
-    .form-group {
-        label { color: var(--text-primary); }
-        input[type="text"], input[type="email"], input[type="password"],
-        input[type="number"], input[type="date"], input[type="tel"],
-        input[type="url"], select, textarea {
-            background-color: var(--surface-alt-bg);
-            border-color: var(--border-color-strong);
-            color: var(--text-primary);
-            &::placeholder { color: var(--text-muted); }
-            &:focus {
-              border-color: var(--primary-color);
-              box-shadow: 0 0 0 2px rgba(var(--primary-color), 0.2);
-            }
-            &:disabled {
-              background-color: $gray-700;
-              color: $gray-500;
-              cursor: not-allowed;
-            }
-        }
-    }
-    // Alert overrides (text/border colors)
-    .alert {
-        &.alert-info { background-color: rgba($info-color-dark, 0.15); color: $info-color-dark; border-color: rgba($info-color-dark, 0.3); }
-        &.alert-success { background-color: rgba($success-color-dark, 0.15); color: $success-color-dark; border-color: rgba($success-color-dark, 0.3); }
-        &.alert-warning { background-color: rgba($warning-color-dark, 0.15); color: $warning-color-dark; border-color: rgba($warning-color-dark, 0.3); }
-        &.alert-error { background-color: rgba($error-color-dark, 0.15); color: $error-color-dark; border-color: rgba($error-color-dark, 0.3); }
-    }
-  }
-
-  // Style block for when the OS preference is dark
-  @media (prefers-color-scheme: dark) {
-    // Apply the same overrides as .dark-mode
-    // You could use an @extend or mixin here to avoid duplication,
-    // but repeating is clearer for this example.
-    --primary-color: #{$primary-color-dark};
-    --primary-light: #{$primary-light-dark};
-    --primary-dark: #{$primary-dark-dark};
-    --secondary-color: #{$secondary-color-dark};
-    --secondary-light: #{$secondary-light-dark};
-    --secondary-dark: #{$secondary-dark-dark};
-    --accent-color: #{$accent-color-dark};
-    --accent-light: #{$accent-light-dark};
-    --accent-dark: #{$accent-dark-dark};
-
-    --body-bg: #{$body-bg-dark};
-    --surface-bg: #{$surface-bg-dark};
-    --surface-alt-bg: #{$surface-alt-bg-dark};
-
-    --text-primary: #{$text-primary-dark};
-    --text-secondary: #{$text-secondary-dark};
-    --text-muted: #{$text-muted-dark};
-    --text-inverted: #{$text-inverted-dark};
-    --text-link: #{$primary-light-dark};
-    --text-link-hover: #{$primary-color-dark};
-
-    --border-color: #{$border-color-dark};
-    --border-color-strong: #{$border-color-strong-dark};
-
-    --success-color: #{$success-color-dark};
-    --error-color: #{$error-color-dark};
-    --warning-color: #{$warning-color-dark};
-    --info-color: #{$info-color-dark};
-
-    --status-unassigned-color: #{$status-unassigned-dark};
-    --status-assigned-color: #{$status-assigned-dark};
-    --status-progress-color: #{$status-progress-dark};
-    --status-closed-color: #{$status-closed-dark};
-
-    --urgency-low-color: #{$urgency-low-dark};
-    --urgency-medium-color: #{$urgency-medium-dark};
-    --urgency-high-color: #{$urgency-high-dark};
-    --urgency-critical-color: #{$urgency-critical-dark};
-
-    // Component Specific Overrides
-    --header-bg: var(--surface-bg);
-    --header-text: var(--text-primary);
-    --sidebar-bg: $gray-900;
-    --sidebar-text: $gray-300;
-    --sidebar-text-hover: $white;
-    --sidebar-active-bg: rgba($primary-light-dark, 0.15);
-    --sidebar-active-border: $primary-light-dark;
-    --footer-bg: $gray-900;
-    --footer-text: $gray-400;
-    --footer-link: $gray-300;
-    --footer-link-hover: $white;
-
-    // Badge Background Alphas
-    --badge-info-bg-alpha: rgba(var(--info-color), 0.15);
-    --badge-success-bg-alpha: rgba(var(--success-color), 0.15);
-    --badge-warning-bg-alpha: rgba(var(--warning-color), 0.15);
-    --badge-error-bg-alpha: rgba(var(--error-color), 0.15);
-
-    // --- Global Dark Mode Adjustments ---
-    a { color: var(--text-link); &:hover { color: var(--text-link-hover); } }
-    h1, h2, h3, h4, h5, h6 { color: var(--text-primary); }
-    table th { background-color: var(--surface-alt-bg); color: var(--text-primary); border-bottom-color: var(--border-color); }
-    table td { border-bottom-color: var(--border-color); color: var(--text-secondary); }
-    table tr:hover td { background-color: var(--surface-alt-bg); }
-    .card { background-color: var(--surface-bg); box-shadow: none; border: 1px solid var(--border-color); }
-    .form-group {
-        label { color: var(--text-primary); }
-        input[type="text"], input[type="email"], input[type="password"],
-        input[type="number"], input[type="date"], input[type="tel"],
-        input[type="url"], select, textarea {
-            background-color: var(--surface-alt-bg); border-color: var(--border-color-strong); color: var(--text-primary);
-            &::placeholder { color: var(--text-muted); }
-            &:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(var(--primary-color), 0.2); }
-            &:disabled { background-color: $gray-700; color: $gray-500; cursor: not-allowed; }
-        }
-    }
-    // Alert overrides (text/border colors)
-    .alert {
-        &.alert-info { background-color: rgba($info-color-dark, 0.15); color: $info-color-dark; border-color: rgba($info-color-dark, 0.3); }
-        &.alert-success { background-color: rgba($success-color-dark, 0.15); color: $success-color-dark; border-color: rgba($success-color-dark, 0.3); }
-        &.alert-warning { background-color: rgba($warning-color-dark, 0.15); color: $warning-color-dark; border-color: rgba($warning-color-dark, 0.3); }
-        &.alert-error { background-color: rgba($error-color-dark, 0.15); color: $error-color-dark; border-color: rgba($error-color-dark, 0.3); }
-    }
-  }
+  background-color: var(--body-bg); // Apply light mode default background
+  color: var(--text-secondary);    // Apply light mode default text color
+  transition: background-color $transition-medium, color $transition-medium; // Smooth theme transition
 }
 
-
-#root {
+#root { // Assuming #root is your React mount point
   height: 100%;
 }
 
 // --- Headings, Text, Links (using CSS variables) ---
 h1, h2, h3, h4, h5, h6 {
   margin-bottom: $spacing-4;
-  color: var(--text-primary); // Use CSS variable
+  color: var(--text-primary);
   font-weight: $font-weight-bold;
   line-height: 1.2;
 }
-// Font size definitions remain the same...
 h1 { font-size: $font-size-3xl; }
 h2 { font-size: $font-size-2xl; }
 h3 { font-size: $font-size-xl; }
@@ -283,17 +84,14 @@ h4 { font-size: $font-size-lg; }
 
 p {
   margin-bottom: $spacing-4;
-  color: var(--text-secondary); // Use CSS variable
+  color: var(--text-secondary);
 }
 
 a {
-  color: var(--text-link); // Use CSS variable
+  color: var(--text-link);
   text-decoration: underline;
   transition: color $transition-fast;
-
-  &:hover {
-    color: var(--text-link-hover); // Use CSS variable
-  }
+  &:hover { color: var(--text-link-hover); }
 }
 
 ul, ol {
@@ -301,187 +99,160 @@ ul, ol {
   padding-left: $spacing-5;
 }
 
-/* Common Page Layouts */
-.page-header {
-  margin-bottom: $spacing-6;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+// --- Common UI Elements ---
 
-  h1 {
-    margin-bottom: 0;
-  }
+/* Base Card Style */
+.card {
+    @include mixins.card-base; // Apply base card styles using mixin
 }
 
-/* Cards */
-.card {
-  background-color: var(--surface-bg); // Use CSS variable
-  border-radius: $border-radius-lg;
-  box-shadow: $shadow;
-  padding: $spacing-4;
-  margin-bottom: $spacing-4;
-  border: 1px solid transparent; // Add base border for transition
-  transition: background-color $transition-medium, border-color $transition-medium;
+/* Base Button Style */
+.btn {
+    @include mixins.button-base; // Apply base button styles
+    // Default to primary variant
+    @include mixins.button-variant(--primary-color, --text-inverted, --primary-dark);
 
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: $spacing-4;
-    padding-bottom: $spacing-4; // Add padding for border
-    border-bottom: 1px solid var(--border-color); // Use CSS variable
-    transition: border-color $transition-medium;
-
-    h2, h3 {
-      margin-bottom: 0;
-      color: var(--text-primary); // Use CSS variable
-    }
-  }
-
-  .card-body {
-    margin-bottom: $spacing-4;
-    color: var(--text-secondary); // Use CSS variable
-  }
-
-  .card-footer {
-    display: flex;
-    justify-content: flex-end;
-  }
+    // Define variants by extending or using mixins in component styles
+    &.btn-secondary { @include mixins.button-variant(--secondary-color, --text-inverted, --secondary-dark); }
+    &.btn-danger { @include mixins.button-variant(--error-color, $white, darken($red-500, 10%)); } // Danger text often stays white
+    &.btn-outline { @include mixins.button-outline-variant(--primary-color, --text-inverted); }
+    &.btn-sm { padding: $spacing-2 $spacing-4; font-size: $font-size-sm; }
+    &.btn-lg { padding: $spacing-4 $spacing-8; font-size: $font-size-lg; }
+    &.loading { @include mixins.button-loading; } // Apply loading mixin
 }
 
 /* Data Tables */
-.table-container {
-  overflow-x: auto;
-  margin-bottom: $spacing-6;
-}
-
+.table-container { overflow-x: auto; margin-bottom: $spacing-6; }
 table {
-  width: 100%;
-  border-collapse: collapse;
-
-  th, td {
-    padding: $spacing-3;
-    text-align: left;
-    border-bottom: 1px solid var(--border-color); // Use CSS variable
-    transition: background-color $transition-medium, border-color $transition-medium, color $transition-medium;
-  }
-
-  th {
-    background-color: var(--surface-alt-bg); // Use CSS variable
-    font-weight: $font-weight-semibold;
-    color: var(--text-primary); // Use CSS variable
-  }
-
-   td {
-     color: var(--text-secondary); // Use CSS variable
-   }
-
-  tr:hover td {
-    background-color: var(--surface-alt-bg); // Use CSS variable
-  }
+  width: 100%; border-collapse: collapse;
+  th, td { padding: $spacing-3; text-align: left; border-bottom: 1px solid var(--border-color); transition: background-color $transition-medium, border-color $transition-medium, color $transition-medium; }
+  th { background-color: var(--surface-alt-bg); font-weight: $font-weight-semibold; color: var(--text-primary); }
+  td { color: var(--text-secondary); }
+  tr:hover td { background-color: var(--surface-alt-bg); }
 }
 
 /* Alerts */
-// Alerts use RGBA backgrounds which adapt reasonably well, but text color needs override
 .alert {
-  padding: $spacing-4;
-  border-radius: $border-radius;
-  margin-bottom: $spacing-4;
-  border-width: 1px;
-  border-style: solid;
-
-  // Light mode defaults (already defined via rgba)
-  &.alert-info {
-    background-color: rgba($info-color, 0.1);
-    color: $info-color;
-    border-color: rgba($info-color, 0.2);
-  }
-  &.alert-success {
-    background-color: rgba($success-color, 0.1);
-    color: $success-color;
-    border-color: rgba($success-color, 0.2);
-  }
-  &.alert-warning {
-    background-color: rgba($warning-color, 0.1);
-    color: $warning-color;
-    border-color: rgba($warning-color, 0.2);
-  }
-  &.alert-error {
-    background-color: rgba($error-color, 0.1);
-    color: $error-color;
-    border-color: rgba($error-color, 0.2);
-  }
-
-  // Dark Mode Overrides for Alert Text/Border
-  // These are now handled within the body.dark-mode / @media block above
+  padding: $spacing-4; border-radius: $border-radius; margin-bottom: $spacing-4;
+  border-width: 1px; border-style: solid;
+  &.alert-info { background-color: rgba(var(--info-color), 0.1); color: var(--info-color); border-color: rgba(var(--info-color), 0.2); }
+  &.alert-success { background-color: rgba(var(--success-color), 0.1); color: var(--success-color); border-color: rgba(var(--success-color), 0.2); }
+  &.alert-warning { background-color: rgba(var(--warning-color), 0.1); color: var(--warning-color); border-color: rgba(var(--warning-color), 0.2); }
+  &.alert-error { background-color: rgba(var(--error-color), 0.1); color: var(--error-color); border-color: rgba(var(--error-color), 0.2); }
 }
 
 /* Loaders */
-.loader {
-  display: inline-block;
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(var(--primary-color), 0.3); // Use CSS var
-  border-radius: 50%;
-  border-top-color: var(--primary-color); // Use CSS var
-  animation: spin 1s ease-in-out infinite;
+.loader { /* Spinner styles */
+  display: inline-block; width: 40px; height: 40px;
+  border: 3px solid rgba(var(--primary-color), 0.3); border-radius: 50%;
+  border-top-color: var(--primary-color); animation: spin 1s ease-in-out infinite;
 }
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: $spacing-8;
-  color: var(--text-muted); // Use CSS variable
-
-  p {
-    margin-top: $spacing-4;
-  }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading { /* Loading container */
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: $spacing-8; color: var(--text-muted);
+  p { margin-top: $spacing-4; }
 }
 
 /* Error and Success Messages */
-.error-message {
-  background-color: var(--badge-error-bg-alpha); // Use CSS variable alpha
-  color: var(--error-color); // Use CSS variable
-  padding: $spacing-3;
-  border-radius: $border-radius;
-  margin-bottom: $spacing-4;
-  border: 1px solid rgba(var(--error-color), 0.3); // Use CSS variable
-}
+.error-message { background-color: var(--badge-error-bg-alpha); color: var(--error-color); padding: $spacing-3; border-radius: $border-radius; margin-bottom: $spacing-4; border: 1px solid rgba(var(--error-color), 0.3); }
+.success-message { background-color: var(--badge-success-bg-alpha); color: var(--success-color); padding: $spacing-3; border-radius: $border-radius; margin-bottom: $spacing-4; border: 1px solid rgba(var(--success-color), 0.3); }
 
-.success-message {
-  background-color: var(--badge-success-bg-alpha); // Use CSS variable alpha
-  color: var(--success-color); // Use CSS variable
-  padding: $spacing-3;
-  border-radius: $border-radius;
-  margin-bottom: $spacing-4;
-   border: 1px solid rgba(var(--success-color), 0.3); // Use CSS variable
-}
+// --------------------------------------------------------------------------
+// Dark Mode Overrides
+// --------------------------------------------------------------------------
+body.dark-mode {
+  // Override CSS variables using base palette SCSS variables
+  --primary-color: #{$sky-500};
+  --primary-light: #{$sky-600};
+  --primary-dark: #{$sky-400};
+  --secondary-color: #{$teal-500};
+  --secondary-light: #{$teal-600};
+  --secondary-dark: #{$teal-400};
+  --accent-color: #{$violet-400};
+  --accent-light: #{$violet-500};
+  --accent-dark: #{$violet-300};
 
-/* Responsive utilities */
-@media (max-width: $breakpoint-md) {
-  .hide-md {
-    display: none;
+  --body-bg: #{$gray-900};
+  --surface-bg: #{$gray-800};
+  --surface-alt-bg: #{$gray-700};
+
+  --text-primary: #{$gray-100};
+  --text-secondary: #{$gray-300};
+  --text-muted: #{$gray-400};
+  --text-inverted: #{$gray-900};
+  --text-link: #{$sky-500};
+  --text-link-hover: #{$sky-400};
+
+  --border-color: #{$gray-700};
+  --border-color-strong: #{$gray-600};
+
+  --success-color: #{$teal-400};
+  --error-color: #{$red-400};
+  --warning-color: #{$amber-400};
+  --info-color: #{$sky-400};
+
+  --status-unassigned-color: #{$amber-400};
+  --status-assigned-color: #{$sky-400};
+  --status-progress-color: #{$violet-400};
+  --status-closed-color: #{$teal-400};
+
+  --urgency-low-color: #{$teal-400};
+  --urgency-medium-color: #{$sky-400};
+  --urgency-high-color: #{$amber-400};
+  --urgency-critical-color: #{$red-400};
+
+  // Component Specific Overrides
+  --header-bg: var(--surface-bg);
+  --header-text: var(--text-primary);
+  --sidebar-bg: $gray-900;
+  --sidebar-text: $gray-300;
+  --sidebar-text-hover: $white;
+  --sidebar-active-bg: rgba($sky-500, 0.15);
+  --sidebar-active-border: $sky-500;
+  --footer-bg: $gray-900;
+  --footer-text: $gray-400;
+  --footer-link: $gray-300;
+  --footer-link-hover: $white;
+
+  // Badge Background Alphas (Use updated dark mode colors)
+  --badge-info-bg-alpha: rgba(var(--info-color), 0.15);
+  --badge-success-bg-alpha: rgba(var(--success-color), 0.15);
+  --badge-warning-bg-alpha: rgba(var(--warning-color), 0.15);
+  --badge-error-bg-alpha: rgba(var(--error-color), 0.15);
+
+  // --- Global Dark Mode Element Adjustments ---
+  // Selectors inside body.dark-mode ensure these only apply when dark mode is active
+  a { color: var(--text-link); &:hover { color: var(--text-link-hover); } }
+  h1, h2, h3, h4, h5, h6 { color: var(--text-primary); }
+  table th { background-color: var(--surface-alt-bg); color: var(--text-primary); border-bottom-color: var(--border-color); }
+  table td { border-bottom-color: var(--border-color); color: var(--text-secondary); }
+  table tr:hover td { background-color: var(--surface-alt-bg); }
+  .card { background-color: var(--surface-bg); box-shadow: none; border: 1px solid var(--border-color); }
+
+  // Alerts
+  .alert {
+      &.alert-info { background-color: rgba(var(--info-color), 0.15); color: var(--info-color); border-color: rgba(var(--info-color), 0.3); }
+      &.alert-success { background-color: rgba(var(--success-color), 0.15); color: var(--success-color); border-color: rgba(var(--success-color), 0.3); }
+      &.alert-warning { background-color: rgba(var(--warning-color), 0.15); color: var(--warning-color); border-color: rgba(var(--warning-color), 0.3); }
+      &.alert-error { background-color: rgba(var(--error-color), 0.15); color: var(--error-color); border-color: rgba(var(--error-color), 0.3); }
   }
+  // Disabled form elements
+  input:disabled, select:disabled, textarea:disabled, button:disabled {
+      background-color: $gray-700 !important;
+      color: $gray-500 !important;
+      border-color: $gray-600 !important;
+      cursor: not-allowed !important;
+      opacity: 0.7 !important;
+    }
 }
 
+// --------------------------------------------------------------------------
+// Responsive Utilities
+// --------------------------------------------------------------------------
+@media (max-width: $breakpoint-md) { .hide-md { display: none; } }
 @media (max-width: $breakpoint-sm) {
-  .hide-sm {
-    display: none;
-  }
-
-  h1 {
-    font-size: $font-size-2xl;
-  }
-
-  h2 {
-    font-size: $font-size-xl;
-  }
+  .hide-sm { display: none; }
+  h1 { font-size: $font-size-2xl; }
+  h2 { font-size: $font-size-xl; }
 }

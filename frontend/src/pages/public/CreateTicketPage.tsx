@@ -1,222 +1,135 @@
+// src/pages/public/CreateTicketPage.tsx
+// ==========================================================================
+// Component representing the public page for creating a new support ticket.
+// Displays the TicketForm component.
+// ==========================================================================
+
 import React, { useState, useEffect } from 'react';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
-import * as Yup from 'yup';
-import api from '../../services/api';
-import { TicketCreate, Tag, APIResponse, Ticket } from '../../types/models';
+import Button from '../../components/common/Button';
+import { Link } from 'react-router-dom';
+import TicketForm from '../../components/forms/TicketForm'; // The actual form component
+import Loader from '../../components/common/Loader'; // Reusable Loader
+import Alert from '../../components/common/Alert'; // Reusable Alert
+// import { fetchPublicSettings } from '../../services/settingsService'; // Example API call
 
-const TicketSchema = Yup.object().shape({
-  end_user_email: Yup.string()
-    .email('Invalid email address')
-    .required('Email is required'),
-  issue_type: Yup.string()
-    .required('Issue type is required'),
-  urgency: Yup.string()
-    .oneOf(['Low', 'Medium', 'High', 'Critical'], 'Invalid urgency level')
-    .required('Urgency is required'),
-  subject: Yup.string()
-    .min(5, 'Subject must be at least 5 characters')
-    .max(200, 'Subject must be less than 200 characters')
-    .required('Subject is required'),
-  body: Yup.string()
-    .required('Description is required'),
-});
+// --- Mock Settings Data (Replace with API call) ---
+interface PublicSettings {
+    allowPublicSubmission: boolean;
+    issueTypes: string[];
+    availableTags: string[];
+}
 
+const MOCK_SETTINGS: PublicSettings = {
+    allowPublicSubmission: true,
+    issueTypes: ['General Inquiry', 'Bug Report', 'Feature Request', 'Password Reset', 'Hardware Issue'],
+    availableTags: ['urgent', 'billing', 'account', 'software', 'printer'],
+};
+
+// --- Component ---
+
+/**
+ * Renders the page for public ticket submission.
+ * Fetches necessary settings (like allowed issue types) and displays the TicketForm.
+ * Handles the success state after submission.
+ */
 const CreateTicketPage: React.FC = () => {
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [success, setSuccess] = useState(false);
+  // --- State ---
+  const [settings, setSettings] = useState<PublicSettings | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [displayTicketId, setDisplayTicketId] = useState<number | null>(null);
+  const [submittedTicketId, setSubmittedTicketId] = useState<string | null>(null); // Store ID after success
 
+  // --- Data Fetching ---
   useEffect(() => {
-    // Fetch available tags
-    const fetchTags = async () => {
+    const loadSettings = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
-        const response = await api.get<APIResponse<Tag[]>>('/tags');
-        if (response.data.success && response.data.data) {
-          setTags(response.data.data);
+        // Replace with actual API call: const fetchedSettings = await fetchPublicSettings();
+        await new Promise(resolve => setTimeout(resolve, 300)); // Simulate loading
+        // Basic validation if needed
+        if (!MOCK_SETTINGS.allowPublicSubmission) {
+            throw new Error("Public ticket submission is currently disabled.");
         }
-      } catch (err) {
-        console.error('Error fetching tags:', err);
-        // Don't show error for tags, as it's not critical
+        setSettings(MOCK_SETTINGS);
+      } catch (err: any) {
+        console.error("Failed to load settings for ticket creation:", err);
+        setError(err.message || 'Could not load ticket submission form.');
+      } finally {
+        setIsLoading(false);
       }
     };
+    loadSettings();
+  }, []); // Fetch on initial mount
 
-    fetchTags();
-  }, []);
-
-  const handleTagToggle = (tagName: string) => {
-    if (selectedTags.includes(tagName)) {
-      setSelectedTags(selectedTags.filter(tag => tag !== tagName));
-    } else {
-      setSelectedTags([...selectedTags, tagName]);
-    }
+  // --- Handlers ---
+  /**
+   * Handles the successful submission of the ticket form.
+   * Sets the submitted ticket ID to display the success message.
+   * @param newTicketId - The ID of the newly created ticket.
+   */
+  const handleSuccess = (newTicketId: string) => {
+    setSubmittedTicketId(newTicketId);
+    window.scrollTo(0, 0); // Scroll to top to show success message
   };
 
-  const issueTypes = [
-    'Hardware Problem',
-    'Software Issue',
-    'Network Issue',
-    'Account Access',
-    'Email Problem',
-    'Printer Issue',
-    'New Equipment Request',
-    'Other'
-  ];
-
-  const handleSubmit = async (values: Omit<TicketCreate, 'tags'>, { resetForm }: { resetForm: () => void }) => {
-    try {
-      setError(null);
-      
-      // Add selected tags to the ticket data
-      const ticketData: TicketCreate = {
-        ...values,
-        tags: selectedTags.length > 0 ? selectedTags : undefined
-      };
-      
-      const response = await api.post<APIResponse<Ticket>>('/tickets', ticketData); 
-      
-      if (response.data.success && response.data.data) {
-        setDisplayTicketId(response.data.data.ticket_number); 
-        setSuccess(true);
-        resetForm();
-        setSelectedTags([]);
-        
-        // Scroll to top to show success message
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        setError(response.data.error || 'Failed to create ticket. Please try again.');
-      }
-    } catch (err: any) {
-      console.error('Error creating ticket:', err);
-      setError(err.response?.data?.error || 'Failed to create ticket. Please try again.');
-    }
+  /**
+   * Resets the state to allow submitting another ticket.
+   */
+  const handleSubmitAnother = () => {
+      setSubmittedTicketId(null);
+      // Optionally reset form state within TicketForm if needed,
+      // but remounting/clearing might be handled by parent logic
   };
 
+  // --- Render ---
   return (
     <div className="create-ticket-page">
-      <div className="page-header">
-        <h1>Submit a Support Ticket</h1>
-        <p>Fill out the form below to submit a new support request.</p>
-      </div>
+      {/* --- Loading State --- */}
+      {isLoading && <Loader text="Loading form..." />}
 
-      {success && (
-        <div className="success-message">
-          <h2>Ticket Submitted Successfully!</h2>
-          <p>Your support ticket (ID: #{displayTicketId}) has been created. You will receive a confirmation email shortly.</p>
-          <p>We will respond to your request as soon as possible.</p>
-          <button 
-            className="new-ticket-btn btn"
-            onClick={() => {
-              setSuccess(false);
-              setDisplayTicketId(null);
-            }}
-          >
-            Submit Another Ticket
-          </button>
-        </div>
+      {/* --- Error State --- */}
+      {error && !isLoading && (
+        <Alert type="error" title="Error" message={error} className="mt-6" />
       )}
 
-      {!success && (
+      {/* --- Main Content (Form or Success Message) --- */}
+      {!isLoading && !error && settings && (
         <>
-          {error && <div className="error-message">{error}</div>}
-
-          <Formik
-            initialValues={{
-              end_user_email: '',
-              issue_type: '',
-              urgency: 'Medium',
-              subject: '',
-              body: ''
-            }}
-            validationSchema={TicketSchema}
-            onSubmit={handleSubmit}
-          >
-            {({ isSubmitting }) => (
-              <Form className="ticket-form">
-                <div className="form-group">
-                  <label htmlFor="end_user_email">Email Address</label>
-                  <Field
-                    type="email"
-                    name="end_user_email"
-                    id="end_user_email"
-                    placeholder="Enter your email address"
-                  />
-                  <ErrorMessage name="end_user_email" component="div" className="error" />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="issue_type">Issue Type</label>
-                  <Field as="select" name="issue_type" id="issue_type">
-                    <option value="">Select an issue type</option>
-                    {issueTypes.map(type => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </Field>
-                  <ErrorMessage name="issue_type" component="div" className="error" />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="urgency">Urgency Level</label>
-                  <Field as="select" name="urgency" id="urgency">
-                    <option value="Low">Low - Not time-sensitive</option>
-                    <option value="Medium">Medium - Standard priority</option>
-                    <option value="High">High - Important issue</option>
-                    <option value="Critical">Critical - Work-stopping issue</option>
-                  </Field>
-                  <ErrorMessage name="urgency" component="div" className="error" />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="subject">Subject</label>
-                  <Field
-                    type="text"
-                    name="subject"
-                    id="subject"
-                    placeholder="Brief summary of your issue"
-                  />
-                  <ErrorMessage name="subject" component="div" className="error" />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="body">Description</label>
-                  <Field
-                    as="textarea"
-                    name="body"
-                    id="body"
-                    rows={8}
-                    placeholder="Please provide details about your issue..."
-                  />
-                  <ErrorMessage name="body" component="div" className="error" />
-                </div>
-
-                {tags.length > 0 && (
-                  <div className="form-group">
-                    <label>Related Tags (Optional)</label>
-                    <div className="tags-container">
-                      {tags.map(tag => (
-                        <div
-                          key={tag.id}
-                          className={`tag ${selectedTags.includes(tag.name) ? 'selected' : ''}`}
-                          onClick={() => handleTagToggle(tag.name)}
-                        >
-                          {tag.name}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  className={`submit-button btn ${isSubmitting ? 'loading' : ''}`}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit Ticket'}
-                </button>
-              </Form>
-            )}
-          </Formik>
+          {/* Success Message */}
+          {submittedTicketId ? (
+            <div className="success-message">
+              <h2>Ticket Submitted Successfully!</h2>
+              <p>
+                Your ticket has been received. Your Ticket ID is{' '}
+                <strong>#{submittedTicketId}</strong>.
+              </p>
+              <p>
+                You should receive an email confirmation shortly. Please refer to your Ticket ID
+                if you need to contact support about this issue.
+              </p>
+              <Button onClick={handleSubmitAnother} className="new-ticket-btn">
+                Submit Another Ticket
+              </Button>
+            </div>
+          ) : (
+            <>
+              {/* Page Header (only show if form is visible) */}
+              <div className="page-header">
+                <h1>Submit a New Support Ticket</h1>
+                <p>
+                  Please fill out the form below with details about your issue.
+                  We'll get back to you as soon as possible.
+                </p>
+              </div>
+              {/* Ticket Form */}
+              <TicketForm
+                onSubmitSuccess={handleSuccess}
+                issueTypes={settings.issueTypes}
+                availableTags={settings.availableTags}
+              />
+            </>
+          )}
         </>
       )}
     </div>

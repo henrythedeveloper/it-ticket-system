@@ -1,98 +1,78 @@
 // src/styles/pages/dashboard/_UserFormPage.scss
+// ==========================================================================
+// Styles specific to the User Form page (Add/Edit User).
+// ==========================================================================
 
 @use '../../variables' as *;
+@use '../../mixins'; // Use mixins
 
 .user-form-page {
   width: 100%;
   margin-bottom: $spacing-8;
 
+  // --- Page Header ---
   .page-header {
-    .back-button {
-      background: none;
-      border: none;
-      color: var(--text-link); // Use CSS variable
-      font-weight: $font-weight-medium;
-      cursor: pointer;
-      padding: 0;
-      display: flex;
-      align-items: center;
-      margin-bottom: $spacing-2;
-      transition: color $transition-fast;
-
-      &:hover {
-        color: var(--text-link-hover); // Use CSS variable
-        text-decoration: underline;
+    // Uses global styles
+    .header-left {
+      .back-button { // Back navigation link
+        background: none; border: none; color: var(--text-link);
+        font-weight: $font-weight-medium; cursor: pointer; padding: 0;
+        display: flex; align-items: center; margin-bottom: $spacing-2;
+        transition: color $transition-fast;
+        &:hover { color: var(--text-link-hover); text-decoration: underline; }
       }
+        h1 { color: var(--text-primary); } // Page title
     }
-     h1 {
-       color: var(--text-primary); // Use CSS variable
-     }
   }
 
+  // --- Form Container ---
   .user-form-container {
-    background-color: var(--surface-bg); // Use CSS variable
-    border: 1px solid var(--border-color); // Use CSS variable
-    border-radius: $border-radius-lg;
-    box-shadow: $shadow; // Shadow might need adjustment
+    @include mixins.card-base; // Use card mixin
     padding: $spacing-6;
-    max-width: 600px;
-    margin: 0 auto;
-    transition: background-color $transition-medium, border-color $transition-medium;
+    max-width: 600px; // Limit form width
+    margin: 0 auto; // Center the form container
 
     .user-form {
-      display: flex;
-      flex-direction: column;
-      gap: $spacing-4;
+      display: flex; flex-direction: column;
+      gap: $spacing-4; // Spacing between form groups
 
-       // Inherits form-group styles from _forms.scss which now use CSS vars
+        // Form group styles inherited from _forms.scss
       .form-group {
-         margin-bottom: $spacing-4;
+          margin-bottom: $spacing-4; // Adjust spacing if needed
 
-         select:disabled { // Specific style for disabled select
-            background-color: var(--surface-alt-bg); // Use alt bg for disabled
-            opacity: 0.7;
-         }
+          select:disabled { // Specific style for disabled select (Role)
+            // Disabled styles applied globally via body.dark-mode
+            opacity: 0.7; // Keep opacity for visual cue
+          }
 
-         .field-info {
-           font-size: $font-size-sm;
-           color: var(--text-muted); // Use CSS variable
-           margin-top: $spacing-1;
-           transition: color $transition-medium;
-         }
+          .field-info { // Helper text for Role field
+            font-size: $font-size-sm; color: var(--text-muted);
+            margin-top: $spacing-1; transition: color $transition-medium;
+          }
       }
     }
   }
 
-  // Inherits form-actions styles from _forms.scss which now use CSS vars
+  // --- Form Actions ---
   .form-actions {
-      // ... styles from _forms.scss apply ...
-      .cancel-btn {
-         // Use styles from _forms.scss .btn
-         background-color: var(--surface-bg); // Use CSS variable
-         color: var(--text-secondary); // Use CSS variable
-         border: 1px solid var(--border-color); // Use CSS variable
-
-         &:hover {
-           background-color: var(--surface-alt-bg); // Use CSS variable
-         }
+      // Inherited from _forms.scss
+      .cancel-btn { // Example cancel button style
+          @extend .btn;
+          @include mixins.button-outline-variant(--text-secondary, --text-primary);
+          border-color: var(--border-color);
+          &:hover { background-color: var(--surface-alt-bg); }
       }
-      .submit-btn {}
+      .submit-btn { @extend .btn; } // Use global primary button style
   }
 }
 
-// Responsive adjustments
+// --- Responsive Adjustments ---
 @media (max-width: $breakpoint-md) {
   .user-form-page {
-    .user-form-container {
-      padding: $spacing-4;
-    }
-
-    .form-actions {
+    .user-form-container { padding: $spacing-4; } // Reduce padding
+    .form-actions { // Stack buttons
       flex-direction: column;
-
-      button {
-        width: 100%;
-      }
+      button { width: 100%; }
     }
   }
 }

@@ -1,114 +1,100 @@
+// src/components/tickets/TicketCard.tsx
+// ==========================================================================
+// Component for displaying a summary of a ticket in a list format.
+// Used on dashboard and ticket list pages.
+// ==========================================================================
+
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Ticket } from '../../types/models';
+import Badge from '../common/Badge'; // Reusable Badge component
+import { Ticket } from '../../types'; // Ticket type definition
+import { formatDate, truncateString } from '../../utils/helpers'; // Helper functions
 
+// --- Component Props ---
+
+/**
+ * Props for the TicketCard component.
+ */
 interface TicketCardProps {
+  /** The ticket data object to display. */
   ticket: Ticket;
 }
 
-const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
-  // Helper function to determine urgency class
-  const getUrgencyClass = (urgency: string) => {
-    switch (urgency) {
-      case 'Low':
-        return 'badge-low';
-      case 'Medium':
-        return 'badge-medium';
-      case 'High':
-        return 'badge-high';
-      case 'Critical':
-        return 'badge-critical';
-      default:
-        return 'badge-medium';
-    }
-  };
-  
-  // Helper function to determine status class
-  const getStatusClass = (status: string) => {
-    switch (status) {
-      case 'Unassigned':
-        return 'badge-unassigned';
-      case 'Assigned':
-        return 'badge-assigned';
-      case 'In Progress':
-        return 'badge-progress';
-      case 'Closed':
-        return 'badge-closed';
-      default:
-        return 'badge-assigned';
-    }
-  };
-  
-  // Format the date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-  
-  // Truncate text to a certain length
-  const truncateText = (text: string, maxLength: number) => {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-  };
+// --- Component ---
 
+/**
+ * Renders a card displaying a summary of a ticket.
+ * Includes subject, status, urgency, assignee, date, and a link to the detail view.
+ *
+ * @param {TicketCardProps} props - The component props.
+ * @returns {React.ReactElement} The rendered TicketCard component.
+ */
+const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
+  // --- Render ---
+  // Assumes SCSS file (_TicketCard.scss) defines the card styles
   return (
-    <div className="ticket-card">
-      <div className="ticket-header">
+    <article className="ticket-card">
+      {/* Card Header: Badges and Ticket ID */}
+      <header className="ticket-header">
         <div className="ticket-badges">
-          <span className={`status-badge ${getStatusClass(ticket.status)}`}>
+          <Badge type={ticket.status.toLowerCase() as any} title={`Status: ${ticket.status}`}>
             {ticket.status}
-          </span>
-          <span className={`urgency-badge ${getUrgencyClass(ticket.urgency)}`}>
+          </Badge>
+          <Badge type={ticket.urgency.toLowerCase() as any} title={`Urgency: ${ticket.urgency}`}>
             {ticket.urgency}
-          </span>
+          </Badge>
         </div>
-        <div className="ticket-id">
-          #{ticket.ticket_number}
-        </div>
-      </div>
-      
-      <Link to={`/tickets/${ticket.id}`} className="ticket-title">
-        {truncateText(ticket.subject, 60)}
-      </Link>
-      
-      <div className="ticket-meta">
-        <div className="ticket-submitter">
-          <span className="meta-label">From:</span>
-          <span className="meta-value">{ticket.end_user_email}</span>
-        </div>
-        <div className="ticket-date">
-          <span className="meta-label">Created:</span>
-          <span className="meta-value">{formatDate(ticket.created_at)}</span>
-        </div>
-      </div>
-      
-      <div className="ticket-assignment">
-        <span className="meta-label">Assigned to:</span>
-        <span className="meta-value">
-          {ticket.assigned_to_user ? ticket.assigned_to_user.name : 'Unassigned'}
+        <span className="ticket-id" title={`Ticket ID: ${ticket.id}`}>
+          #{ticket.id.substring(0, 8)}...
         </span>
+      </header>
+
+      {/* Ticket Title (Link to Detail Page) */}
+      <Link to={`/tickets/${ticket.id}`} className="ticket-title">
+        {ticket.subject}
+      </Link>
+
+      {/* Metadata: Submitter and Creation Date */}
+      <div className="ticket-meta">
+          <div> {/* Group submitter info */}
+              <span className="meta-label">Submitter:</span>
+              <span className="meta-value">{ticket.submitter.name}</span>
+          </div>
+          <div> {/* Group creation date */}
+            <span className="meta-label">Created:</span>
+            <span className="meta-value" title={formatDateTime(ticket.createdAt)}>
+                {formatDate(ticket.createdAt)}
+            </span>
+          </div>
       </div>
-      
-      <p className="ticket-excerpt">
-        {truncateText(ticket.body, 120)}
-      </p>
-      
+
+      {/* Assignment Information */}
+      <div className="ticket-assignment">
+          <span className="meta-label">Assigned To:</span>
+          <span className="meta-value">{ticket.assignedTo?.name || 'Unassigned'}</span>
+      </div>
+
+      {/* Optional: Description Excerpt */}
+      {ticket.description && (
+        <p className="ticket-excerpt">
+          {truncateString(ticket.description, 100)} {/* Truncate long descriptions */}
+        </p>
+      )}
+
+      {/* Optional: Tags */}
       {ticket.tags && ticket.tags.length > 0 && (
         <div className="ticket-tags">
-          {ticket.tags.map(tag => (
-            <span key={tag.id} className="tag">{tag.name}</span>
-          ))}
+          {ticket.tags.map(tag => <span key={tag} className="tag">{tag}</span>)}
         </div>
       )}
-      
-      <Link to={`/tickets/${ticket.id}`} className="view-ticket-btn">
-        View Ticket
-      </Link>
-    </div>
+
+      {/* Footer Action: View Ticket Button */}
+      {/* <footer className="ticket-footer">
+          <Link to={`/tickets/${ticket.id}`} className="view-ticket-btn">
+            View Details
+          </Link>
+      </footer> */}
+    </article>
   );
 };
 

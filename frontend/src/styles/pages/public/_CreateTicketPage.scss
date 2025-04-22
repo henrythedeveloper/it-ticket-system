@@ -1,136 +1,82 @@
 // src/styles/pages/public/_CreateTicketPage.scss
+// ==========================================================================
+// Styles specific to the public Create Ticket page.
+// ==========================================================================
 
 @use '../../variables' as *;
+@use '../../mixins'; // Use mixins
 
 .create-ticket-page {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: $spacing-6 $spacing-4;
+  max-width: 800px; // Limit form width
+  margin: 0 auto; // Center form
+  padding: $spacing-6 $spacing-4; // Page padding
 
+  // --- Page Header ---
   .page-header {
-    text-align: center;
-    margin-bottom: $spacing-8;
-
-    h1 {
-      font-size: $font-size-3xl;
-      color: var(--text-primary); // Use CSS variable
-      margin-bottom: $spacing-3;
-      transition: color $transition-medium;
-    }
-
-    p {
-      color: var(--text-secondary); // Use CSS variable
-      max-width: 600px;
-      margin: 0 auto;
-      transition: color $transition-medium;
-    }
+    text-align: center; margin-bottom: $spacing-8;
+    h1 { font-size: $font-size-3xl; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; }
+    p { color: var(--text-secondary); max-width: 600px; margin: 0 auto; transition: color $transition-medium; }
   }
 
+  // --- Success Message ---
+  // Shown after successful ticket submission
   .success-message {
-    background-color: rgba(var(--success-color), 0.1); // Use CSS variable alpha
-    border: 1px solid rgba(var(--success-color), 0.3); // Use CSS variable alpha
-    border-radius: $border-radius-lg;
-    padding: $spacing-6;
-    margin-bottom: $spacing-8;
-    text-align: center;
-    transition: background-color $transition-medium, border-color $transition-medium;
-
-    h2 {
-      color: var(--success-color); // Use CSS variable
-      margin-bottom: $spacing-4;
-      transition: color $transition-medium;
-    }
-
-    p {
-      margin-bottom: $spacing-3;
-      color: var(--text-secondary); // Use CSS variable
-      transition: color $transition-medium;
-    }
-
-    .new-ticket-btn {
-      background-color: var(--success-color); // Use CSS variable
-      color: $white; // Keep white text on success green
-
-      &:hover {
-        background-color: var(--secondary-dark); // Use CSS variable (assuming success is secondary)
-      }
+    background-color: rgba(var(--success-color), 0.1); // Use success color alpha
+    border: 1px solid rgba(var(--success-color), 0.3);
+    border-radius: $border-radius-lg; padding: $spacing-6; margin-bottom: $spacing-8;
+    text-align: center; transition: background-color $transition-medium, border-color $transition-medium;
+    h2 { color: var(--success-color); margin-bottom: $spacing-4; transition: color $transition-medium; }
+    p { margin-bottom: $spacing-3; color: var(--text-secondary); transition: color $transition-medium; }
+    .new-ticket-btn { // Button to submit another ticket
+      @extend .btn;
+      @include mixins.button-variant(--success-color, $white, --secondary-dark); // Use success colors
     }
   }
 
+  // --- Ticket Form ---
   .ticket-form {
-    background-color: var(--surface-bg); // Use CSS variable
-    border: 1px solid var(--border-color); // Use CSS variable
-    border-radius: $border-radius-lg;
-    box-shadow: $shadow; // Shadow might need adjustment
+    @include mixins.card-base; // Use card styles for the form container
     padding: $spacing-6;
-    transition: background-color $transition-medium, border-color $transition-medium;
 
-    // Inherits form-group styles from _forms.scss which now use CSS vars
+    // Form group styles inherited from _forms.scss
     .form-group {
-      margin-bottom: $spacing-6;
+      margin-bottom: $spacing-6; // More space between groups in this form
+      textarea { min-height: 200px; } // Larger text area
 
-      textarea { min-height: 200px; } // Specific style
-
+      // Tag selection container
       .tags-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: $spacing-2;
+        display: flex; flex-wrap: wrap; gap: $spacing-2;
         margin-top: $spacing-3;
-
-        .tag {
-          background-color: var(--surface-alt-bg); // Use CSS variable
-          color: var(--text-secondary); // Use CSS variable
-          padding: $spacing-2 $spacing-3;
-          border: 1px solid var(--border-color); // Use CSS variable
-          border-radius: $border-radius;
-          font-size: $font-size-sm;
-          cursor: pointer;
-          transition: all $transition-fast;
-
-          &:hover {
-            background-color: var(--surface-bg); // Use CSS variable
-            border-color: var(--border-color-strong); // Use CSS variable
-          }
-
-          &.selected {
-            background-color: var(--primary-color); // Use CSS variable
-            color: var(--text-inverted); // Use CSS variable
-            border-color: var(--primary-color); // Use CSS variable
-
-            &:hover {
-              background-color: var(--primary-dark); // Use CSS variable
-              border-color: var(--primary-dark); // Use CSS variable
-            }
+        .tag { // Individual clickable tag
+          background-color: var(--surface-alt-bg); color: var(--text-secondary);
+          padding: $spacing-2 $spacing-3; border: 1px solid var(--border-color);
+          border-radius: $border-radius; font-size: $font-size-sm;
+          cursor: pointer; transition: all $transition-fast;
+          &:hover { background-color: var(--surface-bg); border-color: var(--border-color-strong); }
+          &.selected { // Style for selected tag
+            background-color: var(--primary-color); color: var(--text-inverted); border-color: var(--primary-color);
+            &:hover { background-color: var(--primary-dark); border-color: var(--primary-dark); }
           }
         }
       }
     }
 
+    // Submit button styling
     .submit-button {
-      // Use styles from _forms.scss .btn
-      display: block;
-      width: 100%;
-      padding: $spacing-4; // Keep specific padding
-      font-size: $font-size-lg; // Keep specific font size
-
-      // Loading styles inherited from _forms.scss
-      &.loading {
-        // Inherited
-      }
+      @extend .btn; // Use global button styles
+      display: block; width: 100%; // Full width
+      padding: $spacing-4; font-size: $font-size-lg; // Larger button
+      &.loading { @include mixins.button-loading; } // Apply loading state
     }
   }
 }
 
-// Responsive adjustments
+// --- Responsive Adjustments ---
 @media (max-width: $breakpoint-md) {
   .create-ticket-page {
     .ticket-form {
-      padding: $spacing-4;
-
-      .form-group {
-        margin-bottom: $spacing-4;
-      }
+      padding: $spacing-4; // Reduce padding
+      .form-group { margin-bottom: $spacing-4; } // Reduce spacing
     }
   }
 }
-

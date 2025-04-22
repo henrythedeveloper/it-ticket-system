@@ -1,197 +1,141 @@
 // src/styles/pages/dashboard/_ProfilePage.scss
+// ==========================================================================
+// Styles specific to the User Profile page.
+// ==========================================================================
 
 @use '../../variables' as *;
+@use '../../mixins'; // Use mixins
 
 .profile-page {
   width: 100%;
   margin-bottom: $spacing-8;
 
+  // Main container grid (info vs form)
   .profile-container {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr; // Stack by default
     gap: $spacing-6;
 
     @media (min-width: $breakpoint-lg) {
-      grid-template-columns: 1fr 2fr;
+      grid-template-columns: 1fr 2fr; // Side-by-side on larger screens
     }
 
+    // Left side: User Info display
     .profile-info {
-      background-color: var(--surface-bg); // Use CSS variable
-      border: 1px solid var(--border-color); // Use CSS variable
-      border-radius: $border-radius-lg;
-      box-shadow: $shadow; // Shadow might need adjustment
+      @include mixins.card-base; // Use card mixin
       padding: $spacing-6;
-      transition: background-color $transition-medium, border-color $transition-medium;
-
 
       .profile-header {
         display: flex;
         align-items: center;
         margin-bottom: $spacing-4;
 
+        // Circular avatar
         .avatar {
-          width: 80px;
-          height: 80px;
-          background-color: var(--primary-color); // Use CSS variable
-          color: var(--text-inverted); // Use CSS variable
+          width: 80px; height: 80px;
+          background-color: var(--primary-color);
+          color: var(--text-inverted);
           border-radius: 50%;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          font-size: $font-size-3xl;
-          font-weight: $font-weight-bold;
-          margin-right: $spacing-4;
-          flex-shrink: 0;
+          display: flex; justify-content: center; align-items: center;
+          font-size: $font-size-3xl; font-weight: $font-weight-bold;
+          margin-right: $spacing-4; flex-shrink: 0;
           transition: background-color $transition-medium, color $transition-medium;
         }
 
+        // Name, role, join date
         .profile-meta {
-          h2 {
+          h2 { // User name
             font-size: $font-size-2xl;
-            color: var(--text-primary); // Use CSS variable
+            color: var(--text-primary);
             margin-bottom: $spacing-2;
             transition: color $transition-medium;
           }
-
           .profile-details {
-            display: flex;
-            flex-wrap: wrap;
-            gap: $spacing-3;
-            align-items: center;
-
+            display: flex; flex-wrap: wrap; gap: $spacing-3; align-items: center;
+            // Role badge styles
             .role-badge {
-              display: inline-block;
-              padding: $spacing-1 $spacing-2;
-              border-radius: $border-radius-full;
-              font-size: $font-size-xs;
-              font-weight: $font-weight-medium;
-              text-align: center;
-              transition: background-color $transition-medium, color $transition-medium;
-
-              // Use CSS vars for badge colors
-              &.admin {
-                background-color: rgba(var(--accent-color), 0.15);
-                color: var(--accent-color);
-              }
-
-              &.staff {
-                background-color: rgba(var(--info-color), 0.15);
-                color: var(--info-color);
-              }
+              @include mixins.badge-base;
+              @include mixins.badge-alpha-variants; // Apply all role/status colors
+              min-width: 70px; // Ensure consistent width
             }
-
+            // Join date text
             .join-date {
               font-size: $font-size-sm;
-              color: var(--text-muted); // Use CSS variable
+              color: var(--text-muted);
               transition: color $transition-medium;
             }
           }
         }
       }
-    }
+      // Add other static info sections if needed here
+    } // End .profile-info
 
+    // Right side: Profile Edit Form
     .profile-form-container {
-      background-color: var(--surface-bg); // Use CSS variable
-      border: 1px solid var(--border-color); // Use CSS variable
-      border-radius: $border-radius-lg;
-      box-shadow: $shadow; // Shadow might need adjustment
+      @include mixins.card-base; // Use card mixin
       padding: $spacing-6;
-      transition: background-color $transition-medium, border-color $transition-medium;
 
-
-      h3 {
-        color: var(--text-primary); // Use CSS variable
+      h3 { // Section heading
+        color: var(--text-primary);
         font-size: $font-size-xl;
         margin-bottom: $spacing-4;
         padding-bottom: $spacing-3;
-        border-bottom: 1px solid var(--border-color); // Use CSS variable
+        border-bottom: 1px solid var(--border-color);
         transition: color $transition-medium, border-color $transition-medium;
       }
 
       .profile-form {
-        display: flex;
-        flex-direction: column;
-        gap: $spacing-4;
+        display: flex; flex-direction: column;
+        gap: $spacing-4; // Spacing between form groups
 
-        // Inherits form-group styles from _forms.scss which now use CSS vars
+        // Form group styles inherited from _forms.scss
         .form-group {
-           .static-field {
-             padding: $spacing-3;
-             background-color: var(--surface-alt-bg); // Use CSS variable
-             border: 1px solid var(--border-color-strong); // Use CSS variable
-             border-radius: $border-radius;
-             color: var(--text-secondary); // Use CSS variable
-             transition: background-color $transition-medium, border-color $transition-medium, color $transition-medium;
-           }
-
-           .field-note {
-             font-size: $font-size-sm;
-             color: var(--text-muted); // Use CSS variable
-             margin-top: $spacing-1;
-             transition: color $transition-medium;
-           }
+            .static-field { // Read-only field style
+              @include mixins.form-element-base; // Use input base style
+              background-color: var(--surface-alt-bg); // Slightly different bg
+              color: var(--text-secondary);
+              cursor: default; // Not editable
+            }
+            .field-note, .field-info { // Helper text below field
+              font-size: $font-size-sm;
+              color: var(--text-muted);
+              margin-top: $spacing-1;
+              transition: color $transition-medium;
+            }
         }
       }
-    }
-  }
-  
+    } // End .profile-form-container
+  } // End .profile-container
+
+  // Form actions styling (uses global .form-actions styles)
   .form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: $spacing-3;
-    margin-top: $spacing-6;
-    
+    // Inherited from _forms.scss
     .submit-btn {
-      padding: $spacing-2 $spacing-6;
-      background-color: $primary-color;
-      color: $white;
-      border: none;
-      border-radius: $border-radius;
-      font-weight: $font-weight-medium;
-      cursor: pointer;
-      transition: background-color $transition-fast;
-      
-      &:hover {
-        background-color: $primary-dark;
-      }
-      
-      &:disabled {
-        background-color: $gray-400;
-        cursor: not-allowed;
-      }
+        @extend .btn; // Use global button styles
     }
   }
 }
 
-// Responsive adjustments
+// --- Responsive Adjustments ---
 @media (max-width: $breakpoint-md) {
   .profile-page {
     .profile-container {
-      gap: $spacing-4;
+      gap: $spacing-4; // Reduce gap
 
       .profile-info {
-        padding: $spacing-4;
-
-        .profile-header {
+        padding: $spacing-4; // Reduce padding
+        .profile-header { // Stack avatar and meta on mobile
           flex-direction: column;
           text-align: center;
-
-          .avatar {
-            margin-right: 0;
-            margin-bottom: $spacing-3;
-          }
+          .avatar { margin-right: 0; margin-bottom: $spacing-3; }
         }
       }
 
-      .profile-form-container {
-        padding: $spacing-4;
-      }
+      .profile-form-container { padding: $spacing-4; } // Reduce padding
     }
 
-    .form-actions {
-      .submit-btn { // Ensure button takes full width if needed
-        width: 100%;
-      }
+    .form-actions { // Stack buttons on mobile
+      .submit-btn { width: 100%; }
     }
   }
 }

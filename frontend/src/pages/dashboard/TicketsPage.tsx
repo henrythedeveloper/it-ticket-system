@@ -1,319 +1,293 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import api from '../../services/api'; // Assuming this is correctly configured
-import { useAuth } from '../../contexts/AuthContext'; // Assuming this provides user info
-import { Ticket, User, Tag, APIResponse, TicketStatus, TicketUrgency } from '../../types/models'; // Import TS types
+// src/pages/dashboard/TicketsPage.tsx
+// ==========================================================================
+// Component representing the page for listing and managing support tickets.
+// Includes filtering, search, tag filtering, and a table of tickets.
+// Fixed type errors.
+// ==========================================================================
 
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+// FIX: Import useNavigate
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import Loader from '../../components/common/Loader';
+import Alert from '../../components/common/Alert';
+import Button from '../../components/common/Button';
+import Table, { TableColumn } from '../../components/common/Table';
+import Badge from '../../components/common/Badge';
+import Pagination from '../../components/common/Pagination';
+import { useAuth } from '../../hooks/useAuth'; // For default filters
+import { fetchTickets } from '../../services/ticketService'; // Ticket API
+import { fetchUsers } from '../../services/userService'; // User API for assignee filter
+import { Ticket, User, TicketStatus, TicketUrgency } from '../../types'; // Import types
+import { formatDate } from '../../utils/helpers'; // Date formatting
+import { PlusCircle, Search, X } from 'lucide-react'; // Icons
+
+// --- Constants ---
+const DEFAULT_LIMIT = 15; // Number of tickets per page
+
+// --- Component ---
+
+/**
+ * Renders the Tickets list page with filtering, search, pagination, and table display.
+ */
 const TicketsPage: React.FC = () => {
   // --- Hooks ---
-  const { user } = useAuth(); // Get current user info
-  const navigate = useNavigate(); // For updating URL
-  const location = useLocation(); // For reading URL params
-  const queryParams = new URLSearchParams(location.search); // Helper for URL params
+  const { user } = useAuth(); // Get current user for 'Assigned to Me' filter
+  const [searchParams, setSearchParams] = useSearchParams(); // Manage URL query params
+  const navigate = useNavigate(); // FIX: Initialize useNavigate
 
-  // --- Component State ---
-  const [loading, setLoading] = useState(true); // Loading indicator for API calls
-  const [tickets, setTickets] = useState<Ticket[]>([]); // Stores the fetched/filtered tickets
-  const [users, setUsers] = useState<User[]>([]); // Stores users for the assignee filter
-  const [tags, setTags] = useState<Tag[]>([]); // Stores tags for the tag filter
-  const [error, setError] = useState<string | null>(null); // Stores potential errors
+  // --- State ---
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [assignableUsers, setAssignableUsers] = useState<Pick<User, 'id' | 'name'>[]>([]);
+  const [availableTags, setAvailableTags] = useState<string[]>([]); // TODO: Fetch tags from API if dynamic
+  const [totalTickets, setTotalTickets] = useState<number>(0);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // --- Filter State Variables ---
-  // Initialize filter state from URL query parameters or defaults
-  const [statusFilter, setStatusFilter] = useState<string>(queryParams.get('status') || '');
-  const [urgencyFilter, setUrgencyFilter] = useState<string>(queryParams.get('urgency') || '');
-  const [assignedToFilter, setAssignedToFilter] = useState<string>(queryParams.get('assigned_to') || '');
-  const [searchQuery, setSearchQuery] = useState<string>(queryParams.get('search') || '');
-  const [selectedTags, setSelectedTags] = useState<string[]>(queryParams.getAll('tags') || []);
+  // --- Filtering/Pagination State (derived from URL search params) ---
+  const currentPage = useMemo(() => parseInt(searchParams.get('page') || '1', 10), [searchParams]);
+  const currentStatus = useMemo(() => searchParams.get('status') || '', [searchParams]);
+  const currentUrgency = useMemo(() => searchParams.get('urgency') || '', [searchParams]);
+  const currentAssignee = useMemo(() => searchParams.get('assigneeId') || '', [searchParams]);
+  const currentSearch = useMemo(() => searchParams.get('search') || '', [searchParams]);
+  const currentTags = useMemo(() => searchParams.get('tags')?.split(',') || [], [searchParams]);
+  // Add state for sorting if needed
 
-  // --- Derived State / Permissions ---
-  const isAdmin = user?.role === 'Admin';
+  // --- Data Fetching ---
+  /**
+   * Fetches tickets based on current filter/pagination state derived from URL params.
+   */
+  const loadTickets = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    console.log(`Fetching tickets: Page=${currentPage}, Status=${currentStatus}, Urgency=${currentUrgency}, Assignee=${currentAssignee}, Search=${currentSearch}, Tags=${currentTags.join(',')}`);
 
-  // --- Effect for Fetching Data based on Filters ---
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null); // Clear previous errors
-
-        // 1. Build API Query Parameters from State
-        const params = new URLSearchParams();
-        if (statusFilter) params.append('status', statusFilter);
-        if (urgencyFilter) params.append('urgency', urgencyFilter);
-        if (assignedToFilter) params.append('assigned_to', assignedToFilter);
-        if (searchQuery) params.append('search', searchQuery);
-        selectedTags.forEach(tag => params.append('tags', tag));
-
-        // 2. Fetch Filtered Tickets
-        const ticketsResponse = await api.get<APIResponse<Ticket[]>>(`/tickets?${params.toString()}`);
-        if (ticketsResponse.data.success && ticketsResponse.data.data) {
-          setTickets(ticketsResponse.data.data); // Update tickets state
-        } else {
-          setError(ticketsResponse.data.error || 'Failed to load tickets');
-        }
-
-        // 3. Fetch Users (for Assignee Dropdown) - Could be optimized to fetch only once
-        const usersResponse = await api.get<APIResponse<User[]>>('/users');
-        if (usersResponse.data.success && usersResponse.data.data) {
-          setUsers(usersResponse.data.data);
-        }
-
-        // 4. Fetch Tags (for Tag Filter) - Could be optimized to fetch only once
-        const tagsResponse = await api.get<APIResponse<Tag[]>>('/tags');
-        if (tagsResponse.data.success && tagsResponse.data.data) {
-          setTags(tagsResponse.data.data);
-        }
-
-      } catch (error: any) {
-        console.error('Error fetching tickets page data:', error);
-        setError(error.response?.data?.error || 'An error occurred while loading data.');
-      } finally {
-        setLoading(false);
+    try {
+      const params: any = { // Use 'any' temporarily or define specific FetchTicketsParams type
+        page: currentPage,
+        limit: DEFAULT_LIMIT,
+        status: currentStatus || undefined,
+        urgency: currentUrgency || undefined,
+        assigneeId: currentAssignee || undefined,
+        search: currentSearch || undefined,
+        tags: currentTags.length > 0 ? currentTags.join(',') : undefined,
+        sortBy: 'updatedAt', // Default sort
+        sortOrder: 'desc',
+      };
+      // Handle special 'me' value for assigneeId
+      if (params.assigneeId === 'me' && user) {
+          params.assigneeId = user.id;
+      } else if (params.assigneeId === 'me') {
+          params.assigneeId = undefined; // Cannot filter by 'me' if not logged in
       }
-    };
 
-    fetchData();
-    // This effect re-runs whenever any of the filter state variables change
-  }, [statusFilter, urgencyFilter, assignedToFilter, searchQuery, selectedTags]);
+      const response = await fetchTickets(params);
+      setTickets(response.data);
+      setTotalTickets(response.total);
+      setTotalPages(response.totalPages);
+    } catch (err: any) {
+      console.error("Failed to load tickets:", err);
+      setError(err.response?.data?.message || err.message || 'Could not load tickets.');
+      setTickets([]); setTotalTickets(0); setTotalPages(1); // Reset state on error
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPage, currentStatus, currentUrgency, currentAssignee, currentSearch, currentTags, user]); // Include user in dependencies
 
-  // --- Effect for Updating Browser URL ---
+  /**
+   * Fetches users for the assignee filter dropdown and potentially available tags.
+   */
+  const loadFiltersData = useCallback(async () => {
+      try {
+        // Fetch users (Staff/Admin)
+        const usersData = await fetchUsers({ role: 'Admin,Staff', limit: 500 });
+        setAssignableUsers(usersData.data.map(u => ({ id: u.id, name: u.name })));
+        // TODO: Fetch available tags from an API endpoint if they are dynamic
+        // const tagsData = await fetchTags();
+        // setAvailableTags(tagsData);
+        setAvailableTags(['bug', 'feature', 'urgent', 'billing', 'account', 'ui', 'backend']); // Mock tags
+      } catch (err) {
+          console.error("Failed to load filter data:", err);
+          // Handle error (e.g., show partial filters)
+      }
+  }, []);
+
+  // --- Effects ---
+  // Fetch tickets when filter/pagination params change
   useEffect(() => {
-    const params = new URLSearchParams();
-    // Build query params from state (same as above)
-    if (statusFilter) params.append('status', statusFilter);
-    if (urgencyFilter) params.append('urgency', urgencyFilter);
-    if (assignedToFilter) params.append('assigned_to', assignedToFilter);
-    if (searchQuery) params.append('search', searchQuery);
-    selectedTags.forEach(tag => params.append('tags', tag));
+    loadTickets();
+  }, [loadTickets]);
 
-    // Update the URL in the browser without a full page reload
-    navigate(`/tickets?${params.toString()}`, { replace: true });
-    // This effect re-runs whenever any filter state changes
-  }, [navigate, statusFilter, urgencyFilter, assignedToFilter, searchQuery, selectedTags]);
+  // Fetch filter data on initial mount
+  useEffect(() => {
+    loadFiltersData();
+  }, [loadFiltersData]);
 
-  // --- Event Handlers ---
-
-  // Handles the search form submission (though filtering is triggered by state change)
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Actual fetch is handled by the useEffect watching `searchQuery`
+  // --- Handlers ---
+  /**
+   * Updates URL search parameters based on filter changes.
+   */
+  const handleFilterChange = (param: string, value: string) => {
+    setSearchParams(prevParams => {
+      const newParams = new URLSearchParams(prevParams);
+      if (value) { newParams.set(param, value); }
+      else { newParams.delete(param); }
+      newParams.set('page', '1'); // Reset page on filter change
+      return newParams;
+    }, { replace: true });
   };
 
-  // Resets all filter states to their default values
+  /**
+   * Handles search input changes.
+   */
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      handleFilterChange('search', e.target.value);
+      // TODO: Add debounce if needed
+  };
+
+  /**
+   * Handles tag selection/deselection for filtering.
+   */
+  const handleTagToggle = (tag: string) => {
+      const newTags = currentTags.includes(tag)
+          ? currentTags.filter(t => t !== tag)
+          : [...currentTags, tag];
+      handleFilterChange('tags', newTags.join(',')); // Update 'tags' param
+  };
+
+  /**
+   * Clears all active filters.
+   */
   const handleClearFilters = () => {
-    setStatusFilter('');
-    setUrgencyFilter('');
-    setAssignedToFilter('');
-    setSearchQuery('');
-    setSelectedTags([]);
+    setSearchParams({ page: '1' });
   };
 
-  // Adds or removes a tag from the selectedTags array state
-  const handleTagToggle = (tagName: string) => {
-    setSelectedTags(prev =>
-      prev.includes(tagName)
-        ? prev.filter(tag => tag !== tagName)
-        : [...prev, tagName]
-    );
+  /**
+   * Handles page changes from Pagination component.
+   */
+  const handlePageChange = (newPage: number) => {
+      setSearchParams(prevParams => {
+        const newParams = new URLSearchParams(prevParams);
+        newParams.set('page', newPage.toString());
+        return newParams;
+    }, { replace: true });
+      window.scrollTo(0, 0); // Scroll to top
   };
 
-  // --- Helper Functions ---
-  const formatDate = (dateString: string) => {
-    // ... (date formatting logic) ...
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid Date';
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-  };
-  const getUrgencyClass = (urgency: string) => { 
-     switch (urgency) {
-      case 'Low': return 'badge-low';
-      case 'Medium': return 'badge-medium';
-      case 'High': return 'badge-high';
-      case 'Critical': return 'badge-critical';
-      default: return 'badge-medium';
-    }
-   };
-  const getStatusClass = (status: string) => { 
-    switch (status) {
-      case 'Unassigned': return 'badge-unassigned';
-      case 'Assigned': return 'badge-assigned';
-      case 'In Progress': return 'badge-progress';
-      case 'Closed': return 'badge-closed';
-      default: return 'badge-assigned';
-    }
-  };
+  // --- Options for Filters ---
+  const statusOptions: { value: TicketStatus | ''; label: string }[] = [
+    { value: '', label: 'All Statuses' }, { value: 'Unassigned', label: 'Unassigned' },
+    { value: 'Assigned', label: 'Assigned' }, { value: 'In Progress', label: 'In Progress' },
+    { value: 'Closed', label: 'Closed' },
+  ];
+  const urgencyOptions: { value: TicketUrgency | ''; label: string }[] = [
+    { value: '', label: 'All Urgencies' }, { value: 'Low', label: 'Low' },
+    { value: 'Medium', label: 'Medium' }, { value: 'High', label: 'High' },
+    { value: 'Critical', label: 'Critical' },
+  ];
+  const assigneeOptions = [
+    { value: '', label: 'All Assignees' },
+    { value: 'unassigned', label: 'Unassigned' }, // Specific value for unassigned
+    ...(user ? [{ value: 'me', label: 'Assigned to Me' }] : []), // Special 'me' value
+    ...assignableUsers.map(u => ({ value: u.id, label: u.name })),
+  ];
 
-  // --- Render Logic ---
+  // --- Table Columns ---
+  const ticketColumns: TableColumn<Ticket>[] = [
+    { key: 'id', header: '#', render: (item) => <Link to={`/tickets/${item.id}`}>{item.id.substring(0, 6)}</Link> },
+    { key: 'subject', header: 'Subject', render: (item) => <Link to={`/tickets/${item.id}`}>{item.subject}</Link>, cellClassName: 'subject-cell' },
+    { key: 'status', header: 'Status', render: (item) => <Badge type={item.status.toLowerCase() as any}>{item.status}</Badge> },
+    { key: 'urgency', header: 'Urgency', render: (item) => <Badge type={item.urgency.toLowerCase() as any}>{item.urgency}</Badge> },
+    { key: 'createdAt', header: 'Created', render: (item) => formatDate(item.createdAt) },
+    { key: 'submitter', header: 'Submitter', render: (item) => item.submitter.name },
+    { key: 'assignedTo', header: 'Assignee', render: (item) => item.assignedTo?.name || '-' },
+    { key: 'tags', header: 'Tags', render: (item) => (
+        item.tags && item.tags.length > 0
+          ? <div className='table-tags'>{item.tags.map(tag => <span key={tag} className='table-tag'>{tag}</span>)}</div>
+          : <span className='no-tags'>-</span>
+      ), cellClassName: 'tags-cell'
+    },
+    { key: 'updatedAt', header: 'Last Update', render: (item) => formatDate(item.updatedAt) },
+  ];
+
+  // Determine if any filters are active
+  const filtersActive = !!currentStatus || !!currentUrgency || !!currentAssignee || !!currentSearch || currentTags.length > 0;
+
+  // --- Render ---
   return (
     <div className="tickets-page">
+      {/* Page Header */}
       <div className="page-header">
-        <h1>Tickets</h1>
-        {/* Potential Add Ticket Button could go here */}
+        <h1>Manage Tickets</h1>
+          {/* Optional: Add Create Ticket button if needed in dashboard */}
+          {/* <div className="header-actions">
+            <Link to="/tickets/new">
+              <Button variant="primary" leftIcon={<PlusCircle size={18} />}>New Ticket</Button>
+            </Link>
+          </div> */}
       </div>
 
-      {/* === START OF FILTER SECTION === */}
-      <div className="filter-section">
-
-        {/* Search Form */}
-        <form onSubmit={handleSearch} className="search-form">
-          <input
-            type="text"
-            placeholder="Search tickets..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="search-input"
-          />
-          <button type="submit" className="search-button btn">Search</button>
-        </form>
-
-        {/* Filter Dropdowns & Clear Button */}
-        <div className="filters">
-          <div className="filter-group">
-            <label>Status:</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">All Statuses</option>
-              <option value="Unassigned">Unassigned</option>
-              <option value="Assigned">Assigned</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Closed">Closed</option>
-            </select>
+      {/* Filter Section */}
+      <section className="filter-section">
+          {/* Search Form */}
+          <form onSubmit={(e) => e.preventDefault()} className="search-form">
+              <input type="search" placeholder="Search by subject, description, ID..." value={currentSearch} onChange={handleSearchChange} className="search-input" aria-label="Search tickets" />
+              <Button type="submit" variant="primary" aria-label="Search"><Search size={20}/></Button>
+          </form>
+          {/* Dropdown Filters */}
+          <div className="filters">
+              <div className="filter-group"><label htmlFor="status-filter">Status:</label><select id="status-filter" value={currentStatus} onChange={(e) => handleFilterChange('status', e.target.value)} className="filter-select">{statusOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select></div>
+              <div className="filter-group"><label htmlFor="urgency-filter">Urgency:</label><select id="urgency-filter" value={currentUrgency} onChange={(e) => handleFilterChange('urgency', e.target.value)} className="filter-select">{urgencyOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select></div>
+              <div className="filter-group"><label htmlFor="assignee-filter">Assignee:</label><select id="assignee-filter" value={currentAssignee} onChange={(e) => handleFilterChange('assigneeId', e.target.value)} className="filter-select">{assigneeOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select></div>
+              {filtersActive && (<Button variant="outline" onClick={handleClearFilters} leftIcon={<X size={16} />} className='clear-filters-btn'>Clear Filters</Button>)}
           </div>
-
-          <div className="filter-group">
-            <label>Urgency:</label>
-            <select
-              value={urgencyFilter}
-              onChange={(e) => setUrgencyFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">All Urgencies</option>
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-              <option value="Critical">Critical</option>
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label>Assigned To:</label>
-            <select
-              value={assignedToFilter}
-              onChange={(e) => setAssignedToFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">All</option>
-              <option value="unassigned">Unassigned</option>
-              <option value="me">Assigned to Me</option>
-              {/* Only show user list if admin */}
-              {isAdmin && users.map(staff => (
-                <option key={staff.id} value={staff.id}>{staff.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleClearFilters}
-            className="clear-filters-btn btn"
-          >
-            Clear Filters
-          </button>
-        </div>
-
-        {/* Tag Filters (Conditional) */}
-        {tags.length > 0 && (
-          <div className="tag-filter">
-            <span className="tag-filter-label">Filter by Tags:</span>
-            <div className="tag-list">
-              {tags.map(tag => (
-                <div
-                  key={tag.id} // Use unique tag id
-                  className={`filter-tag ${selectedTags.includes(tag.name) ? 'selected' : ''}`}
-                  onClick={() => handleTagToggle(tag.name)}
-                >
-                  {tag.name}
+          {/* Tag Filters */}
+          {availableTags.length > 0 && (
+            <div className="tag-filter">
+                <label className="tag-filter-label">Filter by Tags:</label>
+                <div className="tag-list">
+                    {availableTags.map(tag => (
+                        <button key={tag} type="button" className={`filter-tag ${currentTags.includes(tag) ? 'selected' : ''}`} onClick={() => handleTagToggle(tag)}>
+                            {tag}
+                        </button>
+                    ))}
                 </div>
-              ))}
             </div>
+          )}
+      </section>
+
+      {/* Loading State */}
+      {isLoading && <Loader text="Loading tickets..." />}
+
+      {/* Error State */}
+      {error && !isLoading && <Alert type="error" message={error} />}
+
+      {/* Tickets Table or No Tickets Message */}
+      {!isLoading && !error && (
+        tickets.length > 0 ? (
+          <>
+            <div className="tickets-table-container">
+              <Table
+                columns={ticketColumns}
+                data={tickets}
+                tableClassName="tickets-table"
+                onRowClick={(ticket) => navigate(`/tickets/${ticket.id}`)} // FIX: Use navigate here
+              />
+            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              className="mt-6"
+            />
+          </>
+        ) : (
+          // No Tickets Found Message
+          <div className="no-tickets">
+              <p>No tickets found matching your current filters.</p>
+              {filtersActive && (<Button variant="primary" onClick={handleClearFilters}>Clear Filters</Button>)}
           </div>
-        )}
-
-      </div>
-      {/* === END OF FILTER SECTION === */}
-
-      {/* --- Loading / Error / Table Display --- */}
-      {loading ? (
-        <div className="loading">
-            <div className="loader"></div>
-            <p>Loading tickets...</p>
-        </div>
-      ) : error ? (
-        <div className="error-message">{error}</div>
-      ) : tickets.length === 0 ? (
-        <div className="no-tickets">
-             <p>No tickets found matching your filters.</p>
-             {/* Show clear button only if filters are active */}
-             {(statusFilter || urgencyFilter || assignedToFilter || searchQuery || selectedTags.length > 0) && (
-                <button 
-                onClick={handleClearFilters}
-                className="clear-filters-btn btn" // Reuse class or create new
-                >
-                Clear Filters to See All Tickets
-                </button>
-             )}
-        </div>
-      ) : (
-        <div className="tickets-table-container">
-          <table className="tickets-table">
-            {/* Table Header */}
-            <thead>
-              <tr>
-                <th>Ticket #</th>
-                <th>Subject</th>
-                <th>Status</th>
-                <th>Urgency</th>
-                <th>Created</th>
-                <th>Submitter</th>
-                <th>Assigned To</th>
-                <th>Tags</th>
-              </tr>
-            </thead>
-            {/* Table Body */}
-            <tbody>
-              {tickets.map(ticket => (
-                <tr key={ticket.id} onClick={() => navigate(`/tickets/${ticket.id}`)}>
-                  <td>#{ticket.ticket_number}</td>
-                  <td className="subject-cell">
-                    <Link to={`/tickets/${ticket.id}`}>{ticket.subject}</Link>
-                  </td>
-                  <td><span className={`status-badge ${getStatusClass(ticket.status)}`}>{ticket.status}</span></td>
-                  <td><span className={`urgency-badge ${getUrgencyClass(ticket.urgency)}`}>{ticket.urgency}</span></td>
-                  <td>{formatDate(ticket.created_at)}</td>
-                  <td>{ticket.end_user_email}</td>
-                  <td>{ticket.assigned_to_user ? ticket.assigned_to_user.name : 'Unassigned'}</td>
-                  <td className="tags-cell">
-                    {/* Tag display logic */}
-                    {ticket.tags && ticket.tags.length > 0 ? (
-                      <div className="table-tags">
-                        {ticket.tags.map(tag => (
-                          <span key={tag.id} className="table-tag">{tag.name}</span>
-                        ))}
-                      </div>
-                    ) : <span className="no-tags">-</span> }
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        )
       )}
     </div>
   );

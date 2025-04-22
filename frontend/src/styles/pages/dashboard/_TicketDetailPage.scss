@@ -1,538 +1,277 @@
 // src/styles/pages/dashboard/_TicketDetailPage.scss
+// ==========================================================================
+// Styles specific to the Ticket Detail page.
+// Includes main ticket info, sidebar, updates, attachments.
+// ==========================================================================
 
 @use '../../variables' as *;
+@use '../../mixins'; // Use mixins
 
 .ticket-detail-page {
   width: 100%;
   margin-bottom: $spacing-8;
 
+  // --- Page Header ---
   .page-header {
+    // Uses global styles
     .header-left {
-      display: flex;
-      flex-direction: column;
-
-      .back-button {
-        background: none;
-        border: none;
-        color: var(--text-link); // Use CSS variable
-        font-weight: $font-weight-medium;
-        cursor: pointer;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        margin-bottom: $spacing-2;
+      display: flex; flex-direction: column;
+      .back-button { // Back navigation link
+        background: none; border: none; color: var(--text-link);
+        font-weight: $font-weight-medium; cursor: pointer; padding: 0;
+        display: flex; align-items: center; margin-bottom: $spacing-2;
         transition: color $transition-fast;
-
-        &:hover {
-          color: var(--text-link-hover); // Use CSS variable
-          text-decoration: underline;
-        }
+        &:hover { color: var(--text-link-hover); text-decoration: underline; }
       }
-      h1 {
-         color: var(--text-primary); // Use CSS variable
-      }
+      h1 { color: var(--text-primary); } // Ticket #
+    }
+    .header-right { // Container for Update Status button
+      .update-ticket-btn { @extend .btn; }
     }
   }
 
+  // --- Main Grid Layout (Ticket Content + Sidebar) ---
   .ticket-grid {
     display: grid;
-    grid-template-columns: 3fr 1fr;
+    grid-template-columns: 3fr 1fr; // Main content takes 3 parts, sidebar 1 part
     gap: $spacing-6;
 
     @media (max-width: $breakpoint-lg) {
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr; // Stack on smaller screens
     }
 
+    // Left column containing ticket card and updates
     .ticket-main {
-      display: flex;
-      flex-direction: column;
-      gap: $spacing-6;
+      display: flex; flex-direction: column; gap: $spacing-6;
     }
   }
 
+  // --- Ticket Information Card ---
   .ticket-card {
-    background-color: var(--surface-bg); // Use CSS variable
-    border: 1px solid var(--border-color); // Use CSS variable
-    border-radius: $border-radius-lg;
-    box-shadow: $shadow; // Shadow might need adjustment
-    padding: $spacing-6;
-    transition: background-color $transition-medium, border-color $transition-medium;
+    @include mixins.card-base; // Use card mixin
+    padding: $spacing-6; // Maintain specific padding
 
     .ticket-header {
       margin-bottom: $spacing-4;
-
-      h2 {
-        font-size: $font-size-2xl;
-        color: var(--text-primary); // Use CSS variable
-        margin-bottom: $spacing-3;
-        transition: color $transition-medium;
+      h2 { // Ticket Subject
+        font-size: $font-size-2xl; color: var(--text-primary);
+        margin-bottom: $spacing-3; transition: color $transition-medium;
       }
-
-      .ticket-meta {
-        display: flex;
-        gap: $spacing-3;
-        // Badges are styled below
+      .ticket-meta { // Status and Urgency badges
+        display: flex; gap: $spacing-3;
+        // Badges styled below
       }
     }
 
     .ticket-body {
-      .ticket-description {
-        color: var(--text-secondary); // Use CSS variable
-        line-height: 1.6;
-        white-space: pre-line;
-        margin-bottom: $spacing-4;
-        transition: color $transition-medium;
+      .ticket-description { // Main ticket body/description
+        color: var(--text-secondary); line-height: 1.6; white-space: pre-line;
+        margin-bottom: $spacing-4; transition: color $transition-medium;
       }
-
-      .ticket-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: $spacing-2;
-        margin-bottom: $spacing-4;
-
+      .ticket-tags { // Associated tags
+        display: flex; flex-wrap: wrap; gap: $spacing-2; margin-bottom: $spacing-4;
         .tag {
-          background-color: var(--surface-alt-bg); // Use CSS variable
-          color: var(--text-secondary); // Use CSS variable
-          padding: $spacing-1 $spacing-3;
-          border-radius: $border-radius-full;
-          font-size: $font-size-sm;
-          transition: background-color $transition-medium, color $transition-medium;
+          background-color: var(--surface-alt-bg); color: var(--text-secondary);
+          padding: $spacing-1 $spacing-3; border-radius: $border-radius-full;
+          font-size: $font-size-sm; transition: background-color $transition-medium, color $transition-medium;
         }
       }
     }
 
+    // --- Attachments Section ---
     .ticket-attachments {
-      margin-top: $spacing-6;
-      padding-top: $spacing-4;
-      border-top: 1px solid var(--border-color); // Use CSS variable
-      transition: border-color $transition-medium;
-
-      h3 {
-        font-size: $font-size-lg;
-        color: var(--text-primary); // Use CSS variable
-        margin-bottom: $spacing-3;
-        transition: color $transition-medium;
-      }
-
-      .attachment-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-
+      margin-top: $spacing-6; padding-top: $spacing-4;
+      border-top: 1px solid var(--border-color); transition: border-color $transition-medium;
+      h3 { font-size: $font-size-lg; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; }
+      .attachment-list { list-style: none; padding: 0; margin: 0;
         .attachment-item {
-          margin-bottom: $spacing-3;
-          padding: $spacing-2 0;
-          border-bottom: 1px solid var(--border-color); // Use CSS variable
-          transition: border-color $transition-medium;
+          margin-bottom: $spacing-3; padding: $spacing-2 0;
+          border-bottom: 1px solid var(--border-color); transition: border-color $transition-medium;
+          &:last-child { border-bottom: none; margin-bottom: 0; }
 
-          &:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-          }
-
+          // Image attachment specific styles
           .image-attachment {
-            display: flex;
-            align-items: center;
-            gap: $spacing-3;
-
-            .image-preview {
-              flex-shrink: 0;
-              width: 100px;
-              height: 75px;
-              background-color: var(--surface-alt-bg); // Use CSS variable
-              border-radius: $border-radius;
-              border: 1px solid var(--border-color-strong); // Use CSS variable
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              overflow: hidden;
+            display: flex; align-items: center; gap: $spacing-3;
+            .image-preview { // Container for image or placeholder
+              flex-shrink: 0; width: 100px; height: 75px; background-color: var(--surface-alt-bg);
+              border-radius: $border-radius; border: 1px solid var(--border-color-strong);
+              display: flex; align-items: center; justify-content: center; overflow: hidden;
               transition: background-color $transition-medium, border-color $transition-medium;
-
               img { display: block; max-width: 100%; max-height: 100%; object-fit: cover; }
-
-              .image-placeholder {
-                text-align: center;
-                font-size: $font-size-xs;
-                color: var(--text-muted); // Use CSS variable
-
+              .image-placeholder { // Shown before image loads
+                text-align: center; font-size: $font-size-xs; color: var(--text-muted);
                 span { display: block; margin-bottom: $spacing-1; }
-
-                .load-image-btn {
-                  padding: $spacing-1 $spacing-2;
-                  font-size: $font-size-xs;
-                  background-color: var(--surface-alt-bg); // Use CSS variable
-                  color: var(--text-secondary); // Use CSS variable
-                  border: 1px solid var(--border-color); // Use CSS variable
-                  border-radius: $border-radius-sm;
-                  cursor: pointer;
-                  transition: background-color $transition-fast, color $transition-fast, border-color $transition-fast;
-
-                  &:hover { background-color: var(--surface-bg); } // Use CSS variable
+                .load-image-btn { // Button to trigger image load
+                  @extend .btn; @extend .btn-sm; // Use small button styles
+                  padding: $spacing-1 $spacing-2; // Further adjust padding
+                  background-color: var(--surface-alt-bg); color: var(--text-secondary);
+                  border: 1px solid var(--border-color);
+                  &:hover { background-color: var(--surface-bg); }
                 }
               }
             }
-            .attachment-filename {
-              flex-grow: 1;
-              font-size: $font-size-sm;
-              color: var(--text-secondary); // Use CSS variable
-              word-break: break-all;
-            }
-
-            .download-icon-btn {
-              flex-shrink: 0;
-              background: none;
-              border: none;
-              font-size: $font-size-lg;
-              color: var(--text-muted); // Use CSS variable
-              cursor: pointer;
-              padding: $spacing-1;
-              transition: color $transition-fast;
-
-              &:hover { color: var(--primary-color); } // Use CSS variable
+            .attachment-filename { flex-grow: 1; font-size: $font-size-sm; color: var(--text-secondary); word-break: break-all; }
+            .download-icon-btn { // Separate download button for images
+              flex-shrink: 0; background: none; border: none; font-size: $font-size-lg;
+              color: var(--text-muted); cursor: pointer; padding: $spacing-1; transition: color $transition-fast;
+              &:hover { color: var(--primary-color); }
             }
           }
 
+          // Non-image attachment link/button
           .attachment-link-button {
-            display: flex;
-            align-items: center;
-            width: 100%;
-            padding: $spacing-2;
-            border: 1px solid var(--border-color); // Use CSS variable
-            background-color: var(--surface-bg); // Use CSS variable
-            border-radius: $border-radius;
-            text-align: left;
-            cursor: pointer;
-            transition: background-color $transition-fast, border-color $transition-fast;
-            gap: $spacing-2;
-
-            &:hover {
-              background-color: var(--surface-alt-bg); // Use CSS variable
-              border-color: var(--border-color-strong); // Use CSS variable
-            }
-
-            .attachment-icon { color: var(--text-muted); } // Use CSS variable
-            .attachment-name {
-              flex-grow: 1;
-              color: var(--text-link); // Use CSS variable
-              font-weight: $font-weight-medium;
-              font-size: $font-size-sm;
-            }
-            .attachment-size {
-              color: var(--text-muted); // Use CSS variable
-              font-size: $font-size-xs;
-              white-space: nowrap;
-            }
+            display: flex; align-items: center; width: 100%; padding: $spacing-2;
+            border: 1px solid var(--border-color); background-color: var(--surface-bg);
+            border-radius: $border-radius; text-align: left; cursor: pointer;
+            transition: background-color $transition-fast, border-color $transition-fast; gap: $spacing-2;
+            &:hover { background-color: var(--surface-alt-bg); border-color: var(--border-color-strong); }
+            .attachment-icon { color: var(--text-muted); }
+            .attachment-name { flex-grow: 1; color: var(--text-link); font-weight: $font-weight-medium; font-size: $font-size-sm; }
+            .attachment-size { color: var(--text-muted); font-size: $font-size-xs; white-space: nowrap; }
           }
         }
       }
     }
 
+    // --- Resolution Notes Section ---
     .resolution-notes {
-      margin-top: $spacing-6;
-      padding-top: $spacing-4;
-      border-top: 1px solid var(--border-color); // Use CSS variable
-      transition: border-color $transition-medium;
-
-      h3 {
-        font-size: $font-size-lg;
-        color: var(--text-primary); // Use CSS variable
-        margin-bottom: $spacing-3;
-        transition: color $transition-medium;
-      }
-
-      p {
-        color: var(--text-secondary); // Use CSS variable
-        line-height: 1.5;
-        transition: color $transition-medium;
-      }
+      margin-top: $spacing-6; padding-top: $spacing-4;
+      border-top: 1px solid var(--border-color); transition: border-color $transition-medium;
+      h3 { font-size: $font-size-lg; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; }
+      p { color: var(--text-secondary); line-height: 1.5; transition: color $transition-medium; white-space: pre-line; }
     }
   }
 
+  // --- Ticket Updates/Comments Section ---
   .ticket-updates {
-    background-color: var(--surface-bg); // Use CSS variable
-    border: 1px solid var(--border-color); // Use CSS variable
-    border-radius: $border-radius-lg;
-    box-shadow: $shadow; // Shadow might need adjustment
-    padding: $spacing-6;
-    transition: background-color $transition-medium, border-color $transition-medium;
+    @include mixins.card-base; // Use card mixin
+    padding: $spacing-6; display: flex; flex-direction: column; // Allow scrolling
 
     .updates-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: $spacing-4;
-      border-bottom: 1px solid var(--border-color); // Use CSS variable
-      padding-bottom: $spacing-3;
-      transition: border-color $transition-medium;
-
-      h3 {
-        font-size: $font-size-lg;
-        color: var(--text-primary); // Use CSS variable
-        margin: 0;
-        transition: color $transition-medium;
-      }
-
-      .add-comment-btn {
-        padding: $spacing-2 $spacing-3; // Adjust padding
-        font-size: $font-size-sm;
-      }
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: $spacing-4; border-bottom: 1px solid var(--border-color);
+      padding-bottom: $spacing-3; transition: border-color $transition-medium;
+      flex-shrink: 0; // Prevent header shrinking
+      h3 { font-size: $font-size-lg; color: var(--text-primary); margin: 0; transition: color $transition-medium; }
+      .add-comment-btn { @extend .btn; padding: $spacing-2 $spacing-3; font-size: $font-size-sm; }
     }
 
+    // Comment Form / Status Update Form Container
     .comment-form-container, .status-form-container {
-      background-color: var(--surface-alt-bg); // Use CSS variable
-      border-radius: $border-radius;
-      padding: $spacing-4;
-      margin-bottom: $spacing-4;
-      border: 1px solid var(--border-color-strong); // Use CSS variable
+      background-color: var(--surface-alt-bg); border-radius: $border-radius;
+      padding: $spacing-4; margin-bottom: $spacing-4;
+      border: 1px solid var(--border-color-strong);
       transition: background-color $transition-medium, border-color $transition-medium;
+      flex-shrink: 0; // Prevent form shrinking
 
-      h4 {
-        font-size: $font-size-base;
-        color: var(--text-primary); // Use CSS variable
-        margin-bottom: $spacing-3;
-        transition: color $transition-medium;
-      }
-
-      .comment-form, .status-form {
-         // Inherits form-group styles from _forms.scss which now use CSS vars
-        .form-group {
-           margin-bottom: $spacing-3;
-           textarea { min-height: 100px; } // Specific style
-        }
-
-        .form-actions {
-          display: flex;
-          justify-content: flex-end;
-          gap: $spacing-3;
-
-          .cancel-btn {
-             background-color: var(--surface-bg);
-             color: var(--text-secondary);
-             border: 1px solid var(--border-color);
-             &:hover { background-color: var(--surface-alt-bg); }
-          }
+      h4 { font-size: $font-size-base; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; }
+      .comment-form, .status-form { // Form styles inherited
+        .form-group { margin-bottom: $spacing-3; textarea { min-height: 100px; } }
+        .form-actions { // Inherited styles, adjust if needed
+          .cancel-btn { @extend .btn; @include mixins.button-outline-variant(--text-secondary, --text-primary); border-color: var(--border-color); &:hover { background-color: var(--surface-alt-bg); } }
+          .submit-btn { @extend .btn; }
         }
       }
     }
 
+    // Timeline display for updates
     .updates-timeline {
-      max-height: 40vh;
-      overflow-y: auto;
+      max-height: 50vh; // Limit height for scrolling
+      overflow-y: auto; flex-grow: 1; // Allow timeline to scroll
 
-      .update-item {
-        padding: $spacing-4 0 $spacing-4 $spacing-5;
-        border-left: 3px solid var(--border-color); // Use CSS variable
-        margin-left: $spacing-2;
-        margin-bottom: $spacing-4;
-        position: relative;
+      .update-item { // Individual update/comment item
+        padding: $spacing-4 0 $spacing-4 $spacing-5; border-left: 3px solid var(--border-color);
+        margin-left: $spacing-2; margin-bottom: $spacing-4; position: relative;
         transition: border-color $transition-medium;
-
-        &:before {
-          content: '';
-          position: absolute;
-          width: 12px;
-          height: 12px;
-          background-color: var(--border-color-strong); // Use CSS variable
-          border-radius: 50%;
-          left: -7.5px;
-          top: $spacing-4;
-          border: 2px solid var(--surface-bg); // Use CSS variable
+        &:before { // Timeline dot
+          content: ''; position: absolute; width: 12px; height: 12px;
+          background-color: var(--border-color-strong); border-radius: 50%;
+          left: -7.5px; top: $spacing-4; border: 2px solid var(--surface-bg);
           transition: background-color $transition-medium, border-color $transition-medium;
         }
+        &:last-child { margin-bottom: 0; border-left-color: transparent; }
 
-        &.system-update {
-          background-color: rgba(var(--text-muted), 0.03); // Use CSS variable alpha
-          border-left-color: var(--border-color-strong); // Use CSS variable
-
-          &:before { background-color: var(--text-muted); } // Use CSS variable
-           .update-author span { font-style: italic; }
+        // System update styling
+        &.system-update { background-color: rgba(var(--text-muted), 0.03); border-left-color: var(--border-color-strong);
+          &:before { background-color: var(--text-muted); }
+          .update-author span { font-style: italic; }
+        }
+        // Internal note styling
+        &.internal-note { border-left-color: var(--accent-color); background-color: rgba(var(--accent-color), 0.05);
+          &:before { background-color: var(--accent-color); }
+          .update-author .internal-badge { background-color: var(--accent-light); color: var(--text-inverted); font-size: $font-size-xs; padding: 2px $spacing-1; border-radius: $border-radius-sm; margin-left: $spacing-2; }
         }
 
-        &.internal-note {
-           border-left-color: var(--accent-color); // Use CSS variable
-           background-color: rgba(var(--accent-color), 0.05); // Use CSS variable alpha
-            &:before { background-color: var(--accent-color); } // Use CSS variable
+        // Header (author, time)
+        .update-header { display: flex; justify-content: space-between; margin-bottom: $spacing-2;
+          .update-author { font-weight: $font-weight-medium; color: var(--text-primary); display: flex; align-items: center; transition: color $transition-medium; }
+          .update-time { font-size: $font-size-sm; color: var(--text-muted); transition: color $transition-medium; }
         }
-
-        .update-header {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: $spacing-2;
-
-          .update-author {
-            font-weight: $font-weight-medium;
-            color: var(--text-primary); // Use CSS variable
-            display: flex;
-            align-items: center;
-            transition: color $transition-medium;
-
-            .internal-badge {
-              background-color: var(--accent-light); // Use CSS variable
-              color: var(--text-inverted); // Use CSS variable (check contrast)
-              font-size: $font-size-xs;
-              padding: 2px $spacing-1;
-              border-radius: $border-radius-sm;
-              margin-left: $spacing-2;
-            }
-          }
-
-          .update-time {
-            font-size: $font-size-sm;
-            color: var(--text-muted); // Use CSS variable
-            transition: color $transition-medium;
-          }
-        }
-
-        .update-content {
-          color: var(--text-secondary); // Use CSS variable
-          line-height: 1.5;
-          white-space: pre-line;
-          transition: color $transition-medium;
-        }
+        // Content (comment text)
+        .update-content { color: var(--text-secondary); line-height: 1.5; white-space: pre-line; transition: color $transition-medium; }
       }
 
-      .no-updates {
-        color: var(--text-muted); // Use CSS variable
-        text-align: center;
-        padding: $spacing-6;
-        font-style: italic;
-      }
+      .no-updates { color: var(--text-muted); text-align: center; padding: $spacing-6; font-style: italic; }
     }
   }
 
+  // --- Sidebar Section ---
   .ticket-sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-6;
+    display: flex; flex-direction: column; gap: $spacing-6;
+    .sidebar-card { // Card containing info or actions
+      @include mixins.card-base; padding: $spacing-4; // Use card mixin, adjust padding
 
-    .sidebar-card {
-      background-color: var(--surface-bg); // Use CSS variable
-      border: 1px solid var(--border-color); // Use CSS variable
-      border-radius: $border-radius-lg;
-      box-shadow: $shadow; // Shadow might need adjustment
-      padding: $spacing-4;
-      transition: background-color $transition-medium, border-color $transition-medium;
-
-      h3 {
-        font-size: $font-size-lg;
-        color: var(--text-primary); // Use CSS variable
-        margin-bottom: $spacing-4;
-        padding-bottom: $spacing-2;
-        border-bottom: 1px solid var(--border-color); // Use CSS variable
+      h3 { // Card title
+        font-size: $font-size-lg; color: var(--text-primary); margin-bottom: $spacing-4;
+        padding-bottom: $spacing-2; border-bottom: 1px solid var(--border-color);
         transition: color $transition-medium, border-color $transition-medium;
       }
-
-      .info-group {
-        display: flex;
-        margin-bottom: $spacing-3;
-
-        label {
-          width: 120px;
-          font-weight: $font-weight-medium;
-          color: var(--text-muted); // Use CSS variable
-          transition: color $transition-medium;
-        }
-
-        span {
-          flex-grow: 1;
-          color: var(--text-secondary); // Use CSS variable
-          transition: color $transition-medium;
+      // Info display (label/value pairs)
+      .info-group { display: flex; margin-bottom: $spacing-3;
+        label { width: 120px; font-weight: $font-weight-medium; color: var(--text-muted); transition: color $transition-medium; }
+        span { flex-grow: 1; color: var(--text-secondary); transition: color $transition-medium;
           // Badges are styled separately below
         }
       }
-
-      .sidebar-actions {
-        display: flex;
-        flex-direction: column;
-        gap: $spacing-3;
-
-        .file-upload-container {
-          position: relative;
-
-          .file-upload-btn {
-            display: block;
-            width: 100%;
-            padding: $spacing-2;
-            text-align: center;
-            background-color: var(--surface-alt-bg); // Use CSS variable
-            color: var(--text-secondary); // Use CSS variable
-            border: 1px dashed var(--border-color-strong); // Use CSS variable
-            border-radius: $border-radius;
-            cursor: pointer;
-            transition: all $transition-fast;
-
-            &:hover {
-              background-color: var(--surface-bg); // Use CSS variable
-              border-color: var(--primary-color); // Use CSS variable
-            }
+      // Action buttons in sidebar
+      .sidebar-actions { display: flex; flex-direction: column; gap: $spacing-3;
+        .file-upload-container { position: relative; // For hiding input
+          .file-upload-btn { // Style the label like a button
+            display: block; width: 100%; padding: $spacing-2; text-align: center;
+            background-color: var(--surface-alt-bg); color: var(--text-secondary);
+            border: 1px dashed var(--border-color-strong); border-radius: $border-radius;
+            cursor: pointer; transition: all $transition-fast;
+            &:hover { background-color: var(--surface-bg); border-color: var(--primary-color); }
           }
-
-          .file-input {
-            position: absolute; width: 0.1px; height: 0.1px; opacity: 0; overflow: hidden; z-index: -1;
+          .file-input { // Visually hide the actual file input
+              position: absolute; width: 0.1px; height: 0.1px; opacity: 0; overflow: hidden; z-index: -1;
           }
         }
-
-        // Use button base styles from _forms.scss
-        .assign-to-me-btn {
-           background-color: var(--primary-light);
-           &:hover { background-color: var(--primary-color); }
-        }
-        .start-work-btn {
-           background-color: var(--info-color);
-           &:hover { background-color: var(--primary-dark); } // Assuming info is primary
-        }
-        .close-ticket-btn {
-           background-color: var(--success-color);
-           &:hover { background-color: var(--secondary-dark); } // Assuming success is secondary
-        }
+        // Action buttons extend base .btn style
+        button { @extend .btn; width: 100%; } // Make buttons full width
+        .assign-to-me-btn { @include mixins.button-variant(--primary-light, --text-primary, --primary-color); }
+        .start-work-btn { @include mixins.button-variant(--info-color, --text-inverted, --primary-dark); }
+        .close-ticket-btn { @include mixins.button-variant(--success-color, --text-inverted, --secondary-dark); }
       }
     }
   }
 
-  // Badge styles (using CSS variables set globally and in TicketCard partial)
+  // --- Badge Styles ---
+  // Reusing status/urgency badge styles
   .status-badge, .urgency-badge {
-    display: inline-block;
-    padding: $spacing-1 $spacing-2;
-    border-radius: $border-radius-full;
-    font-size: $font-size-xs;
-    font-weight: $font-weight-medium;
-    text-align: center;
-    min-width: 80px;
-    // Specific colors applied via classes in _TicketCard.scss using CSS vars
+    @include mixins.badge-base;
+    @include mixins.badge-alpha-variants; // Apply all color variants
+    min-width: 80px; // Consistent width
   }
 }
 
-// Responsive adjustments
+// --- Responsive Adjustments ---
 @media (max-width: $breakpoint-md) {
   .ticket-detail-page {
-    .ticket-card, .ticket-updates, .sidebar-card {
-      padding: $spacing-4;
+    .ticket-card, .ticket-updates, .sidebar-card { padding: $spacing-4; } // Reduce padding
+    .updates-timeline .update-item { padding: $spacing-3 0 $spacing-3 $spacing-4; margin-left: $spacing-1;
+      .update-header { flex-direction: column; align-items: flex-start; gap: $spacing-1; }
     }
-
-    .updates-timeline {
-      .update-item {
-        padding: $spacing-3 0 $spacing-3 $spacing-4; // Adjust padding
-         margin-left: $spacing-1; // Adjust margin
-
-        .update-header {
-          flex-direction: column;
-          align-items: flex-start; // Align left on mobile
-          gap: $spacing-1; // Add gap
-
-          .update-time {
-            margin-top: 0; // Reset margin
-          }
-        }
-      }
-    }
-
-    .form-actions {
-      flex-direction: column;
-
-      button {
-        width: 100%;
-        margin-bottom: $spacing-2;
-      }
-    }
+    .form-actions { flex-direction: column; button { width: 100%; margin-bottom: $spacing-2; } }
   }
 }

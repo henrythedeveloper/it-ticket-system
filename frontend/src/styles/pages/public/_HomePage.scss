@@ -1,270 +1,129 @@
 // src/styles/pages/public/_HomePage.scss
+// ==========================================================================
+// Styles specific to the public Home page.
+// Includes Hero, Features, How It Works, and CTA sections.
+// ==========================================================================
 
 @use '../../variables' as *;
-@use 'sass:math';
+@use '../../mixins'; // Use mixins
+@use 'sass:math'; // For calculations like dividing spacing
 
 .home-page {
-  max-width: 100%;
-  overflow-x: hidden;
+  max-width: 100%; // Allow full width sections
+  overflow-x: hidden; // Prevent horizontal scroll
 
+  // --- Hero Section ---
   .hero {
-    // Gradient might need dark mode adjustment if desired, keeping simple for now
+    // Gradient background - consider adjusting colors for dark mode if needed
     background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
-    color: var(--text-inverted); // Use CSS variable
-    padding: $spacing-16 $spacing-6;
+    color: var(--text-inverted); // Text on dark background
+    padding: $spacing-16 $spacing-6; // Generous padding
     text-align: center;
-    border-radius: 0 0 $border-radius-xl $border-radius-xl;
+    border-radius: 0 0 $border-radius-xl $border-radius-xl; // Rounded bottom corners
 
     .hero-content {
-      max-width: 800px;
-      margin: 0 auto;
-
-      h1 {
-        font-size: $font-size-4xl;
-        margin-bottom: $spacing-4;
-        color: var(--text-inverted); // Use CSS variable
-      }
-
-      p {
-        font-size: $font-size-xl;
-        margin-bottom: $spacing-8;
-        opacity: 0.9;
-        color: var(--text-inverted); // Use CSS variable (adjust opacity if needed)
-      }
-
+      max-width: 800px; margin: 0 auto; // Center content
+      h1 { font-size: $font-size-4xl; margin-bottom: $spacing-4; color: var(--text-inverted); }
+      p { font-size: $font-size-xl; margin-bottom: $spacing-8; opacity: 0.9; color: var(--text-inverted); }
+      // Buttons in hero
       .hero-buttons {
-        display: flex;
-        justify-content: center;
-        gap: $spacing-4;
-        flex-wrap: wrap; // Allow buttons to wrap
-
-        .btn {
-          padding: $spacing-3 $spacing-6;
-          border-radius: $border-radius;
-          font-weight: $font-weight-semibold;
-          transition: all $transition-fast;
-          text-decoration: none;
-
+        display: flex; justify-content: center; gap: $spacing-4; flex-wrap: wrap;
+        .btn { // Base button styles applied globally
+          padding: $spacing-3 $spacing-6; border-radius: $border-radius;
+          font-weight: $font-weight-semibold; transition: all $transition-fast; text-decoration: none;
+          // Primary button style (inverted for hero)
           &.btn-primary {
-            background-color: $white; // Keep white for contrast on gradient
-            color: var(--primary-dark); // Use CSS variable
-
-            &:hover {
-              background-color: rgba($white, 0.9);
-              transform: translateY(-2px);
-            }
+            background-color: $white; color: var(--primary-dark); // White bg, dark text
+            &:hover { background-color: rgba($white, 0.9); transform: translateY(-2px); }
           }
-
+          // Outline button style (inverted for hero)
           &.btn-outline {
-            border: 2px solid $white; // Keep white border
-            color: var(--text-inverted); // Use CSS variable
-
-            &:hover {
-              background-color: rgba($white, 0.1);
-              transform: translateY(-2px);
-            }
+            border: 2px solid $white; color: var(--text-inverted); // White border/text
+            &:hover { background-color: rgba($white, 0.1); transform: translateY(-2px); }
           }
         }
       }
     }
   }
 
+  // --- Features Section ---
   .features {
     padding: $spacing-16 $spacing-6;
-    background-color: var(--surface-alt-bg); // Use CSS variable
+    background-color: var(--surface-alt-bg); // Slightly off-white/gray background
     transition: background-color $transition-medium;
-
-    h2 {
-      text-align: center;
-      font-size: $font-size-3xl;
-      margin-bottom: $spacing-10;
-      color: var(--text-primary); // Use CSS variable
-      transition: color $transition-medium;
-    }
-
+    h2 { text-align: center; font-size: $font-size-3xl; margin-bottom: $spacing-10; color: var(--text-primary); transition: color $transition-medium; }
+    // Grid for feature cards
     .feature-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: $spacing-6;
-
-      .feature-card {
-        background-color: var(--surface-bg); // Use CSS variable
-        border: 1px solid var(--border-color); // Use CSS variable
-        padding: $spacing-6;
-        border-radius: $border-radius-lg;
-        box-shadow: $shadow; // Shadow might need adjustment
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: $spacing-6;
+      .feature-card { // Individual feature card
+        @include mixins.card-base; // Use card mixin
+        padding: $spacing-6; // Adjust padding
         transition: transform $transition-medium, box-shadow $transition-medium, background-color $transition-medium, border-color $transition-medium;
-
-        &:hover {
-          transform: translateY(-5px);
-          box-shadow: $shadow-lg; // Shadow might need adjustment
-          border-color: var(--border-color-strong); // Use CSS variable
-        }
-
-        .feature-icon {
-          font-size: 2.5rem;
-          margin-bottom: $spacing-4;
-          color: var(--primary-color); // Use CSS variable
-        }
-
-        h3 {
-          font-size: $font-size-xl;
-          margin-bottom: $spacing-3;
-          color: var(--primary-dark); // Use CSS variable (slightly darker for heading)
-          transition: color $transition-medium;
-        }
-
-        p {
-          color: var(--text-secondary); // Use CSS variable
-          line-height: 1.6;
-          transition: color $transition-medium;
-        }
+        &:hover { transform: translateY(-5px); box-shadow: $shadow-lg; border-color: var(--border-color-strong); }
+        .feature-icon { font-size: 2.5rem; margin-bottom: $spacing-4; color: var(--primary-color); }
+        h3 { font-size: $font-size-xl; margin-bottom: $spacing-3; color: var(--primary-dark); transition: color $transition-medium; }
+        p { color: var(--text-secondary); line-height: 1.6; transition: color $transition-medium; }
       }
     }
   }
 
+  // --- How It Works Section ---
   .how-it-works {
     padding: $spacing-16 $spacing-6;
-    background-color: var(--body-bg); // Use CSS variable
+    background-color: var(--body-bg);
     transition: background-color $transition-medium;
-
-    h2 {
-      text-align: center;
-      font-size: $font-size-3xl;
-      margin-bottom: $spacing-10;
-      color: var(--text-primary); // Use CSS variable
-      transition: color $transition-medium;
-    }
-
+    h2 { text-align: center; font-size: $font-size-3xl; margin-bottom: $spacing-10; color: var(--text-primary); transition: color $transition-medium; }
+    // Steps container
     .steps {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: $spacing-8;
-
-      .step {
-        flex: 1;
-        min-width: 200px;
-        max-width: 250px;
-        text-align: center;
-        position: relative;
-
-        // Connector line - color needs to adapt
+      display: flex; flex-wrap: wrap; justify-content: center; gap: $spacing-8;
+      .step { // Individual step
+        flex: 1; min-width: 200px; max-width: 250px; text-align: center; position: relative;
+        // Connector line between steps (desktop only)
         &:not(:last-child)::after {
-          content: '';
-          position: absolute;
-          top: 30px; // Align with center of number circle
+          content: ''; position: absolute; top: 30px; // Align with center of number circle
           right: -(math.div($spacing-8, 2)); // Position between steps
-          width: $spacing-8;
-          height: 2px;
-          background-color: var(--border-color-strong); // Use CSS variable
-          display: none;
-          transition: background-color $transition-medium;
-
-          @media (min-width: $breakpoint-lg) {
-            display: block;
-          }
+          width: $spacing-8; height: 2px; background-color: var(--border-color-strong);
+          display: none; transition: background-color $transition-medium;
+          @media (min-width: $breakpoint-lg) { display: block; } // Show only on large screens
         }
-
+        // Numbered circle
         .step-number {
-          width: 60px;
-          height: 60px;
-          border-radius: 50%;
-          background-color: var(--primary-color); // Use CSS variable
-          color: var(--text-inverted); // Use CSS variable
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: $font-size-2xl;
-          font-weight: $font-weight-bold;
-          margin: 0 auto $spacing-4 auto;
+          width: 60px; height: 60px; border-radius: 50%; background-color: var(--primary-color);
+          color: var(--text-inverted); display: flex; align-items: center; justify-content: center;
+          font-size: $font-size-2xl; font-weight: $font-weight-bold; margin: 0 auto $spacing-4 auto;
           transition: background-color $transition-medium, color $transition-medium;
         }
-
-        h3 {
-          font-size: $font-size-lg;
-          margin-bottom: $spacing-2;
-          color: var(--text-primary); // Use CSS variable
-          transition: color $transition-medium;
-        }
-
-        p {
-          color: var(--text-secondary); // Use CSS variable
-          font-size: $font-size-sm;
-          transition: color $transition-medium;
-        }
+        h3 { font-size: $font-size-lg; margin-bottom: $spacing-2; color: var(--text-primary); transition: color $transition-medium; }
+        p { color: var(--text-secondary); font-size: $font-size-sm; transition: color $transition-medium; }
       }
     }
   }
 
+  // --- Call to Action Section ---
   .cta {
-    padding: $spacing-16 $spacing-6;
-    background-color: var(--primary-dark); // Use CSS variable
-    color: var(--text-inverted); // Use CSS variable
-    text-align: center;
-    border-radius: $border-radius-xl $border-radius-xl 0 0;
+    padding: $spacing-16 $spacing-6; background-color: var(--primary-dark); // Darker background
+    color: var(--text-inverted); text-align: center;
+    border-radius: $border-radius-xl $border-radius-xl 0 0; // Rounded top corners
     transition: background-color $transition-medium, color $transition-medium;
-
-    h2 {
-      font-size: $font-size-3xl;
-      margin-bottom: $spacing-4;
-      color: var(--text-inverted); // Use CSS variable
-    }
-
-    p {
-      font-size: $font-size-lg;
-      margin-bottom: $spacing-8;
-      opacity: 0.9;
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-      color: var(--text-inverted); // Use CSS variable (adjust opacity if needed)
-    }
-
-    .btn-primary {
-      // Use styles from _forms.scss .btn
-      @extend .btn;
-      background-color: $white; // Keep white for contrast
-      color: var(--primary-dark); // Use CSS variable
-
-      &:hover {
-        background-color: rgba($white, 0.9);
-        transform: translateY(-2px);
-      }
+    h2 { font-size: $font-size-3xl; margin-bottom: $spacing-4; color: var(--text-inverted); }
+    p { font-size: $font-size-lg; margin-bottom: $spacing-8; opacity: 0.9; max-width: 600px; margin-left: auto; margin-right: auto; color: var(--text-inverted); }
+    .btn-primary { // CTA button style (inverted)
+      @extend .btn; background-color: $white; color: var(--primary-dark);
+      &:hover { background-color: rgba($white, 0.9); transform: translateY(-2px); }
     }
   }
 
-  // Responsive adjustments
+  // --- Responsive Adjustments ---
   @media (max-width: $breakpoint-md) {
-    .hero {
-      padding: $spacing-10 $spacing-4;
-
-      .hero-content {
-        h1 { font-size: $font-size-3xl; }
-        p { font-size: $font-size-lg; }
-      }
+    .hero { padding: $spacing-10 $spacing-4;
+      .hero-content { h1 { font-size: $font-size-3xl; } p { font-size: $font-size-lg; } }
     }
-
-    .features, .how-it-works, .cta {
-      padding: $spacing-10 $spacing-4;
-
+    .features, .how-it-works, .cta { padding: $spacing-10 $spacing-4;
       h2 { font-size: $font-size-2xl; }
     }
-
-    .hero-buttons {
-      flex-direction: column;
-      align-items: center;
-      gap: $spacing-3;
-
-      .btn {
-        width: 100%;
-        max-width: 250px;
-      }
+    .hero-buttons { flex-direction: column; align-items: center; gap: $spacing-3;
+      .btn { width: 100%; max-width: 250px; }
     }
-
-     .how-it-works .steps .step:not(:last-child)::after {
-        display: none; // Hide connector lines on smaller screens
-     }
+      .how-it-works .steps .step:not(:last-child)::after { display: none; } // Hide connector lines
   }
 }
-

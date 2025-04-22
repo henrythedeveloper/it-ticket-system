@@ -1,26 +1,32 @@
-// _variables.scss
+// src/styles/_variables.scss
+// ==========================================================================
+// Defines the core design tokens for the application, including:
+// 1. Base color palette (raw color values).
+// 2. Semantic SCSS variables for light mode (derived from the base palette).
+// 3. CSS custom properties (:root) for light mode (based on semantic SCSS vars).
+// 4. Non-color SCSS variables (typography, spacing, layout, etc.).
+// Dark mode CSS variables are overridden in global.scss using the base palette.
+// ==========================================================================
 
-// --- Base Color Definitions ---
-
-// Primary Colors (Sky Blue)
-$sky-400: #7DD3FC; // Added this line
+// --------------------------------------------------------------------------
+// Base Color Definitions
+// --------------------------------------------------------------------------
+// Raw color values used to build the theme palettes.
+$sky-400: #7DD3FC;
 $sky-500: #38bdf8;
 $sky-600: #0ea5e9;
 $sky-700: #0284c7;
 
-// Secondary Colors (Teal)
-$teal-400: #5EEAD4; // Added for consistency (used in dark mode secondary)
+$teal-400: #5EEAD4;
 $teal-500: #2dd4bf;
 $teal-600: #0d9488;
 $teal-700: #0f766e;
 
-// Accent Colors (Violet)
-$violet-300: #C4B5FD; // Added for consistency
+$violet-300: #C4B5FD;
 $violet-400: #a78bfa;
 $violet-500: #8b5cf6;
 $violet-600: #7c3aed;
 
-// Grays (Neutral)
 $gray-50: #f9fafb;
 $gray-100: #f3f4f6;
 $gray-200: #e5e7eb;
@@ -32,19 +38,20 @@ $gray-700: #374151;
 $gray-800: #1f2937;
 $gray-900: #111827;
 
-// Functional Colors (Standard Reds/Ambers)
-$amber-400: #fbbf24; // Added for consistency (used in dark warning)
+$amber-400: #fbbf24;
 $amber-500: #f59e0b;
-$red-400: #f87171;   // Added for consistency (used in dark error)
+
+$red-400: #f87171;
 $red-500: #ef4444;
 
 $white: #ffffff;
 $black: #000000;
 
-
-// --- SCSS Variables (Light Mode Defaults) ---
-
-// Theme Colors
+// --------------------------------------------------------------------------
+// SCSS Variables (Light Mode Defaults - Semantic)
+// --------------------------------------------------------------------------
+// These variables give semantic meaning to the base colors for the light theme.
+// They are used to define the default CSS custom properties in :root.
 $primary-color: $sky-600;
 $primary-light: $sky-500;
 $primary-dark: $sky-700;
@@ -57,43 +64,38 @@ $accent-color: $violet-500;
 $accent-light: $violet-400;
 $accent-dark: $violet-600;
 
-// Backgrounds & Surfaces
 $body-bg: $gray-100;
-$surface-bg: $white; // Cards, sidebars, headers etc.
-$surface-alt-bg: $gray-50; // Slightly off-white surfaces
+$surface-bg: $white;
+$surface-alt-bg: $gray-50;
 
-// Text Colors
-$text-primary: $gray-900; // Headings, important text
-$text-secondary: $gray-700; // Body text
-$text-muted: $gray-500; // Less important text
-$text-inverted: $white; // Text on dark backgrounds
+$text-primary: $gray-900;
+$text-secondary: $gray-700;
+$text-muted: $gray-500;
+$text-inverted: $white;
 
-// Border Colors
 $border-color: $gray-200;
 $border-color-strong: $gray-300;
 
-// Status colors
 $status-unassigned: $amber-500;
 $status-assigned: $primary-light;
 $status-progress: $accent-light;
 $status-closed: $secondary-light;
 
-// Urgency colors
 $urgency-low: $secondary-light;
 $urgency-medium: $primary-light;
 $urgency-high: $amber-500;
 $urgency-critical: $red-500;
 
-// State Colors
 $success-color: $secondary-color;
 $error-color: $red-500;
 $warning-color: $amber-500;
 $info-color: $primary-color;
 
-
-// --- CSS Custom Properties (Theme Variables) ---
-// Define CSS variables based on the SCSS variables above.
-// These will be used in component styles and overridden for dark mode.
+// --------------------------------------------------------------------------
+// CSS Custom Properties (:root - Light Mode Defaults)
+// --------------------------------------------------------------------------
+// Defines the CSS variables available globally, defaulted to the light theme.
+// Dark mode overrides these variables within the `body.dark-mode` scope in global.scss.
 :root {
   // Theme Colors
   --primary-color: #{$primary-color};
@@ -129,160 +131,109 @@ $info-color: $primary-color;
   --warning-color: #{$warning-color};
   --info-color: #{$info-color};
 
-  // Status Colors (for reference, often used with background alphas)
+  // Status Colors (Used for badges etc., often with alpha)
   --status-unassigned-color: #{$status-unassigned};
   --status-assigned-color: #{$status-assigned};
   --status-progress-color: #{$status-progress};
   --status-closed-color: #{$status-closed};
 
-  // Urgency Colors (for reference)
+  // Urgency Colors (Used for badges etc., often with alpha)
   --urgency-low-color: #{$urgency-low};
   --urgency-medium-color: #{$urgency-medium};
   --urgency-high-color: #{$urgency-high};
   --urgency-critical-color: #{$urgency-critical};
 
-  // Component Specific (Examples - add more as needed)
+  // Component Specific Defaults (Examples)
   --header-bg: var(--surface-bg);
   --header-text: var(--text-primary);
-  --sidebar-bg: $gray-900; // Keep sidebar dark in light mode for contrast
-  --sidebar-text: $gray-300;
-  --sidebar-text-hover: $white;
-  --sidebar-active-bg: rgba($primary-color, 0.1);
-  --sidebar-active-border: $primary-color;
-  --footer-bg: $gray-800;
-  --footer-text: $gray-300;
-  --footer-link: $gray-300;
-  --footer-link-hover: $white;
+  --sidebar-bg: #{$gray-900}; // Sidebar is dark even in light mode
+  --sidebar-text: #{$gray-300};
+  --sidebar-text-hover: #{$white};
+  --sidebar-active-bg: rgba(var(--primary-color), 0.1); // Use CSS var for alpha
+  --sidebar-active-border: #{$primary-color};
+  --footer-bg: #{$gray-800}; // Footer is dark even in light mode
+  --footer-text: #{$gray-300};
+  --footer-link: #{$gray-300};
+  --footer-link-hover: #{$white};
 
-  // Badge Background Alphas (Example)
-  --badge-info-bg-alpha: rgba(var(--info-color), 0.1);
-  --badge-success-bg-alpha: rgba(var(--success-color), 0.1);
-  --badge-warning-bg-alpha: rgba(var(--warning-color), 0.1);
-  --badge-error-bg-alpha: rgba(var(--error-color), 0.1);
+  // Pre-defined Alpha Backgrounds for Badges (Optional, but convenient)
+  --badge-info-bg-alpha: rgba(56, 189, 248, 0.1); // Example: Using base color value
+  --badge-success-bg-alpha: rgba(13, 148, 136, 0.1);
+  --badge-warning-bg-alpha: rgba(245, 158, 11, 0.1);
+  --badge-error-bg-alpha: rgba(239, 68, 68, 0.1);
 }
 
+// --- REMOVED Dark Mode Semantic SCSS Variables ---
+// Dark mode overrides are now handled directly in global.scss
 
-// --- Dark Mode SCSS Variables ---
-// Define the dark mode palette using SCSS variables first
-$primary-color-dark: $primary-light; // Use lighter primary in dark mode
-$primary-light-dark: $primary-color;
-$primary-dark-dark: $sky-400; // Use the now defined sky-400
-
-$secondary-color-dark: $secondary-light;
-$secondary-light-dark: $secondary-color;
-$secondary-dark-dark: $teal-400; // Use the now defined teal-400
-
-$accent-color-dark: $accent-light;
-$accent-light-dark: $accent-color;
-$accent-dark-dark: $violet-400; // Use lighter shade
-
-// Dark Backgrounds & Surfaces
-$body-bg-dark: $gray-900;
-$surface-bg-dark: $gray-800;
-$surface-alt-bg-dark: $gray-700; // Slightly lighter surface
-
-// Dark Text Colors
-$text-primary-dark: $gray-100;
-$text-secondary-dark: $gray-300;
-$text-muted-dark: $gray-400;
-$text-inverted-dark: $gray-900; // Text on light backgrounds in dark mode
-
-// Dark Border Colors
-$border-color-dark: $gray-700;
-$border-color-strong-dark: $gray-600;
-
-// Dark State Colors (Adjust brightness/saturation for dark bg)
-$success-color-dark: $secondary-light; // Use lighter teal
-$error-color-dark: $red-400; // Use the now defined red-400
-$warning-color-dark: $amber-400; // Use the now defined amber-400
-$info-color-dark: $primary-light; // Use lighter sky blue
-
-// Dark Status Colors
-$status-unassigned-dark: $warning-color-dark;
-$status-assigned-dark: $info-color-dark;
-$status-progress-dark: $accent-color-dark;
-$status-closed-dark: $success-color-dark;
-
-// Dark Urgency Colors
-$urgency-low-dark: $success-color-dark;
-$urgency-medium-dark: $info-color-dark;
-$urgency-high-dark: $warning-color-dark;
-$urgency-critical-dark: $error-color-dark;
-
-
-// --- Non-Color Variables (Keep as is) ---
+// --------------------------------------------------------------------------
+// Non-Color Variables
+// --------------------------------------------------------------------------
+// Define spacing, typography, layout, transitions, etc.
 
 // Typography
 $font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 $font-family-mono: 'Fira Code', 'Source Code Pro', Menlo, Monaco, Consolas, 'Courier New', monospace;
-// Font sizes...
-$font-size-xs: 0.75rem;
-$font-size-sm: 0.875rem;
-$font-size-base: 1rem;
-$font-size-lg: 1.125rem;
-$font-size-xl: 1.25rem;
-$font-size-2xl: 1.5rem;
-$font-size-3xl: 1.875rem;
-$font-size-4xl: 2.25rem;
-// Font weights...
+$font-size-xs: 0.75rem;    // 12px
+$font-size-sm: 0.875rem;   // 14px
+$font-size-base: 1rem;     // 16px
+$font-size-lg: 1.125rem;   // 18px
+$font-size-xl: 1.25rem;    // 20px
+$font-size-2xl: 1.5rem;    // 24px
+$font-size-3xl: 1.875rem;  // 30px
+$font-size-4xl: 2.25rem;   // 36px
 $font-weight-light: 300;
 $font-weight-normal: 400;
 $font-weight-medium: 500;
 $font-weight-semibold: 600;
 $font-weight-bold: 700;
 
-// Spacing...
+// Spacing (Based on 0.25rem = 4px scale)
 $spacing-0: 0;
-$spacing-1: 0.25rem;
-$spacing-2: 0.5rem;
-$spacing-3: 0.75rem;
-$spacing-4: 1rem;
-$spacing-5: 1.25rem;
-$spacing-6: 1.5rem;
-$spacing-8: 2rem;
-$spacing-10: 2.5rem;
-$spacing-12: 3rem;
-$spacing-16: 4rem;
-// ... other spacing variables
+$spacing-1: 0.25rem;  // 4px
+$spacing-2: 0.5rem;   // 8px
+$spacing-3: 0.75rem;  // 12px
+$spacing-4: 1rem;     // 16px
+$spacing-5: 1.25rem;  // 20px
+$spacing-6: 1.5rem;   // 24px
+$spacing-8: 2rem;     // 32px
+$spacing-10: 2.5rem;  // 40px
+$spacing-12: 3rem;    // 48px
+$spacing-16: 4rem;    // 64px
 
-// Borders...
-$border-radius-sm: 0.125rem;
-$border-radius: 0.25rem;
-$border-radius-md: 0.375rem;
-$border-radius-lg: 0.5rem;
-$border-radius-xl: 0.75rem;
+// Borders
+$border-radius-sm: 0.125rem; // 2px
+$border-radius: 0.25rem;    // 4px
+$border-radius-md: 0.375rem; // 6px
+$border-radius-lg: 0.5rem;    // 8px
+$border-radius-xl: 0.75rem;   // 12px
 $border-radius-full: 9999px;
-// ... other border variables
 
-// Shadows (Shadows might need adjustment for dark mode, but keeping simple for now)
+// Shadows
 $shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 $shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 $shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 $shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-// ... other shadow variables
 
-// Layout...
+// Layout
 $header-height: 4rem;
 $sidebar-width: 16rem;
 $sidebar-collapsed-width: 4.5rem;
 $max-content-width: 1280px;
-// ... other layout variables
 
-// Z-index levels...
+// Z-index levels
 $z-index-dropdown: 1000;
 $z-index-sticky: 1020;
 $z-index-fixed: 1030;
-// ... other z-index variables
 
-// Transitions...
+// Transitions
 $transition-fast: 150ms ease;
 $transition-medium: 300ms ease;
 $transition-slow: 500ms ease;
 
-// Media queries...
+// Media query breakpoints
 $breakpoint-sm: 640px;
 $breakpoint-md: 768px;
 $breakpoint-lg: 1024px;
 $breakpoint-xl: 1280px;
 $breakpoint-2xl: 1536px;
-

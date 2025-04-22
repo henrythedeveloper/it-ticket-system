@@ -1,0 +1,195 @@
+// src/styles/_mixins.scss
+// ==========================================================================
+// Reusable SCSS mixins for common UI patterns.
+// These mixins often utilize CSS variables defined in _variables.scss
+// to ensure theme adaptability.
+// ==========================================================================
+
+@use 'variables' as *; // Import variables for use within mixins
+
+// --------------------------------------------------------------------------
+// Card Mixins
+// --------------------------------------------------------------------------
+
+// Mixin for base card styles
+@mixin card-base {
+    background-color: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: $border-radius-lg;
+    box-shadow: $shadow; // Consider removing shadow for dark mode via CSS var if needed
+    padding: $spacing-6;
+    transition: background-color $transition-medium, border-color $transition-medium;
+}
+
+// --------------------------------------------------------------------------
+// Button Mixins
+// --------------------------------------------------------------------------
+
+// Mixin for base button styles
+@mixin button-base {
+    display: inline-block;
+    padding: $spacing-3 $spacing-6;
+    border: 1px solid transparent;
+    border-radius: $border-radius;
+    font-weight: $font-weight-medium;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    transition: background-color $transition-fast, transform $transition-fast, border-color $transition-fast, color $transition-fast;
+
+    &:focus {
+    outline: none;
+    // Use a generic focus ring that adapts
+    box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.4);
+    }
+
+    &:active {
+    transform: translateY(1px);
+    }
+
+    &:disabled {
+    // Disabled styles handled globally via body.dark-mode
+    cursor: not-allowed;
+    opacity: 0.7;
+    }
+}
+
+// Mixin for button color variants
+// Parameters are CSS variable names (passed as strings)
+@mixin button-variant($bg-color-var, $text-color-var, $bg-hover-color-var) {
+    background-color: var($bg-color-var);
+    color: var($text-color-var);
+    &:hover:not(:disabled) {
+    background-color: var($bg-hover-color-var);
+    // Optional: Adjust border/text color on hover if needed
+    }
+}
+
+// Mixin for outline button variant
+// Parameters are CSS variable names (passed as strings)
+@mixin button-outline-variant($color-var, $text-hover-color-var) {
+    background-color: transparent;
+    border: 1px solid var($color-var);
+    color: var($color-var);
+    &:hover:not(:disabled) {
+    background-color: var($color-var);
+    color: var($text-hover-color-var);
+    }
+}
+
+// Mixin for button loading state (spinner)
+@mixin button-loading {
+    position: relative;
+    color: transparent !important; // Hide text
+    &::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px; // Spinner size
+    height: 16px;
+    // Use a consistent spinner color or adapt based on button text color var
+    border: 2px solid var(--text-inverted); // Assuming most buttons have inverted text
+    border-top-color: transparent; // Creates the spinning effect
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    opacity: 0.8;
+    }
+}
+
+// --------------------------------------------------------------------------
+// Badge Mixins
+// --------------------------------------------------------------------------
+
+// Mixin for base badge styles
+@mixin badge-base {
+    display: inline-block;
+    padding: $spacing-1 $spacing-2;
+    border-radius: $border-radius-full;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+    text-align: center;
+    transition: background-color $transition-medium, color $transition-medium;
+}
+
+// Mixin for badges with alpha background based on color variable
+// Requires corresponding CSS variables for alpha backgrounds (e.g., --badge-info-bg-alpha)
+// Usage: Add class like .badge-info, .badge-success etc. to the element
+@mixin badge-alpha-variants {
+    &.badge-info { background-color: var(--badge-info-bg-alpha); color: var(--info-color); }
+    &.badge-success { background-color: var(--badge-success-bg-alpha); color: var(--success-color); }
+    &.badge-warning { background-color: var(--badge-warning-bg-alpha); color: var(--warning-color); }
+    &.badge-error { background-color: var(--badge-error-bg-alpha); color: var(--error-color); }
+
+    // Status specific examples (using status color vars)
+    &.badge-unassigned { background-color: rgba(var(--status-unassigned-color), 0.15); color: var(--status-unassigned-color); }
+    &.badge-assigned { background-color: rgba(var(--status-assigned-color), 0.15); color: var(--status-assigned-color); }
+    &.badge-progress { background-color: rgba(var(--status-progress-color), 0.15); color: var(--status-progress-color); }
+    &.badge-closed { background-color: rgba(var(--status-closed-color), 0.15); color: var(--status-closed-color); }
+
+    // Urgency specific examples
+    &.badge-low { background-color: rgba(var(--urgency-low-color), 0.15); color: var(--urgency-low-color); }
+    &.badge-medium { background-color: rgba(var(--urgency-medium-color), 0.15); color: var(--urgency-medium-color); }
+    &.badge-high { background-color: rgba(var(--urgency-high-color), 0.15); color: var(--urgency-high-color); }
+    &.badge-critical { background-color: rgba(var(--urgency-critical-color), 0.15); color: var(--urgency-critical-color); }
+
+    // Role specific examples
+    &.badge-admin { background-color: rgba(var(--accent-color), 0.15); color: var(--accent-color); }
+    &.badge-staff { background-color: rgba(var(--info-color), 0.15); color: var(--info-color); }
+}
+
+// --------------------------------------------------------------------------
+// Form Element Mixins
+// --------------------------------------------------------------------------
+
+// Mixin for base form input/textarea/select styles
+@mixin form-element-base {
+    width: 100%;
+    padding: $spacing-3;
+    border: 1px solid var(--border-color-strong);
+    border-radius: $border-radius;
+    font-size: $font-size-base;
+    background-color: var(--surface-alt-bg);
+    color: var(--text-primary);
+    transition: border-color $transition-fast, box-shadow $transition-fast, background-color $transition-medium, color $transition-medium;
+
+    &:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.2);
+    outline: none;
+    }
+
+    &::placeholder {
+    color: var(--text-muted);
+    transition: color $transition-medium;
+    }
+
+    &:disabled {
+    // Disabled styles handled globally via body.dark-mode
+    cursor: not-allowed;
+    }
+}
+
+// Mixin for select arrow styling (adapts to theme)
+@mixin select-arrow {
+    appearance: none;
+    // Default arrow (light mode)
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem; // Make space for the arrow
+
+    // Override arrow color in dark mode using the body class
+    body.dark-mode & {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); // Dark mode arrow
+    }
+}
+
+// --------------------------------------------------------------------------
+// Animation Mixins (Example)
+// --------------------------------------------------------------------------
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

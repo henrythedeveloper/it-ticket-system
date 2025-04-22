@@ -1,357 +1,329 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import api from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
-import { Task, User, APIResponse } from '../../types/models';
+// src/pages/dashboard/TasksPage.tsx
+// ==========================================================================
+// Component representing the page for listing and managing tasks.
+// Includes filtering, search, and a table of tasks.
+// Fixed type errors and render function parameters (explicit typing).
+// ==========================================================================
 
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import Loader from '../../components/common/Loader';
+import Alert from '../../components/common/Alert';
+import Button from '../../components/common/Button';
+import Table, { TableColumn } from '../../components/common/Table';
+import Badge from '../../components/common/Badge';
+import Pagination from '../../components/common/Pagination'; // Pagination component
+import Input from '../../components/common/Input'; // Use Input component for search
+import { useAuth } from '../../hooks/useAuth'; // For default filters
+import { fetchTasks } from '../../services/taskService'; // Task API
+import { fetchUsers } from '../../services/userService'; // User API for assignee filter
+import { Task, User, TaskStatus } from '../../types'; // Import types
+import { formatDate } from '../../utils/helpers'; // Date formatting
+import { PlusCircle, Search, X } from 'lucide-react'; // Icons
+
+// --- Constants ---
+const DEFAULT_LIMIT = 15; // Number of tasks per page
+
+// --- Type Definition for Fetch Params ---
+// Define explicitly to ensure type safety
+interface FetchTasksParams {
+    page?: number;
+    limit?: number;
+    status?: string | undefined;
+    assigneeId?: string | undefined;
+    search?: string | undefined;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc' | undefined; // Correct type
+}
+
+// --- Component ---
+
+/**
+ * Renders the Tasks list page with filtering, search, pagination, and table display.
+ */
 const TasksPage: React.FC = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  
-  const [loading, setLoading] = useState(true);
+  // --- Hooks ---
+  const { user } = useAuth(); // Get current user for potential default filters
+  const [searchParams, setSearchParams] = useSearchParams(); // Manage URL query params
+
+  // --- State ---
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [assignableUsers, setAssignableUsers] = useState<Pick<User, 'id' | 'name'>[]>([]);
+  const [totalTasks, setTotalTasks] = useState<number>(0);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Filter states initialized from URL params or defaults
-  const [statusFilter, setStatusFilter] = useState<string>(
-    queryParams.get('status') || ''
-  );
-  const [assignedToFilter, setAssignedToFilter] = useState<string>(
-    queryParams.get('assigned_to') || ''
-  );
-  const [dueDateFilter, setDueDateFilter] = useState<string>(
-    queryParams.get('due_date') || ''
-  );
-  const [searchQuery, setSearchQuery] = useState<string>(
-    queryParams.get('search') || ''
-  );
-  
-  const isAdmin = user?.role === 'Admin';
 
-  // Effect to fetch data whenever filters change
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // *** FIX: Reset error state at the beginning of each fetch ***
-        setError(null); 
-        setLoading(true);
-        
-        // Build query parameters from state
-        const params = new URLSearchParams();
-        if (statusFilter) params.append('status', statusFilter);
-        if (assignedToFilter) params.append('assigned_to', assignedToFilter);
-        if (dueDateFilter) params.append('due_date', dueDateFilter);
-        if (searchQuery) params.append('search', searchQuery);
-        
-        // Fetch tasks based on current filters
-        const tasksResponse = await api.get<APIResponse<Task[]>>(`/tasks?${params.toString()}`);
-        if (tasksResponse.data.success && tasksResponse.data.data) {
-          setTasks(tasksResponse.data.data); // Update tasks if successful
-        } else {
-          // If API indicates failure or no data, set an appropriate error or handle empty state
-          setTasks([]); // Clear tasks on failure/no data matching filters
-          setError(tasksResponse.data.error || 'No tasks found matching your criteria.'); // Set error or specific message
-        }
-        
-        // Fetch users for filter dropdown (could optimize to fetch only once if users list is static)
-        // Consider moving this outside this useEffect if it doesn't need to refetch on filter change
-        const usersResponse = await api.get<APIResponse<User[]>>('/users');
-        if (usersResponse.data.success && usersResponse.data.data) {
-          setUsers(usersResponse.data.data);
-        } else {
-           console.error("Failed to fetch users for filter:", usersResponse.data.error);
-           // Handle error fetching users if necessary
-        }
-        
-      } catch (error: any) {
-        // Handle network or other unexpected errors during fetch
-        console.error('Error fetching tasks:', error);
-        setError(error.response?.data?.error || 'An error occurred while loading tasks.');
-        setTasks([]); // Clear tasks on error
-      } finally {
-        // Ensure loading state is turned off regardless of success or failure
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
-    // Dependencies: This effect runs when any filter state changes
-  }, [statusFilter, assignedToFilter, dueDateFilter, searchQuery]); 
-  
-  // Effect to update the URL when filter state changes
-  useEffect(() => {
-    const params = new URLSearchParams();
-    
-    // Add filters to params only if they have a value
-    if (statusFilter) params.append('status', statusFilter);
-    if (assignedToFilter) params.append('assigned_to', assignedToFilter);
-    if (dueDateFilter) params.append('due_date', dueDateFilter);
-    if (searchQuery) params.append('search', searchQuery);
-    
-    // Update URL without full page reload
-    navigate(`/tasks?${params.toString()}`, { replace: true }); 
-  }, [navigate, statusFilter, assignedToFilter, dueDateFilter, searchQuery]); // Dependencies: This effect runs when filter state changes
-  
-  // Handler for search form submission (optional, as useEffect handles changes)
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    // The fetch is triggered by the state change in searchQuery via useEffect
-  };
-  
-  // Handler to clear all filters and the search query
-  const handleClearFilters = () => {
-    setStatusFilter('');
-    setAssignedToFilter('');
-    setDueDateFilter('');
-    setSearchQuery('');
-    // The useEffect hooks will handle refetching and URL update
-  };
-  
-  // Helper function to format date
-  const formatDate = (dateString?: string | null): string => {
-     if (!dateString) return 'No due date';
+  // --- Filtering/Pagination State (derived from URL search params) ---
+  const currentPage = useMemo(() => parseInt(searchParams.get('page') || '1', 10), [searchParams]);
+  const currentStatus = useMemo(() => searchParams.get('status') || '', [searchParams]);
+  const currentAssignee = useMemo(() => searchParams.get('assigneeId') || '', [searchParams]);
+  const currentSearch = useMemo(() => searchParams.get('search') || '', [searchParams]);
+  // Add state for sorting if needed: const currentSort = ...
+
+  // --- Data Fetching ---
+  /**
+   * Fetches tasks based on current filter/pagination state derived from URL params.
+   * useCallback ensures stable function identity for useEffect dependency.
+   */
+  const loadTasks = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    console.log(`Fetching tasks: Page=${currentPage}, Status=${currentStatus}, Assignee=${currentAssignee}, Search=${currentSearch}`);
+
     try {
-      const date = new Date(dateString);
-      // Check if date is valid after parsing
-      if (isNaN(date.getTime())) {
-          // Try parsing assuming it might already be YYYY-MM-DD
-          const parts = dateString.split('-');
-          if (parts.length === 3) {
-              const year = parseInt(parts[0], 10);
-              const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
-              const day = parseInt(parts[2], 10);
-              const localDate = new Date(Date.UTC(year, month, day));
-               if (!isNaN(localDate.getTime())) {
-                   return localDate.toLocaleDateString('en-US', {
-                       timeZone: 'UTC', // Specify UTC for consistency
-                       month: 'short',
-                       day: 'numeric',
-                       year: 'numeric'
-                   });
-               }
-          }
-          return 'Invalid Date'; // Return if parsing fails
+      // Use the explicit FetchTasksParams type
+      const params: FetchTasksParams = {
+        page: currentPage,
+        limit: DEFAULT_LIMIT,
+        status: currentStatus || undefined, // Send undefined if empty
+        assigneeId: currentAssignee || undefined,
+        search: currentSearch || undefined,
+        sortBy: 'createdAt', // Default sort
+        sortOrder: 'desc',   // Ensure this matches the allowed type
+      };
+      const response = await fetchTasks(params);
+      setTasks(response.data);
+      setTotalTasks(response.total);
+      setTotalPages(response.totalPages);
+    } catch (err: any) {
+      console.error("Failed to load tasks:", err);
+      setError(err.response?.data?.message || err.message || 'Could not load tasks.');
+      // Reset state on error
+      setTasks([]);
+      setTotalTasks(0);
+      setTotalPages(1);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPage, currentStatus, currentAssignee, currentSearch]); // Dependencies based on URL state
+
+  /**
+   * Fetches users for the assignee filter dropdown.
+   */
+  const loadAssignableUsers = useCallback(async () => {
+      try {
+        // Fetch only staff and admins
+        const usersData = await fetchUsers({ role: 'Admin,Staff', limit: 500 });
+        setAssignableUsers(usersData.data.map(u => ({ id: u.id, name: u.name })));
+      } catch (err) {
+          console.error("Failed to load users for filter:", err);
+          // Handle error appropriately, maybe show a message
       }
-      // If parsed directly as ISO string (e.g., from backend)
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-    } catch (e) {
-      console.error("Error formatting date:", dateString, e);
-      return 'Invalid Date';
-    }
-  };
-  
-  // Helper function to get CSS class based on task status
-  const getStatusClass = (status: string) => {
-    switch (status) {
-      case 'Open':
-        return 'badge-open';
-      case 'In Progress':
-        return 'badge-progress';
-      case 'Completed':
-        return 'badge-completed';
-      default:
-        return 'badge-open'; // Default class
-    }
+  }, []);
+
+  // --- Effects ---
+  // Fetch tasks when filter/pagination params change
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
+
+  // Fetch assignable users on initial mount
+  useEffect(() => {
+    loadAssignableUsers();
+  }, [loadAssignableUsers]);
+
+
+  // --- Handlers ---
+  /**
+   * Updates URL search parameters based on filter changes.
+   * @param param - The query parameter key (e.g., 'status', 'assigneeId').
+   * @param value - The new value for the parameter.
+   */
+  const handleFilterChange = (param: string, value: string) => {
+    setSearchParams(prevParams => {
+      const newParams = new URLSearchParams(prevParams);
+      if (value) {
+        newParams.set(param, value);
+      } else {
+        newParams.delete(param); // Remove param if value is empty
+      }
+      newParams.set('page', '1'); // Reset to page 1 when filters change
+      return newParams;
+    }, { replace: true }); // Use replace to avoid excessive history entries
   };
 
-  // --- Render Logic ---
+  /**
+   * Handles search input changes and updates URL param.
+   * Uses debounce if desired.
+   */
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      // Basic immediate update:
+      handleFilterChange('search', e.target.value);
+      // TODO: Implement debounce if needed for performance
+  };
+
+  /**
+   * Clears all active filters and resets to page 1.
+   */
+  const handleClearFilters = () => {
+    setSearchParams({ page: '1' }); // Reset to just page 1
+  };
+
+  /**
+   * Handles page changes from the Pagination component.
+   * @param newPage - The new page number selected.
+   */
+  const handlePageChange = (newPage: number) => {
+      setSearchParams(prevParams => {
+        const newParams = new URLSearchParams(prevParams);
+        newParams.set('page', newPage.toString());
+        return newParams;
+    }, { replace: true });
+      window.scrollTo(0, 0); // Scroll to top on page change
+  };
+
+  // --- Options for Filters ---
+  const statusOptions: { value: TaskStatus | ''; label: string }[] = [
+    { value: '', label: 'All Statuses' },
+    { value: 'Open', label: 'Open' },
+    { value: 'In Progress', label: 'In Progress' },
+    { value: 'Completed', label: 'Completed' },
+  ];
+
+  const assigneeOptions = [
+    { value: '', label: 'All Assignees' },
+    // Add 'Assigned to Me' option if user is logged in
+    ...(user ? [{ value: user.id, label: 'Assigned to Me' }] : []),
+    ...assignableUsers.map(u => ({ value: u.id, label: u.name })),
+  ];
+
+  // --- Table Columns ---
+  // FIX: Explicitly type 'item' parameter in render functions
+  const taskColumns: TableColumn<Task>[] = [
+    { key: 'title', header: 'Title', render: (item: Task) => <Link to={`/tasks/${item.id}`}>{item.title}</Link>, cellClassName: 'title-cell' },
+    { key: 'status', header: 'Status', render: (item: Task) => <Badge type={item.status === 'In Progress' ? 'progress' : item.status.toLowerCase() as any}>{item.status}</Badge> },
+    { key: 'assignedTo', header: 'Assignee', render: (item: Task) => item.assignedTo?.name || 'Unassigned' },
+    { 
+      key: 'dueDate', 
+      header: 'Due Date', 
+      render: (item: Task) => {
+        // Determine if the task is overdue
+        const isOverdue = item.dueDate && new Date(item.dueDate) < new Date() && item.status !== 'Completed';
+        // Set the class name based on the condition
+        const className = isOverdue ? 'overdue' : '';
+        // Get the display content
+        const content = item.dueDate ? formatDate(item.dueDate) : '-';
+        // Return the content wrapped in a span with the conditional class
+        return <span className={className}>{content}</span>;
+      }
+    },
+    { key: 'createdBy', header: 'Created By', render: (item: Task) => item.createdBy?.name || 'Unknown' },
+    { key: 'createdAt', header: 'Created At', render: (item: Task) => formatDate(item.createdAt) },
+    { key: 'actions', header: 'Actions', render: (item: Task) => (
+        <Link to={`/tasks/${item.id}`}>
+            <Button variant='outline' size='sm'>View</Button>
+        </Link>
+      ), cellClassName: 'actions-cell'
+    },
+  ];
+
+  // Determine if any filters are active
+  const filtersActive = !!currentStatus || !!currentAssignee || !!currentSearch;
+
+  // --- Render ---
   return (
     <div className="tasks-page">
       {/* Page Header */}
       <div className="page-header">
-        <h1>Tasks</h1>
+        <h1>Manage Tasks</h1>
         <div className="header-actions">
-          <button 
-            className="create-task-btn btn"
-            onClick={() => navigate('/tasks/new')} // Navigate to create task page
-          >
-            Create New Task
-          </button>
+          <Link to="/tasks/new"> {/* Assuming a route for creating new tasks */}
+            <Button variant="primary" leftIcon={<PlusCircle size={18} />}>
+              New Task
+            </Button>
+          </Link>
         </div>
       </div>
-      
+
       {/* Filter Section */}
-      <div className="filter-section">
-        {/* Search Form */}
-        <form onSubmit={handleSearch} className="search-form">
-          <input
-            type="text"
-            placeholder="Search tasks by title or description..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)} // Update state on change
-            className="search-input"
-          />
-          <button type="submit" className="search-button btn">Search</button>
-        </form>
-        
-        {/* Filter Dropdowns and Clear Button */}
-        <div className="filters">
-          {/* Status Filter */}
-          <div className="filter-group">
-            <label>Status:</label>
-            <select 
-              value={statusFilter} 
-              onChange={(e) => setStatusFilter(e.target.value)} // Update state on change
-              className="filter-select"
-            >
-              <option value="">All Statuses</option>
-              <option value="Open">Open</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Completed">Completed</option>
-            </select>
+      <section className="filter-section">
+          {/* Search Form */}
+          <form onSubmit={(e) => e.preventDefault()} className="search-form">
+              <Input
+                label="" // Hide label visually if needed, use aria-label
+                aria-label="Search tasks by title or description"
+                id="task-search" // Use specific ID
+                type="search"
+                placeholder="Search tasks by title or description..."
+                value={currentSearch}
+                onChange={handleSearchChange}
+                className="search-input" // Ensure this class applies necessary styles
+              />
+              {/* Optional: Add explicit search button if not searching on change */}
+              {/* <Button type="submit" variant="primary" aria-label="Search"><Search size={20}/></Button> */}
+          </form>
+
+          {/* Dropdown Filters */}
+          <div className="filters">
+              <div className="filter-group">
+                  <label htmlFor="status-filter">Status:</label>
+                  <select
+                    id="status-filter"
+                    value={currentStatus}
+                    onChange={(e) => handleFilterChange('status', e.target.value)}
+                    className="filter-select"
+                  >
+                      {statusOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  </select>
+              </div>
+              <div className="filter-group">
+                  <label htmlFor="assignee-filter">Assignee:</label>
+                  <select
+                    id="assignee-filter"
+                    value={currentAssignee}
+                    onChange={(e) => handleFilterChange('assigneeId', e.target.value)}
+                    className="filter-select"
+                  >
+                      {assigneeOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  </select>
+              </div>
+              {/* Clear Filters Button (only show if filters are active) */}
+              {filtersActive && (
+                <Button variant="outline" onClick={handleClearFilters} leftIcon={<X size={16} />} className='clear-filters-btn'>
+                    Clear Filters
+                </Button>
+              )}
           </div>
-          
-          {/* Assigned To Filter */}
-          <div className="filter-group">
-            <label>Assigned To:</label>
-            <select 
-              value={assignedToFilter} 
-              onChange={(e) => setAssignedToFilter(e.target.value)} // Update state on change
-              className="filter-select"
-            >
-              <option value="">All</option>
-              <option value="unassigned">Unassigned</option>
-              <option value="me">Assigned to Me</option>
-              {/* Only show user list if admin */}
-              {isAdmin && users.map(staff => (
-                <option key={staff.id} value={staff.id}>{staff.name}</option>
-              ))}
-            </select>
+      </section>
+
+      {/* Loading State */}
+      {isLoading && <Loader text="Loading tasks..." />}
+
+      {/* Error State */}
+      {error && !isLoading && <Alert type="error" message={error} />}
+
+      {/* Tasks Table or No Tasks Message */}
+      {!isLoading && !error && (
+        tasks.length > 0 ? (
+          <>
+            <div className="tasks-table-container">
+              <Table
+                columns={taskColumns}
+                data={tasks}
+                tableClassName="tasks-table"
+                // Optional: Add onRowClick to navigate to detail page
+                // onRowClick={(task) => navigate(`/tasks/${task.id}`)}
+              />
+            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              className="mt-6" // Add margin top
+            />
+          </>
+        ) : (
+          // No Tasks Found Message
+          <div className="no-tasks">
+              <p>No tasks found matching your current filters.</p>
+              {filtersActive && (
+                <Button variant="primary" onClick={handleClearFilters}>
+                    Clear Filters
+                </Button>
+              )}
           </div>
-          
-          {/* Due Date Filter */}
-          <div className="filter-group">
-            <label>Due Date:</label>
-            <select 
-              value={dueDateFilter} 
-              onChange={(e) => setDueDateFilter(e.target.value)} // Update state on change
-              className="filter-select"
-            >
-              <option value="">All</option>
-              <option value="today">Due Today</option>
-              <option value="week">Due This Week</option>
-              <option value="overdue">Overdue</option>
-            </select>
-          </div>
-          
-          {/* Clear Filters Button */}
-          <button 
-            type="button" 
-            onClick={handleClearFilters}
-            className="clear-filters-btn btn"
-          >
-            Clear Filters
-          </button>
-        </div>
-      </div>
-      
-      {/* Conditional Rendering: Loading, Error, No Tasks, or Task Table */}
-      {loading ? (
-        // Loading state
-        <div className="loading">
-          <div className="loader"></div>
-          <p>Loading tasks...</p>
-        </div>
-      ) : error && tasks.length === 0 ? ( 
-        // Error state (only show error if there are truly no tasks to display because of it)
-         <div className="error-message">{error}</div>
-      ) : tasks.length === 0 ? (
-        // No tasks found state
-        <div className="no-tasks">
-          <p>{error || 'No tasks found matching your filters.'}</p> 
-          {/* Provide button to clear filters if filters are active */}
-          {(statusFilter || assignedToFilter || dueDateFilter || searchQuery) && (
-            <button 
-              onClick={handleClearFilters}
-              className="clear-filters-btn btn"
-            >
-              Clear Filters
-            </button>
-          )}
-        </div>
-      ) : (
-        // Task table display
-        <div className="tasks-table-container">
-          <table className="tasks-table">
-            <thead>
-              <tr>
-                <th>Task #</th>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Assigned To</th>
-                <th>Due Date</th>
-                <th>Created By</th>
-                <th>Created</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tasks.map(task => (
-                <tr key={task.id}>
-                  <td>#{task.task_number}</td> 
-                  <td className="title-cell">
-                    <Link to={`/tasks/${task.id}`}>{task.title}</Link>
-                  </td>
-                  <td>
-                    {/* Status Badge */}
-                    <span className={`status-badge ${getStatusClass(task.status)}`}>
-                      {task.status}
-                    </span>
-                  </td>
-                  <td>
-                    {/* Display assigned user name or 'Unassigned' */}
-                    {task.assigned_to_user ? task.assigned_to_user.name : 'Unassigned'}
-                  </td>
-                  {/* Add 'overdue' class if applicable */}
-                  <td className={task.due_date && new Date(task.due_date) < new Date() && task.status !== 'Completed' ? 'overdue' : ''}>
-                    {formatDate(task.due_date)}
-                  </td>
-                  <td>
-                    {/* Display creator name or 'System' */}
-                    {task.created_by_user ? task.created_by_user.name : 'System'}
-                  </td>
-                  <td>
-                    {formatDate(task.created_at)}
-                  </td>
-                  {/* Action Buttons */}
-                  <td className="actions-cell">
-                    <Link to={`/tasks/${task.id}`} className="view-btn btn">View</Link>
-                    {/* Delete button (conditional based on permission) */}
-                    {(isAdmin || task.created_by_user_id === user?.id) && (
-                      <button
-                        className="delete-btn btn btn-danger"
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent row click navigation
-                          if (window.confirm('Are you sure you want to delete this task?')) {
-                            // Call API to delete task
-                            api.delete(`/tasks/${task.id}`)
-                              .then(() => {
-                                // Remove deleted task from local state
-                                setTasks(prevTasks => prevTasks.filter(t => t.id !== task.id)); 
-                              })
-                              .catch(err => {
-                                console.error('Error deleting task:', err);
-                                setError(err.response?.data?.error || 'Failed to delete task');
-                              });
-                          }
-                        }}
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        )
       )}
     </div>
   );

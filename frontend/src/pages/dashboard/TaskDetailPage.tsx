@@ -1,453 +1,249 @@
+// src/pages/dashboard/TaskDetailPage.tsx
+// ==========================================================================
+// Component representing the page for viewing or editing a single task.
+// Handles fetching task data and rendering either details or the TaskForm.
+// ==========================================================================
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
-import * as Yup from 'yup';
-import api from '../../services/api'; // Assuming api service is correctly configured
-import { useAuth } from '../../contexts/AuthContext'; // Auth context for user info
-import {
-  Task,
-  User,
-  TaskStatus, // Explicitly import TaskStatus
-  TaskStatusUpdate,
-  APIResponse,
-  TaskCreate,
-  TaskUpdate, // Import new type
-  TaskUpdateCreate // Import new type
-} from '../../types/models'; // Import necessary types including new ones
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import Loader from '../../components/common/Loader';
+import Badge from '../../components/common/Badge';
+import Alert from '../../components/common/Alert';
+import Button from '../../components/common/Button';
+import TaskForm from '../../components/forms/TaskForm'; // Task editing form
+import Modal from '../../components/common/Modal'; // For delete confirmation
+import { useAuth } from '../../hooks/useAuth'; // To get assignable users potentially
+import { fetchTaskById, deleteTask } from '../../services/taskService'; // Task API
+import { fetchUsers } from '../../services/userService'; // User API (for assignee list)
+import { Task, User } from '../../types'; // Import types
+import { formatDateTime } from '../../utils/helpers'; // Date formatting
+import { ArrowLeft, Edit, Trash2 } from 'lucide-react'; // Icons
 
-// --- Validation Schema for the Task Form ---
-const TaskSchema = Yup.object().shape({
-  title: Yup.string().required('Title is required'),
-  description: Yup.string().nullable(), // Description is optional
-  assigned_to_user_id: Yup.string().nullable(), // Allow null or UUID string
-  due_date: Yup.date().nullable(), // Allow null or valid date
-  is_recurring: Yup.boolean().required(), // Now required
-  recurrence_rule: Yup.string().when('is_recurring', ([isRecurring], schema) =>
-    // Recurrence rule required only if task is recurring
-    isRecurring ? schema.required('Recurrence rule is required when task is recurring') : schema.nullable()
-  )
-});
+// --- Component ---
 
-// --- Validation Schema for the Task Update/Comment Form ---
-const TaskUpdateSchema = Yup.object().shape({
-  comment: Yup.string().required('Update comment cannot be empty')
-});
-
-// --- Task Detail Page Component ---
+/**
+ * Renders the Task Detail page, allowing viewing, editing, or deleting a task.
+ */
 const TaskDetailPage: React.FC = () => {
   // --- Hooks ---
-  const { id } = useParams<{ id: string }>(); // Get task ID from URL params
-  const navigate = useNavigate(); // Hook for programmatic navigation
-  const { user: currentUser } = useAuth(); // Get current logged-in user
+  const { taskId } = useParams<{ taskId: string }>(); // Get task ID from URL
+  const navigate = useNavigate();
+  const { user } = useAuth(); // Get current user info
 
   // --- State ---
-  const [task, setTask] = useState<Task | null>(null); // Holds the fetched task data
-  const [users, setUsers] = useState<User[]>([]); // Holds the list of users for assignment dropdown
-  const [loading, setLoading] = useState<boolean>(true); // Loading state indicator
-  const [error, setError] = useState<string | null>(null); // Error message state
-  const [editMode, setEditMode] = useState<boolean>(id === 'new'); // Edit mode state (true if creating new task)
-  const [showUpdateForm, setShowUpdateForm] = useState<boolean>(false); // State to control update form visibility
+  const [task, setTask] = useState<Task | null>(null);
+  const [assignableUsers, setAssignableUsers] = useState<Pick<User, 'id' | 'name'>[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState<boolean>(false); // Toggle edit mode
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false); // Delete confirmation modal
+  const [isDeleting, setIsDeleting] = useState<boolean>(false); // Loading state for delete action
 
-  // --- Derived State / Constants ---
-  const isNewTask = id === 'new'; // Flag for creating a new task
-
-  // --- Permissions ---
-  const isAdmin = currentUser?.role === 'Admin';
-  // *** FIX: Define isCreator and isAssignee BEFORE they are used in canAddUpdate ***
-  const isCreator = task && task.created_by_user_id === currentUser?.id;
-  const isAssignee = task && task.assigned_to_user_id === currentUser?.id;
-  // User can edit if Admin, or if they created the task
-  const canEdit = isAdmin || isCreator;
-  // User can update status if Admin, or assigned to the task
-  const canUpdateStatus = isAdmin || isAssignee;
-  // Allow adding updates if admin, creator, or assignee, and task is not completed
-  const canAddUpdate = (isAdmin || isCreator || isAssignee) && task?.status !== 'Completed';
-
-
-  // --- Data Fetching Effect ---
-  const fetchData = useCallback(async () => {
-    // Only fetch if not creating a new task
-    if (isNewTask) {
-       setLoading(false);
-       // Still fetch users for the form dropdown
-       try {
-           const usersResponse = await api.get<APIResponse<User[]>>('/users');
-           if (usersResponse.data.success && usersResponse.data.data) {
-               setUsers(usersResponse.data.data);
-           } else {
-               console.error("Failed to fetch users for new task form:", usersResponse.data.error);
-           }
-       } catch (err) {
-           console.error("Error fetching users for new task form:", err);
-       }
-       return; // Exit early for new tasks
+  // --- Data Fetching ---
+  /**
+   * Fetches task details and assignable users.
+   * useCallback ensures the function identity is stable unless taskId changes.
+   */
+  const loadData = useCallback(async () => {
+    if (!taskId) {
+      setError("Task ID is missing.");
+      setIsLoading(false);
+      return;
+    }
+    // Don't refetch if editing
+    if (isEditing) {
+        setIsLoading(false); // Ensure loading is off if we were editing
+        return;
     }
 
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
     try {
-      // Fetch users for the assignment dropdown
-      const usersResponse = await api.get<APIResponse<User[]>>('/users');
-      if (usersResponse.data.success && usersResponse.data.data) {
-        setUsers(usersResponse.data.data);
-      } else {
-        console.error("Failed to fetch users:", usersResponse.data.error);
-      }
-
-      // Fetch task details (including updates - requires backend change)
-      if (id) {
-        // *** Backend Requirement: GET /tasks/{id} must return task object with populated 'updates' array ***
-        const taskResponse = await api.get<APIResponse<Task>>(`/tasks/${id}`);
-        if (taskResponse.data.success && taskResponse.data.data) {
-          setTask(taskResponse.data.data);
-        } else {
-          setError(taskResponse.data.error || 'Failed to load task details');
-        }
-      }
+      // Fetch task and users concurrently
+      const [taskData, usersData] = await Promise.all([
+        fetchTaskById(taskId),
+        fetchUsers({ role: 'Admin,Staff', limit: 500 }) // Fetch users for assignee dropdown
+      ]);
+      setTask(taskData);
+      setAssignableUsers(usersData.data.map(u => ({ id: u.id, name: u.name })));
     } catch (err: any) {
-      console.error('Error fetching data:', err);
-      setError(err.response?.data?.error || 'An unexpected error occurred while loading data.');
+      console.error("Failed to load task details:", err);
+      setError(err.response?.data?.message || err.message || 'Could not load task details.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  // Include currentUser?.id in dependencies in case it changes (e.g., re-login)
-  }, [id, isNewTask, currentUser?.id]);
+  }, [taskId, isEditing]); // Depend on taskId and isEditing
 
+  // Fetch data on initial mount and when taskId changes
   useEffect(() => {
-    fetchData();
-  }, [fetchData]); // fetchData is memoized
+    loadData();
+  }, [loadData]); // Use the memoized loadData function
 
-  // --- Helper Functions ---
-  const formatDate = (dateString?: string | null): string => {
-    if (!dateString) return 'N/A';
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid Date';
-      return date.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
-    } catch (e) { return 'Invalid Date'; }
+  // --- Handlers ---
+  /**
+   * Handles successful save (create or update) from TaskForm.
+   * @param savedTask - The task data returned from the API.
+   */
+  const handleSaveSuccess = (savedTask: Task) => {
+    setTask(savedTask); // Update local task state
+    setIsEditing(false); // Exit edit mode
+    // Optionally show a success message or rely on form's message
   };
 
-  const formatDateTime = (dateString?: string | null): string => {
-    if (!dateString) return 'N/A';
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid Date';
-      return date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
-    } catch (e) { return 'Invalid Date'; }
+  /**
+   * Handles cancellation of the edit form.
+   */
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    // Optional: Refetch data if changes might have been discarded uncleanly
+    // loadData();
   };
 
-  const getStatusClass = (status?: TaskStatus): string => {
-    if (!status) return '';
-    return `status-${status.toLowerCase().replace(' ', '-')}`;
-  };
-
-  // --- Event Handlers ---
-
-  // Handle form submission for creating or updating a task
-  const handleFormSubmit = async (values: TaskCreate) => {
-    setError(null); // Clear previous errors
+  /**
+   * Handles the delete task action.
+   */
+  const handleDelete = async () => {
+    if (!task) return;
+    setIsDeleting(true);
+    setError(null);
     try {
-      // Prepare payload, ensuring correct undefined/string values and date format
-      const payload: TaskCreate = {
-        ...values,
-        assigned_to_user_id: values.assigned_to_user_id || undefined,
-        due_date: values.due_date ? new Date(values.due_date + 'T00:00:00Z').toISOString() : undefined,
-        recurrence_rule: values.is_recurring && values.recurrence_rule ? values.recurrence_rule : undefined,
-      };
-
-      let response;
-      if (isNewTask) {
-        // Create new task
-        response = await api.post<APIResponse<Task>>('/tasks', payload);
-        if (response.data.success && response.data.data) {
-          navigate(`/tasks/${response.data.data.id}`); // Navigate to the new task's page
-        } else { setError(response.data.error || 'Failed to create task'); }
-      } else {
-        // Update existing task
-        response = await api.put<APIResponse<Task>>(`/tasks/${id}`, payload);
-        if (response.data.success && response.data.data) {
-          setTask(response.data.data); // Update local task state
-          setEditMode(false); // Exit edit mode
-        } else { setError(response.data.error || 'Failed to update task'); }
-      }
+      await deleteTask(task.id);
+      setShowDeleteModal(false); // Close modal
+      navigate('/tasks'); // Navigate back to tasks list
     } catch (err: any) {
-      console.error('Error saving task:', err);
-      setError(err.response?.data?.error || 'An error occurred while saving the task.');
+      console.error("Failed to delete task:", err);
+      setError(err.response?.data?.message || err.message || 'Could not delete task.');
+      setIsDeleting(false); // Stop delete loading state
+      // Keep modal open to show error within it, or close and show on page
+      // setShowDeleteModal(false);
     }
   };
-
-  // Handle status updates
-  const handleStatusUpdate = async (newStatus: TaskStatus) => {
-    if (!id || !task || task.status === newStatus) return; // Exit if no ID, task, or status is unchanged
-    setError(null);
-    try {
-      const statusUpdate: TaskStatusUpdate = { status: newStatus };
-      // *** Backend Requirement: PUT /tasks/{id}/status endpoint ***
-      const response = await api.put<APIResponse<Task>>(`/tasks/${id}/status`, statusUpdate);
-      if (response.data.success && response.data.data) {
-        setTask(response.data.data); // Update local task state
-      } else { setError(response.data.error || `Failed to update status`); }
-    } catch (err: any) { setError(err.response?.data?.error || `Failed to update status`); }
-  };
-
-  // Handle assigning task to current user
-  const handleAssignToMe = async () => {
-    if (!id || !task || !currentUser?.id || task.assigned_to_user_id === currentUser.id) return; // Exit if already assigned or no user
-    setError(null);
-    try {
-      // Prepare payload to only update the assignee
-      const updatePayload: Partial<TaskCreate> = { assigned_to_user_id: currentUser.id };
-      // *** Backend Requirement: PUT /tasks/{id} should allow partial updates ***
-      const response = await api.put<APIResponse<Task>>(`/tasks/${id}`, updatePayload);
-      if (response.data.success && response.data.data) {
-        setTask(response.data.data); // Update local state
-      } else { setError(response.data.error || 'Failed to assign task'); }
-    } catch (err: any) { setError(err.response?.data?.error || 'Failed to assign task'); }
-  };
-
-  // Handle task deletion
-  const handleDeleteTask = async () => {
-    if (!id || !canEdit) return; // Ensure user has permission
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      setError(null);
-      try {
-        // *** Backend Requirement: DELETE /tasks/{id} endpoint ***
-        const response = await api.delete(`/tasks/${id}`);
-        if (response.data.success) {
-          navigate('/tasks'); // Navigate back to the task list on successful deletion
-        } else { setError(response.data.error || 'Failed to delete task'); }
-      } catch (err: any) { setError(err.response?.data?.error || 'Failed to delete task'); }
-    }
-  };
-
-  // Handle adding a new task update/comment
-  const handleAddTaskUpdate = async (values: TaskUpdateCreate, { resetForm }: { resetForm: () => void }) => {
-    if (!id || !canAddUpdate) return;
-    setError(null);
-    try {
-      // *** Backend Requirement: POST /tasks/{id}/updates endpoint ***
-      const response = await api.post<APIResponse<TaskUpdate>>(`/tasks/${id}/updates`, values);
-
-      if (response.data.success && response.data.data) {
-        // Add the new update to the local state
-        setTask(prevTask => prevTask ? {
-          ...prevTask,
-          updates: [...(prevTask.updates || []), response.data.data!]
-        } : null);
-        resetForm();
-        setShowUpdateForm(false); // Hide the form
-      } else {
-        setError(response.data.error || 'Failed to add update');
-      }
-    } catch (err: any) {
-      console.error('Error adding task update:', err);
-      setError(err.response?.data?.error || 'Failed to add update');
-    }
-  };
-
 
   // --- Render Logic ---
+  if (isLoading) return <Loader text="Loading task..." />;
+  // Show error if loading failed (and not in edit mode, as form might be visible)
+  if (error && !isEditing) return <Alert type="error" message={error} />;
+  // Show message if task is somehow null after loading without error
+  if (!task && !isEditing) return <Alert type="warning" message="Task data not found." />;
 
-  if (loading && !isNewTask) { // Show loading only when fetching existing task
-    return <div className="task-detail-page loading"><div className="loader"></div><p>Loading task details...</p></div>;
-  }
-
-  if (error && !isNewTask && !task) { // Show error if fetching failed for existing task
-    return <div className="task-detail-page error"><h1>Error</h1><p>{error}</p><button onClick={() => navigate('/tasks')} className="back-button">← Back to Tasks</button></div>;
-  }
-
-  // Initial values for the main edit form
-  const initialFormValues: TaskCreate = {
-    title: task?.title || '',
-    description: task?.description || '',
-    assigned_to_user_id: task?.assigned_to_user_id || '', // Use empty string for 'Unassigned' option
-    due_date: task?.due_date ? new Date(task.due_date).toISOString().split('T')[0] : '',
-    is_recurring: task?.is_recurring ?? false, // Default to false if null/undefined
-    recurrence_rule: task?.recurrence_rule || '',
-  };
-
-  // --- Main Component Render ---
+  // --- Render ---
   return (
     <div className="task-detail-page">
       {/* Page Header */}
       <div className="page-header">
         <div className="header-left">
-          <button onClick={() => navigate('/tasks')} className="back-button">
-            ← Back to Tasks
-          </button>
-          <h1>{isNewTask ? 'Create New Task' : `Task #${task?.task_number}: ${task?.title || '...'}`}</h1>
+          <Link to="/tasks" className="back-button">
+            <ArrowLeft size={16} style={{ marginRight: '4px' }} /> Back to Tasks
+          </Link>
+          <h1>{isEditing ? `Edit Task #${task?.id.substring(0,6)}` : `Task #${task?.id.substring(0,6)}`}</h1>
         </div>
-        {!isNewTask && !editMode && canEdit && (
-          <div className="header-right">
-            <button className="edit-task-btn btn" onClick={() => setEditMode(true)}>Edit Task</button>
-          </div>
-        )}
+        <div className="header-right">
+          {!isEditing && task && ( // Show Edit button only in view mode
+            <Button variant="outline" onClick={() => setIsEditing(true)} leftIcon={<Edit size={16} />}>
+              Edit Task
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Display general error messages */}
-      {error && !showUpdateForm && <div className="error-message">{error}</div> /* Hide main error when update form is open */}
-
-      {/* Main Task Container */}
+      {/* Main Content Area (Form or Details) */}
       <div className="task-container">
-        {/* --- Edit/Create Mode --- */}
-        {editMode ? (
+        {isEditing && task ? (
+          // --- Edit Mode: Render Form ---
           <div className="task-form-container">
-            <Formik initialValues={initialFormValues} validationSchema={TaskSchema} onSubmit={handleFormSubmit} enableReinitialize>
-              {({ isSubmitting, values }) => (
-                <Form className="task-form">
-                  {/* Fields: Title, Description, Assigned To, Due Date, Recurring, Recurrence Rule */}
-                  <div className="form-group">
-                    <label htmlFor="title">Title</label>
-                    <Field type="text" name="title" id="title" placeholder="Enter task title" />
-                    <ErrorMessage name="title" component="div" className="error" />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="description">Description</label>
-                    <Field as="textarea" name="description" id="description" placeholder="Enter task description (optional)" rows={4} />
-                    <ErrorMessage name="description" component="div" className="error" />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="assigned_to_user_id">Assigned To</label>
-                    <Field as="select" name="assigned_to_user_id" id="assigned_to_user_id">
-                      <option value="">-- Unassigned --</option>
-                      {users.map(u => (<option key={u.id} value={u.id}>{u.name} ({u.email})</option>))}
-                    </Field>
-                    <ErrorMessage name="assigned_to_user_id" component="div" className="error" />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="due_date">Due Date</label>
-                    <Field type="date" name="due_date" id="due_date" />
-                    <ErrorMessage name="due_date" component="div" className="error" />
-                  </div>
-                  <div className="form-group checkbox">
-                    <label><Field type="checkbox" name="is_recurring" /> Recurring Task</label>
-                    <ErrorMessage name="is_recurring" component="div" className="error" />
-                  </div>
-                  {values.is_recurring && (
-                    <div className="form-group">
-                      <label htmlFor="recurrence_rule">Recurrence Pattern</label>
-                      <Field as="select" name="recurrence_rule" id="recurrence_rule">
-                        <option value="">-- Select Pattern --</option>
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="monthly">Monthly</option>
-                        <option value="quarterly">Quarterly</option>
-                        <option value="annually">Annually</option>
-                      </Field>
-                      <ErrorMessage name="recurrence_rule" component="div" className="error" />
-                    </div>
-                  )}
-                  {/* Form Actions */}
-                  <div className="form-actions">
-                    <button type="button" onClick={() => { isNewTask ? navigate('/tasks') : setEditMode(false); setError(null); }} className="cancel-btn" disabled={isSubmitting}>Cancel</button>
-                    <button type="submit" disabled={isSubmitting} className="submit-btn">{isSubmitting ? 'Saving...' : isNewTask ? 'Create Task' : 'Update Task'}</button>
-                  </div>
-                </Form>
-              )}
-            </Formik>
+            <TaskForm
+              task={task}
+              onSaveSuccess={handleSaveSuccess}
+              onCancel={handleCancelEdit}
+              assignableUsers={assignableUsers}
+              ticketId={task.ticketId} // Pass ticketId if available
+            />
           </div>
-        ) : (
-          /* --- Display Mode --- */
-          task && (
-            <>
-              {/* --- Task Details Section --- */}
-              <div className="task-details">
-                {/* Status Bar */}
-                <div className="status-bar">
-                  <span className={`status-badge ${getStatusClass(task.status)}`}>{task.status}</span>
-                  {canUpdateStatus && task.status !== 'Completed' && (
-                    <div className="status-actions">
-                      {task.status === 'Open' && (<button className="start-btn" onClick={() => handleStatusUpdate('In Progress')}>Start Working</button>)}
-                      {task.status === 'In Progress' && (<button className="complete-btn" onClick={() => handleStatusUpdate('Completed')}>Mark Completed</button>)}
-                    </div>
-                  )}
-                </div>
-                {/* Description Section */}
-                <div className="detail-section">
-                  <h3>Description</h3>
-                  <p className="description">{task.description ? <span style={{ whiteSpace: 'pre-line' }}>{task.description}</span> : <span className="no-description">No description provided.</span>}</p>
-                </div>
-                {/* Metadata Section */}
-                <div className="meta-section">
-                  <div className="meta-item"><span className="meta-label">Task #:</span><span className="meta-value">{task.task_number}</span></div>
-                  <div className="meta-item"><span className="meta-label">Internal ID:</span><span className="meta-value" style={{ fontSize: '0.8em', wordBreak: 'break-all' }}>({task.id})</span></div>
-                  <div className="meta-item"><span className="meta-label">Assigned To:</span><span className="meta-value">{task.assigned_to_user?.name ?? 'Unassigned'}</span></div>
-                  <div className="meta-item"><span className="meta-label">Due Date:</span><span className={`meta-value ${task.due_date && new Date(task.due_date) < new Date() && task.status !== 'Completed' ? 'overdue' : ''}`}>{formatDate(task.due_date)}</span></div>
-                  <div className="meta-item"><span className="meta-label">Created By:</span><span className="meta-value">{task.created_by_user?.name ?? 'System'}</span></div>
-                  <div className="meta-item"><span className="meta-label">Created:</span><span className="meta-value">{formatDateTime(task.created_at)}</span></div>
-                  <div className="meta-item"><span className="meta-label">Last Updated:</span><span className="meta-value">{formatDateTime(task.updated_at)}</span></div>
-                  {task.is_recurring && (<div className="meta-item"><span className="meta-label">Recurrence:</span><span className="meta-value">{task.recurrence_rule || 'Yes'}</span></div>)}
-                  {task.completed_at && (<div className="meta-item"><span className="meta-label">Completed:</span><span className="meta-value">{formatDateTime(task.completed_at)}</span></div>)}
-                </div>
+        ) : task ? (
+          // --- View Mode: Render Details ---
+          <div className="task-details">
+            {/* Status Bar */}
+            <div className="status-bar">
+              <Badge type={task.status === 'In Progress' ? 'progress' : task.status.toLowerCase() as any}>
+                Status: {task.status}
+              </Badge>
+              {/* Optional: Add status change buttons here if needed */}
+            </div>
+
+            {/* Task Title */}
+              <h2 className="task-title-detail">{task.title}</h2>
+
+            {/* Description Section */}
+            <section className="detail-section">
+              <h3>Description</h3>
+              <div className="description">
+                {task.description ? task.description : <span className="no-description">No description provided.</span>}
               </div>
+            </section>
 
-              {/* --- Task Actions Section --- */}
-              <div className="task-actions">
-                {task.status !== 'Completed' && !task.assigned_to_user_id && currentUser && (<button className="assign-to-me-btn btn" onClick={handleAssignToMe}>Assign to Me</button>)}
-                {canEdit && (<button className="delete-btn btn btn-danger" onClick={handleDeleteTask}>Delete Task</button>)}
+            {/* Metadata Section */}
+            <section className="meta-section">
+              <div className="meta-item">
+                <label className="meta-label">Assignee</label>
+                <span className="meta-value">{task.assignedTo?.name || 'Unassigned'}</span>
               </div>
-
-              {/* --- Task Updates Section --- */}
-              <div className="task-updates">
-                <div className="updates-header">
-                  <h3>Task Updates</h3>
-                  {canAddUpdate && !showUpdateForm && (
-                    <button className="add-comment-btn btn" onClick={() => { setShowUpdateForm(true); setError(null); }}>
-                      Add Update
-                    </button>
-                  )}
-                </div>
-
-                {/* Add Update Form (Conditional) */}
-                {showUpdateForm && (
-                  <div className="comment-form-container">
-                    <h4>Add New Update</h4>
-                    {error && <div className="error-message">{error}</div> /* Show errors specific to this form */}
-                    <Formik initialValues={{ comment: '' }} validationSchema={TaskUpdateSchema} onSubmit={handleAddTaskUpdate}>
-                      {({ isSubmitting }) => (
-                        <Form className="comment-form">
-                          <div className="form-group">
-                            <Field as="textarea" name="comment" placeholder="Enter your update..." rows={3} />
-                            <ErrorMessage name="comment" component="div" className="error" />
-                          </div>
-                          <div className="form-actions">
-                            <button type="button" onClick={() => { setShowUpdateForm(false); setError(null); }} className="cancel-btn btn" disabled={isSubmitting}>Cancel</button>
-                            <button type="submit" disabled={isSubmitting} className="submit-btn btn">{isSubmitting ? 'Posting...' : 'Post Update'}</button>
-                          </div>
-                        </Form>
-                      )}
-                    </Formik>
+                <div className="meta-item">
+                <label className="meta-label">Due Date</label>
+                <span className={`meta-value ${task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'Completed' ? 'overdue' : ''}`}>
+                    {task.dueDate ? formatDateTime(task.dueDate, 'MMM d, yyyy') : 'Not set'}
+                </span>
+              </div>
+              <div className="meta-item">
+                <label className="meta-label">Created By</label>
+                <span className="meta-value">{task.createdBy?.name || 'Unknown'}</span>
+              </div>
+              <div className="meta-item">
+                <label className="meta-label">Created At</label>
+                <span className="meta-value">{formatDateTime(task.createdAt)}</span>
+              </div>
+                <div className="meta-item">
+                <label className="meta-label">Last Updated</label>
+                <span className="meta-value">{formatDateTime(task.updatedAt)}</span>
+              </div>
+                {task.ticketId && (
+                  <div className="meta-item">
+                    <label className="meta-label">Related Ticket</label>
+                    <span className="meta-value">
+                      <Link to={`/tickets/${task.ticketId}`}>#{task.ticketId.substring(0, 6)}...</Link>
+                    </span>
                   </div>
                 )}
+            </section>
 
-                {/* Updates Timeline */}
-                <div className="updates-timeline">
-                  {task.updates && task.updates.length > 0 ? (
-                    [...task.updates].reverse().map(update => (
-                      <div key={update.id} className="update-item">
-                        <div className="update-header">
-                          <span className="update-author">{update.user?.name || 'System'}</span>
-                          <span className="update-time">{formatDateTime(update.created_at)}</span>
-                        </div>
-                        <div className="update-content" style={{ whiteSpace: 'pre-line' }}>{update.comment}</div>
-                      </div>
-                    ))
-                  ) : (
-                    !showUpdateForm && <p className="no-updates">No updates posted yet.</p> // Only show if form isn't open
-                  )}
-                  <div className="update-item system-update">
-                    <div className="update-header">
-                      <span className="update-author">System</span>
-                      <span className="update-time">{formatDateTime(task.created_at)}</span>
-                    </div>
-                    <div className="update-content">Task created {task.created_by_user ? `by ${task.created_by_user.name}` : ''}.</div>
-                  </div>
-                </div>
-              </div>
-            </>
-          )
-        )}
+            {/* Actions Section */}
+            <div className="task-actions">
+              {/* Add assign to me button if applicable */}
+              {/* <Button variant="secondary">Assign to Me</Button> */}
+              <Button variant="danger" onClick={() => setShowDeleteModal(true)} leftIcon={<Trash2 size={16} />}>
+                Delete Task
+              </Button>
+            </div>
+          </div>
+        ) : null /* Should not happen if error/loading handled correctly */}
       </div>
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          title="Confirm Deletion"
+        >
+          <p>Are you sure you want to delete this task? This action cannot be undone.</p>
+          {error && <Alert type="error" message={error} className="mt-4" />} {/* Show delete error in modal */}
+          <div className="form-actions mt-6"> {/* Style modal buttons */}
+            <Button variant="outline" onClick={() => setShowDeleteModal(false)} disabled={isDeleting}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleDelete} isLoading={isDeleting} disabled={isDeleting}>
+              {isDeleting ? 'Deleting...' : 'Delete Task'}
+            </Button>
+          </div>
+        </Modal>
     </div>
   );
 };

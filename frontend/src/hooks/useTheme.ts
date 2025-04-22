@@ -1,55 +1,34 @@
 // src/hooks/useTheme.ts
-import { useState, useEffect, useCallback } from 'react';
+// ==========================================================================
+// Custom hook to access theme context.
+// Provides easy access to the current theme and the toggle function.
+// ==========================================================================
 
-type Theme = 'light' | 'dark';
+import { useContext } from 'react';
+import { ThemeContext } from '../context/ThemeContext';
+import { ThemeContextType } from '../types'; 
 
-export const useTheme = (): { theme: Theme; toggleTheme: () => void } => {
-  const [theme, setTheme] = useState<Theme>('light'); // Default to light
+/**
+ * Custom hook `useTheme`
+ *
+ * Provides access to the theme context (`ThemeContext`).
+ * It ensures that the hook is used within a component wrapped by `ThemeProvider`.
+ *
+ * @returns {ThemeContextType} The theme context value, including:
+ * - `theme`: The current theme ('light' or 'dark').
+ * - `toggleTheme`: Function to switch between light and dark themes.
+ *
+ * @throws {Error} If used outside of a `ThemeProvider`.
+ */
+export const useTheme = (): ThemeContextType => {
+  // Get the context value
+  const context = useContext(ThemeContext);
 
-  // Function to apply theme class to body
-  const applyTheme = useCallback((selectedTheme: Theme) => {
-    if (selectedTheme === 'dark') {
-      document.body.classList.add('dark-mode');
-    } else {
-      document.body.classList.remove('dark-mode');
-    }
-    localStorage.setItem('theme', selectedTheme);
-    setTheme(selectedTheme);
-  }, []);
+  // Ensure the context exists
+  if (context === undefined) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
 
-  // Effect to set initial theme based on localStorage or system preference
-  useEffect(() => {
-    const storedTheme = localStorage.getItem('theme') as Theme | null;
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    if (storedTheme) {
-      applyTheme(storedTheme);
-    } else if (prefersDark) {
-      applyTheme('dark');
-    } else {
-      applyTheme('light'); // Explicitly set light if no preference/storage
-    }
-  }, [applyTheme]);
-
-  // Effect to listen for OS theme changes
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e: MediaQueryListEvent) => {
-        // Only change if no theme is explicitly stored in localStorage
-        if (!localStorage.getItem('theme')) {
-             applyTheme(e.matches ? 'dark' : 'light');
-        }
-    };
-
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [applyTheme]);
-
-
-  // Function to toggle theme
-  const toggleTheme = () => {
-    applyTheme(theme === 'light' ? 'dark' : 'light');
-  };
-
-  return { theme, toggleTheme };
+  // Return the context value
+  return context;
 };

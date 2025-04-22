@@ -1,80 +1,89 @@
-// src/styles/layouts/_AuthLayout.scss
+    // src/styles/layouts/_AuthLayout.scss
+    // ==========================================================================
+    // Styles for the authentication layout (Login page).
+    // Centers content vertically and horizontally.
+    // ==========================================================================
 
-@use '../variables' as *;
+    @use '../variables' as *; // Needed for layout vars like $spacing, $breakpoint
+    // Mixins might not be needed here if using global .btn styles
 
-.auth-layout {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background-color: var(--body-bg); // Use CSS variable
-  padding: $spacing-6;
-  transition: background-color $transition-medium;
+    .auth-layout {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: var(--body-bg); // Use CSS variable
+      padding: $spacing-6;
+      transition: background-color $transition-medium;
 
-  .auth-container {
-    background-color: var(--surface-bg); // Use CSS variable
-    border: 1px solid var(--border-color); // Use CSS variable
-    padding: $spacing-8;
-    border-radius: $border-radius-lg;
-    box-shadow: $shadow; // Shadow might need adjustment
-    width: 100%;
-    max-width: 450px;
-    text-align: center;
-    transition: background-color $transition-medium, border-color $transition-medium;
+      // Centered container for the auth form
+      .auth-container {
+        background-color: var(--surface-bg); // Use CSS variable
+        border: 1px solid var(--border-color); // Use CSS variable
+        padding: $spacing-8;
+        border-radius: $border-radius-lg;
+        box-shadow: $shadow; // Shadow might need adjustment for dark mode
+        width: 100%;
+        max-width: 450px; // Max width for the form container
+        text-align: center;
+        transition: background-color $transition-medium, border-color $transition-medium;
 
-    .auth-header {
-       margin-bottom: $spacing-6;
-       .auth-logo {
-         font-size: $font-size-2xl;
-         font-weight: $font-weight-bold;
-         color: var(--primary-color); // Use CSS variable
-         text-decoration: none;
-         transition: color $transition-fast;
-         &:hover {
-            color: var(--primary-dark); // Use CSS variable
-         }
-       }
-    }
-
-    .auth-content {
-       h1 { // Style heading within auth content
-         color: var(--text-primary); // Use CSS variable
-         margin-bottom: $spacing-2;
-         font-size: $font-size-2xl;
-       }
-       .login-description { // Style description text
-          color: var(--text-secondary); // Use CSS variable
-          margin-bottom: $spacing-6;
-       }
-       // Form styles are handled by _forms.scss using CSS variables
-    }
-
-    .auth-footer {
-      margin-top: $spacing-6;
-      padding-top: $spacing-4;
-      border-top: 1px solid var(--border-color); // Use CSS variable
-      transition: border-color $transition-medium;
-
-      p {
-        color: var(--text-muted); // Use CSS variable
-        font-size: $font-size-sm;
-        margin-bottom: $spacing-1;
-        transition: color $transition-medium;
-        a {
-           color: var(--text-link); // Use CSS variable
-           &:hover {
-             color: var(--text-link-hover); // Use CSS variable
+        // Header section (Logo)
+        .auth-header {
+           margin-bottom: $spacing-6;
+           .auth-logo {
+             font-size: $font-size-2xl;
+             font-weight: $font-weight-bold;
+             color: var(--primary-color); // Use CSS variable
+             text-decoration: none;
+             transition: color $transition-fast;
+             &:hover {
+                color: var(--primary-dark); // Use CSS variable
+             }
            }
+        }
+
+        // Main content area (where the form goes)
+        .auth-content {
+           // Styles for elements inside Outlet (e.g., LoginPage)
+           h1 {
+             color: var(--text-primary); // Use CSS variable
+             margin-bottom: $spacing-2;
+             font-size: $font-size-2xl;
+           }
+           .login-description { // Example specific style
+              color: var(--text-secondary); // Use CSS variable
+              margin-bottom: $spacing-6;
+           }
+        }
+
+        // Footer section (Copyright, links)
+        .auth-footer {
+          margin-top: $spacing-6;
+          padding-top: $spacing-4;
+          border-top: 1px solid var(--border-color); // Use CSS variable
+          transition: border-color $transition-medium;
+
+          p {
+            color: var(--text-muted); // Use CSS variable
+            font-size: $font-size-sm;
+            margin-bottom: $spacing-1;
+            transition: color $transition-medium;
+            a { // Link styling within footer
+               color: var(--text-link); // Use CSS variable
+               &:hover {
+                 color: var(--text-link-hover); // Use CSS variable
+               }
+            }
+          }
         }
       }
     }
-  }
-}
 
-
-@media (max-width: $breakpoint-sm) {
-  .auth-layout .auth-container {
-    padding: $spacing-6;
-  }
-}
-
+    // --- Responsive Adjustments ---
+    @media (max-width: $breakpoint-sm) {
+      .auth-layout .auth-container {
+        padding: $spacing-6; // Reduce padding on small screens
+      }
+    }
+    

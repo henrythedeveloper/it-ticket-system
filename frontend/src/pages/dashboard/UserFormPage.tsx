@@ -1,224 +1,123 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
-import * as Yup from 'yup';
-import api from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
-import { User, UserCreate, APIResponse } from '../../types/models';
+// src/pages/dashboard/UserFormPage.tsx
+// ==========================================================================
+// Component representing the page for adding or editing a user (Admin only).
+// Fetches user data if editing and renders the UserForm component.
+// ==========================================================================
 
-// Schema for validation
-const UserSchema = Yup.object().shape({
-  name: Yup.string().required('Name is required'),
-  email: Yup.string().email('Invalid email address').required('Email is required'),
-  password: Yup.string().when('isNewUser', ([isNewUser], schema) =>
-    isNewUser
-      ? schema.required('Password is required').min(8, 'Password must be at least 8 characters')
-      : schema.min(8, 'Password must be at least 8 characters')
-            .nullable()
-            .transform(value => value === '' ? null : value)
-  ),
-  role: Yup.string().oneOf(['Staff', 'Admin'], 'Invalid role').required('Role is required'),
-  isNewUser: Yup.boolean()
-});
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import Loader from '../../components/common/Loader';
+import Alert from '../../components/common/Alert';
+import UserForm from '../../components/forms/UserForm'; // The user form component
+import { useAuth } from '../../hooks/useAuth'; // For role check
+import { fetchUserById } from '../../services/userService'; // User API
+import { User } from '../../types'; // Import types
+import { ArrowLeft } from 'lucide-react'; // Icon
 
+// --- Component ---
+
+/**
+ * Renders the Add/Edit User page.
+ * Fetches user data if editing, handles role checks, and displays the UserForm.
+ */
 const UserFormPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const isNewUser = id === 'new';
+  // --- Hooks ---
+  const { userId } = useParams<{ userId?: string }>(); // Get optional userId from URL
   const navigate = useNavigate();
-  const { user: currentUser, updateUser } = useAuth();
-  const [loading, setLoading] = useState(!isNewUser);
-  const [user, setUser] = useState<User | null>(null);
+  const { user: currentUser, loading: authLoading } = useAuth(); // Current logged-in user
+
+  // --- State ---
+  const [userToEdit, setUserToEdit] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(!!userId); // Load only if editing
   const [error, setError] = useState<string | null>(null);
 
-  // Check if user is admin or editing their own profile
-  useEffect(() => {
-    if (currentUser) {
-      const isAdmin = currentUser.role === 'Admin';
-      const isOwnProfile = id === currentUser.id;
-      
-      if (!isAdmin && !isOwnProfile) {
-        navigate('/dashboard');
-      }
+  // --- Mode ---
+  const isEditMode = !!userId;
+
+  // --- Data Fetching (for Edit mode) ---
+  const loadUser = useCallback(async () => {
+    if (!isEditMode || !userId) {
+        setIsLoading(false); // Not editing, no need to load
+        return;
     }
-  }, [currentUser, id, navigate]);
-
-  // Fetch user data if editing existing user
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (!isNewUser && id) {
-        try {
-          setLoading(true);
-          const response = await api.get<APIResponse<User>>(`/users/${id}`);
-          if (response.data.success && response.data.data) {
-            setUser(response.data.data);
-          } else {
-            setError('Failed to fetch user data');
-          }
-        } catch (error) {
-          console.error('Error fetching user:', error);
-          setError('Failed to fetch user data');
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchUser();
-  }, [id, isNewUser]);
-
-  type UserFormValues = UserCreate & {
-    isNewUser: boolean;
-    password?: string;  // Make password optional in the form values
-  };
-
-  const handleSubmit = async (values: UserFormValues) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      // Prepare data for API by removing helper fields and empty password
-      const { isNewUser: _, password, ...baseData } = values;
-      const userData = !isNewUser && !password ? baseData : { ...baseData, password };
-
-      if (isNewUser) {
-        const response = await api.post<APIResponse<User>>('/users', userData);
-        if (response.data.success) {
-          navigate('/users');
-        } else {
-          setError(response.data.error || 'Failed to create user');
-        }
-      } else {
-        const response = await api.put<APIResponse<User>>(`/users/${id}`, userData);
-        if (response.data.success && response.data.data) {
-          // If user is updating their own profile, update the auth context
-          if (id === currentUser?.id) {
-            updateUser(response.data.data);
-          }
-          navigate('/users');
-        } else {
-          setError(response.data.error || 'Failed to update user');
-        }
-      }
-    } catch (error: any) {
-      console.error('Error saving user:', error);
-      setError(error.response?.data?.error || 'Failed to save user');
+      const fetchedUser = await fetchUserById(userId);
+      setUserToEdit(fetchedUser);
+    } catch (err: any) {
+      console.error("Failed to load user for editing:", err);
+      setError(err.response?.data?.message || err.message || 'Could not load user data.');
+    } finally {
+      setIsLoading(false);
     }
+  }, [isEditMode, userId]);
+
+  // Fetch user data when component mounts in edit mode
+  useEffect(() => {
+    loadUser();
+  }, [loadUser]);
+
+  // --- Handlers ---
+  /**
+   * Callback function triggered when the UserForm successfully saves.
+   * Navigates back to the users list page.
+   * @param savedUser - The user object returned from the form/API.
+   */
+  const handleSaveSuccess = (savedUser: User) => {
+    console.log("User saved successfully in parent:", savedUser);
+    navigate('/users'); // Navigate back to the list after save
   };
 
-  if (loading) {
-    return (
-      <div className="user-form-page loading">
-        <div className="loader"></div>
-        <p>Loading user data...</p>
-      </div>
-    );
-  }
-
-  // Initial form values
-  const initialValues = {
-    name: user?.name || '',
-    email: user?.email || '',
-    password: '',
-    role: user?.role || 'Staff',
-    isNewUser // helper field for validation
+  /**
+   * Handles cancellation - navigates back to the users list page.
+   */
+  const handleCancel = () => {
+    navigate('/users');
   };
 
-  const isOwnProfile = id === currentUser?.id;
-  const canChangeRole = currentUser?.role === 'Admin' && !isOwnProfile;
+  // --- Render Logic ---
+    // Check permissions first
+    if (!authLoading && currentUser?.role !== 'Admin') {
+      return <Alert type="error" title="Access Denied" message="You do not have permission to manage users." />;
+    }
 
+    // Show loader during initial auth check or user fetch (in edit mode)
+    if (authLoading || isLoading) {
+      return <Loader text={isEditMode ? "Loading user data..." : "Loading..."} />;
+    }
+
+    // Show error if fetching failed in edit mode
+    if (isEditMode && error) {
+      return <Alert type="error" title="Error Loading User" message={error} />;
+    }
+
+    // Show error if trying to edit but user data is missing after load
+    if (isEditMode && !userToEdit) {
+        return <Alert type="warning" message="User data not found for editing." />;
+    }
+
+
+  // --- Render ---
   return (
     <div className="user-form-page">
+      {/* Page Header */}
       <div className="page-header">
-        <div className="header-left">
-          <button onClick={() => navigate('/users')} className="back-button">
-            ← Back to Users
-          </button>
-          <h1>{isNewUser ? 'Add New User' : `Edit User: ${user?.name}`}</h1>
-        </div>
+          <div className="header-left">
+            <Link to="/users" className="back-button">
+                <ArrowLeft size={16} style={{ marginRight: '4px' }} /> Back to Users
+            </Link>
+            <h1>{isEditMode ? 'Edit User' : 'Add New User'}</h1>
+          </div>
       </div>
-      
-      {error && <div className="error-message">{error}</div>}
-      
+
+      {/* User Form Container */}
       <div className="user-form-container">
-        <Formik
-          initialValues={initialValues}
-          validationSchema={UserSchema}
-          onSubmit={handleSubmit}
-        >
-          {({ isSubmitting }) => (
-            <Form className="user-form">
-              <div className="form-group">
-                <label htmlFor="name">Name</label>
-                <Field
-                  type="text"
-                  name="name"
-                  id="name"
-                  placeholder="Enter full name"
-                />
-                <ErrorMessage name="name" component="div" className="error" />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="email">Email</label>
-                <Field
-                  type="email"
-                  name="email"
-                  id="email"
-                  placeholder="Enter email address"
-                />
-                <ErrorMessage name="email" component="div" className="error" />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="password">
-                  {isNewUser ? 'Password' : 'Password (Leave blank to keep current)'}
-                </label>
-                <Field
-                  type="password"
-                  name="password"
-                  id="password"
-                  placeholder={isNewUser ? 'Enter password' : 'Enter new password or leave blank'}
-                />
-                <ErrorMessage name="password" component="div" className="error" />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="role">Role</label>
-                <Field
-                  as="select"
-                  name="role"
-                  id="role"
-                  disabled={!canChangeRole}
-                >
-                  <option value="Staff">Staff</option>
-                  <option value="Admin">Admin</option>
-                </Field>
-                {!canChangeRole && (
-                  <div className="field-info">
-                    {isOwnProfile
-                      ? "You cannot change your own role"
-                      : "Only admins can change user roles"}
-                  </div>
-                )}
-                <ErrorMessage name="role" component="div" className="error" />
-              </div>
-              
-              <div className="form-actions">
-                <button 
-                  type="button" 
-                  onClick={() => navigate('/users')}
-                  className="cancel-btn btn"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={isSubmitting}
-                  className="submit-btn btn"
-                >
-                  {isSubmitting ? 'Saving...' : isNewUser ? 'Create User' : 'Update User'}
-                </button>
-              </div>
-            </Form>
-          )}
-        </Formik>
+        <UserForm
+          user={userToEdit} // Pass null for create mode
+          onSaveSuccess={handleSaveSuccess}
+          onCancel={handleCancel}
+        />
       </div>
     </div>
   );

@@ -1,115 +1,95 @@
-// src/layouts/PublicLayout.tsx
+// src/components/layouts/PublicLayout.tsx
+// ==========================================================================
+// Layout component for public-facing pages (e.g., Home, FAQ, Create Ticket).
+// Includes side navigation and a footer.
+// ==========================================================================
+
 import React from 'react';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../hooks/useTheme'; // Import the theme hook
+import { Outlet, Link, NavLink } from 'react-router-dom'; // Renders nested routes & Links
+import Footer from '../common/Footer'; // Common Footer component
+import Button from '../common/Button'; // Common Button component
+import { useAuth } from '../../hooks/useAuth'; // Auth hook to show correct button
+import { useTheme } from '../../hooks/useTheme'; // Theme hook for toggle button
+import { Home, HelpCircle, Send, LogIn, LayoutDashboard, Sun, Moon } from 'lucide-react'; // Icons
 
+// --- Component ---
+
+/**
+ * Renders the layout structure for public pages.
+ * Includes a side navigation bar, the main content area (<Outlet />), and a Footer.
+ */
 const PublicLayout: React.FC = () => {
-  const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  const { theme, toggleTheme } = useTheme(); // Use the theme hook
+    // --- Hooks ---
+    const { isAuthenticated } = useAuth(); // Check if user is logged in
+    const { theme, toggleTheme } = useTheme(); // Theme state and toggle
 
-  const handleLoginClick = () => {
-    navigate('/login');
-  };
-
-  const handleDashboardClick = () => {
-    navigate('/dashboard');
-  };
-
+  // --- Render ---
+  // Assumes SCSS file (_PublicLayout.scss) defines the layout styles
   return (
     <div className="public-layout">
-      {/* Sticky Theme Toggle Button */}
-      <button
-        onClick={toggleTheme}
-        className="theme-toggle-sticky"
-        aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-        title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-      >
-        {theme === 'light' ? '🌙' : '☀️'} {/* Moon for light, Sun for dark */}
-      </button>
+        {/* Sticky Theme Toggle Button */}
+        <button
+          onClick={toggleTheme}
+          className="theme-toggle-sticky" // Styled in _PublicLayout.scss
+          aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+        >
+          {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+        </button>
 
       {/* Side Navigation */}
       <nav className="side-nav">
-        {/* ... rest of side-nav content ... */}
-         <div className="logo-container">
+        {/* Logo */}
+        <div className="logo-container">
           <Link to="/" className="logo">
-            IT Helpdesk
+            HelpDesk
           </Link>
         </div>
+
+        {/* Navigation Links */}
         <ul className="nav-links">
           <li>
-            <Link to="/">
-              <span className="icon">🏠</span>
-              <span className="link-text">Home</span>
-            </Link>
+            <NavLink to="/" end> {/* `end` prop ensures exact match for root */}
+              <Home size={20} className="icon" /> Home
+            </NavLink>
           </li>
           <li>
-            <Link to="/create-ticket">
-              <span className="icon">📝</span>
-              <span className="link-text">Submit Ticket</span>
-            </Link>
+            <NavLink to="/faq">
+                <HelpCircle size={20} className="icon" /> FAQ
+            </NavLink>
           </li>
           <li>
-            <Link to="/faq">
-              <span className="icon">❓</span>
-              <span className="link-text">FAQ</span>
-            </Link>
+            <NavLink to="/create-ticket">
+                <Send size={20} className="icon" /> Submit Ticket
+            </NavLink>
           </li>
+          {/* Add other public links as needed */}
         </ul>
+
+        {/* Authentication Buttons */}
         <div className="auth-buttons">
           {isAuthenticated ? (
-            <button className="dashboard-btn" onClick={handleDashboardClick}>
-              <span className="icon">📊</span>
-              <span className="btn-text">Dashboard</span>
-            </button>
+            <Link to="/dashboard">
+              <Button variant="primary" className="dashboard-btn" leftIcon={<LayoutDashboard size={18} />}>
+                Dashboard
+              </Button>
+            </Link>
           ) : (
-            <button className="login-btn" onClick={handleLoginClick}>
-              <span className="icon">🔒</span>
-              <span className="btn-text">Staff Login</span>
-            </button>
+            <Link to="/login">
+              <Button variant="primary" className="login-btn" leftIcon={<LogIn size={18} />}>
+                Agent Login
+              </Button>
+            </Link>
           )}
         </div>
       </nav>
 
-      {/* Main Content */}
+      {/* Main Content Area - Nested routes render here */}
       <main className="public-content">
         <Outlet />
       </main>
 
       {/* Footer */}
-      <footer className="public-footer">
-         {/* ... footer content ... */}
-         <div className="footer-content">
-          <div className="footer-section">
-            <h3>IT Helpdesk</h3>
-            <p>Your reliable IT support solution. We're here to help with all your technology needs.</p>
-          </div>
-          <div className="footer-section">
-            <h3>Quick Links</h3>
-            <ul>
-              <li>
-                <Link to="/">Home</Link>
-              </li>
-              <li>
-                <Link to="/create-ticket">Submit Ticket</Link>
-              </li>
-              <li>
-                <Link to="/faq">FAQ</Link>
-              </li>
-            </ul>
-          </div>
-          <div className="footer-section">
-            <h3>Contact</h3>
-            <p>Email: support@example.com</p>
-            <p>Phone: (123) 456-7890</p>
-            <p>Hours: Mon-Fri 9am-5pm</p>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <p>&copy; {new Date().getFullYear()} IT Helpdesk. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

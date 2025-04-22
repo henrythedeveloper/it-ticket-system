@@ -1,18 +1,18 @@
 // src/styles/components/_forms.scss
+// ==========================================================================
+// Styles for forms and form elements, utilizing variables and mixins.
+// ==========================================================================
 
-@use '../variables' as *;
+@use '../variables' as *; // Still needed for non-color vars like spacing, breakpoints
+@use '../mixins'; // Use the new mixins file
 
 // Form container
 .form-container {
-  background-color: var(--surface-bg); // Use CSS variable
-  border: 1px solid var(--border-color); // Add border for dark mode
-  border-radius: $border-radius-lg;
-  box-shadow: $shadow; // Shadow might need dark mode adjustment if desired
-  padding: $spacing-6;
+  @include mixins.card-base; // Use card mixin for base styles
+  padding: $spacing-6; // Override padding if needed
   max-width: 32rem;
   width: 100%;
   margin: 0 auto;
-  transition: background-color $transition-medium, border-color $transition-medium;
 }
 
 // Form groups
@@ -23,10 +23,11 @@
     display: block;
     font-weight: $font-weight-medium;
     margin-bottom: $spacing-2;
-    color: var(--text-primary); // Use CSS variable
+    color: var(--text-primary);
     transition: color $transition-medium;
   }
 
+  // Apply base input styles using mixin
   input[type="text"],
   input[type="email"],
   input[type="password"],
@@ -36,93 +37,85 @@
   input[type="url"],
   select,
   textarea {
-    width: 100%;
-    padding: $spacing-3;
-    border: 1px solid var(--border-color-strong); // Use CSS variable
-    border-radius: $border-radius;
-    font-size: $font-size-base;
-    background-color: var(--surface-alt-bg); // Use CSS variable
-    color: var(--text-primary); // Use CSS variable
-    transition: border-color $transition-fast, box-shadow $transition-fast, background-color $transition-medium, color $transition-medium;
-
-    &:focus {
-      border-color: var(--primary-color); // Use CSS variable
-      // Adjust focus shadow potentially for dark mode if needed
-      box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.2); // Example using CSS var in rgba
-      outline: none;
-    }
-
-    &::placeholder {
-      color: var(--text-muted); // Use CSS variable
-      transition: color $transition-medium;
-    }
-
-    &:disabled {
-      // Disabled styles are handled in global.scss dark mode block
-      cursor: not-allowed;
-    }
+    @include mixins.form-element-base;
   }
 
-  textarea {
+  textarea { // Specific textarea styles
     min-height: 120px;
     resize: vertical;
   }
 
-  select {
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); // Default arrow
-    background-position: right 0.5rem center;
-    background-repeat: no-repeat;
-    background-size: 1.5em 1.5em;
-    padding-right: 2.5rem;
-
-    // --- Corrected Dark Mode Arrow Styles ---
-    // Rule for .dark-mode class
-    body.dark-mode & {
-       background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); // Use a lighter gray
-    }
-    // Rule for OS preference
-    @media (prefers-color-scheme: dark) {
-       // Apply the same style when OS preference is dark
-       background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); // Use a lighter gray
-    }
-    // --- End Correction ---
+  select { // Specific select styles
+    @include mixins.select-arrow;
   }
 
+  // Error message styling
   .error {
-    color: var(--error-color); // Use CSS variable
+    color: var(--error-color);
     font-size: $font-size-sm;
     margin-top: $spacing-1;
   }
 
+  // Checkbox specific styles
   &.checkbox {
     display: flex;
     align-items: center;
-
     label {
       display: flex;
       align-items: center;
       margin-bottom: 0;
       cursor: pointer;
-
       input[type="checkbox"] {
         margin-right: $spacing-2;
         cursor: pointer;
-        // Consider styling checkbox appearance for dark mode
+        // Simple accent color for the checkbox itself
+        accent-color: var(--primary-color);
       }
     }
   }
 
+  // Inline form group styles
   &.inline {
     display: flex;
     align-items: center;
-
     label {
       margin-right: $spacing-4;
       margin-bottom: 0;
       flex-shrink: 0;
     }
   }
+
+  // Field description/note styling
+  .field-description, .field-info {
+      font-size: $font-size-sm;
+      color: var(--text-muted);
+      margin-top: $spacing-1;
+      transition: color $transition-medium;
+  }
+
+  // Static field display (read-only look)
+  .static-field {
+      padding: $spacing-3;
+      background-color: var(--surface-alt-bg);
+      border: 1px solid var(--border-color-strong);
+      border-radius: $border-radius;
+      color: var(--text-secondary);
+      transition: background-color $transition-medium, border-color $transition-medium, color $transition-medium;
+  }
+
+  // Input with addon/button
+    .input-with-button {
+      display: flex;
+      input { // Input styles inherited via mixin
+        flex: 1;
+        border-radius: $border-radius 0 0 $border-radius; // Adjust radius
+      }
+      .add-btn { // Example button class
+        @extend .btn; // Extend base button styles
+        border-radius: 0 $border-radius $border-radius 0; // Adjust radius
+        padding: 0 $spacing-4; // Adjust padding
+      }
+    }
 }
 
 // Form divided in columns
@@ -143,119 +136,23 @@
   justify-content: flex-end;
   gap: $spacing-3;
   margin-top: $spacing-6;
-}
 
-// Buttons (Using CSS variables for themeable properties)
-.btn {
-  display: inline-block;
-  padding: $spacing-3 $spacing-6;
-  background-color: var(--primary-color); // Use CSS variable
-  color: var(--text-inverted); // Use CSS variable (text on primary bg)
-  border: 1px solid transparent; // Base border
-  border-radius: $border-radius;
-  font-weight: $font-weight-medium;
-  cursor: pointer;
-  text-align: center;
-  text-decoration: none;
-  transition: background-color $transition-fast, transform $transition-fast, border-color $transition-fast, color $transition-fast;
+  // Specific button styles within actions if needed
+  .cancel-btn { // Example cancel button style
+      @extend .btn; // Extend base button
+      // Use outline variant or specific colors
+      @include mixins.button-outline-variant(--text-secondary, --text-primary);
+      border-color: var(--border-color-strong); // Use stronger border for contrast
+      color: var(--text-secondary);
 
-  &:hover {
-    background-color: var(--primary-dark); // Use CSS variable
-    transform: translateY(-1px);
+      &:hover {
+        background-color: var(--surface-alt-bg);
+        border-color: var(--border-color-strong);
+        color: var(--text-primary);
+      }
   }
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.4); // Use CSS variable
-  }
-
-  &:active {
-    transform: translateY(1px);
-  }
-
-  &:disabled {
-    background-color: $gray-400; // Keep disabled consistent? Or use CSS var?
-    border-color: $gray-400;
-    color: $gray-100;
-    cursor: not-allowed;
-    opacity: 0.7;
-  }
-
-  &.btn-secondary {
-    background-color: var(--secondary-color); // Use CSS variable
-    color: var(--text-inverted); // Use CSS variable
-
-    &:hover {
-      background-color: var(--secondary-dark); // Use CSS variable
-    }
-
-    &:focus {
-      box-shadow: 0 0 0 3px rgba(var(--secondary-color), 0.4); // Use CSS variable
-    }
-  }
-
-  &.btn-danger {
-    background-color: var(--error-color); // Use CSS variable
-    color: $white; // Keep white text on red usually
-
-    &:hover {
-      background-color: darken($error-color, 10%); // SCSS darken is fine here
-    }
-
-    &:focus {
-      box-shadow: 0 0 0 3px rgba(var(--error-color), 0.4); // Use CSS variable
-    }
-  }
-
-  &.btn-outline {
-    background-color: transparent;
-    border: 1px solid var(--primary-color); // Use CSS variable
-    color: var(--primary-color); // Use CSS variable
-
-    &:hover {
-      background-color: var(--primary-color); // Use CSS variable
-      color: var(--text-inverted); // Use CSS variable
-    }
-  }
-
-  // Sizes remain the same
-  &.btn-sm {
-    padding: $spacing-2 $spacing-4;
-    font-size: $font-size-sm;
-  }
-
-  &.btn-lg {
-    padding: $spacing-4 $spacing-8;
-    font-size: $font-size-lg;
-  }
-
-  // Loading state
-  &.loading {
-    position: relative;
-    // Color adjustments might be needed based on button bg
-    color: transparent !important; // Hide text when loading
-
-    &::before {
-      content: "";
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%); // Center spinner
-      width: 16px;
-      height: 16px;
-      border: 2px solid currentColor; // Use button's text color (or override)
-      border-top-color: transparent; // Make spinner effect visible
-      border-radius: 50%;
-      animation: spinner 0.6s linear infinite;
-      opacity: 0.5;
-    }
-  }
-}
-
-// Loading spinner animation
-@keyframes spinner {
-  to {
-    transform: translate(-50%, -50%) rotate(360deg);
+  .submit-btn { // Example submit button
+      @extend .btn; // Already primary by default .btn styles
   }
 }
 
@@ -263,13 +160,12 @@
 @media (max-width: $breakpoint-md) {
   .form-row {
     flex-direction: column;
-    gap: $spacing-4;
+    gap: $spacing-4; // Keep gap for column layout
   }
 
   .form-actions {
     flex-direction: column;
-
-    .btn {
+    .btn { // Ensure buttons take full width in column layout
       width: 100%;
     }
   }

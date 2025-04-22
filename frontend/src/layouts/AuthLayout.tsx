@@ -1,35 +1,41 @@
-import React, { useEffect } from 'react';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+// src/components/layouts/AuthLayout.tsx
+// ==========================================================================
+// Layout component specifically for authentication pages (e.g., Login).
+// Provides a centered container structure.
+// ==========================================================================
 
+import React from 'react';
+import { Outlet } from 'react-router-dom'; // Renders nested routes
+import { Link } from 'react-router-dom'; // For logo link
+
+// --- Component ---
+
+/**
+ * Renders the layout structure for authentication pages.
+ * Centers the content (rendered via <Outlet />) within a container.
+ */
 const AuthLayout: React.FC = () => {
-  const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-
-  // Redirect authenticated users away from auth pages
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
-    }
-  }, [isAuthenticated, navigate]);
-
+  // --- Render ---
+  // Assumes SCSS file (_AuthLayout.scss) defines the layout styles
   return (
     <div className="auth-layout">
       <div className="auth-container">
-        <div className="auth-header">
-          <Link to="/" className="auth-logo">
-            IT Helpdesk
+        {/* Header section within the auth container (e.g., Logo) */}
+        <header className="auth-header">
+          <Link to="/" className="auth-logo"> {/* Link logo to homepage */}
+            HelpDesk System
           </Link>
-        </div>
-        <div className="auth-content">
+        </header>
+
+        {/* Main content area where nested routes (like LoginPage) will render */}
+        <main className="auth-content">
           <Outlet />
-        </div>
-        <div className="auth-footer">
-          <p>&copy; {new Date().getFullYear()} IT Helpdesk. All rights reserved.</p>
-          <p>
-            <Link to="/">Return to Home</Link>
-          </p>
-        </div>
+        </main>
+
+        {/* Optional: Footer section within the auth container */}
+        {/* <footer className="auth-footer">
+          <p>&copy; {new Date().getFullYear()} HelpDesk System</p>
+        </footer> */}
       </div>
     </div>
   );

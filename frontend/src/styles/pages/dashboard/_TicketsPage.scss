@@ -1,267 +1,135 @@
 // src/styles/pages/dashboard/_TicketsPage.scss
+// ==========================================================================
+// Styles specific to the Tickets list page.
+// Includes filtering, search, tag filters, and the main ticket table.
+// ==========================================================================
 
 @use '../../variables' as *;
+@use '../../mixins'; // Use mixins
 
 .tickets-page {
   max-width: 100%;
   margin-bottom: $spacing-8;
 
+  // --- Filter Section ---
   .filter-section {
-    background-color: var(--surface-bg); // Use CSS variable
-    border: 1px solid var(--border-color); // Use CSS variable
-    border-radius: $border-radius-lg;
-    box-shadow: $shadow; // Shadow might need adjustment
+    background-color: var(--surface-bg);
     padding: $spacing-4;
+    border: 1px solid var(--border-color);
+    border-radius: $border-radius-lg;
+    box-shadow: $shadow;
     margin-bottom: $spacing-6;
     transition: background-color $transition-medium, border-color $transition-medium;
 
+    // Search form
     .search-form {
-      display: flex;
-      margin-bottom: $spacing-4;
-
-      .search-input {
-        // Inherits from _forms.scss
-        flex: 1;
-        border-radius: $border-radius 0 0 $border-radius;
-      }
-
-      .search-button {
-         padding: $spacing-3 $spacing-5; // Keep specific padding
-         border-radius: 0 $border-radius $border-radius 0;
-      }
+      display: flex; margin-bottom: $spacing-4;
+      .search-input { @include mixins.form-element-base; flex: 1; border-radius: $border-radius 0 0 $border-radius; }
+      .search-button { @extend .btn; padding: $spacing-3 $spacing-5; border-radius: 0 $border-radius $border-radius 0; }
     }
 
+    // Dropdown filters container
     .filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: $spacing-4;
-      align-items: center;
-      margin-bottom: $spacing-4;
-
-      .filter-group {
-        display: flex;
-        align-items: center;
-
-        label {
-          margin-right: $spacing-2;
-          font-weight: $font-weight-medium;
-          color: var(--text-primary); // Use CSS variable
-          transition: color $transition-medium;
-        }
-
-        .filter-select {
-          // Inherits from _forms.scss
-          padding: $spacing-2; // Adjust padding if needed
-        }
+      display: flex; flex-wrap: wrap; gap: $spacing-4; align-items: center; margin-bottom: $spacing-4;
+      .filter-group { display: flex; align-items: center;
+        label { margin-right: $spacing-2; font-weight: $font-weight-medium; color: var(--text-primary); transition: color $transition-medium; }
+        .filter-select { @include mixins.form-element-base; @include mixins.select-arrow; padding: $spacing-2; min-width: 150px; }
       }
-
-      .clear-filters-btn {
-         background-color: var(--surface-bg); // Use CSS variable
-         color: var(--text-secondary); // Use CSS variable
-         border: 1px solid var(--border-color); // Use CSS variable
-         padding: $spacing-2 $spacing-3; // Keep specific padding
-
-         &:hover {
-           background-color: var(--surface-alt-bg); // Use CSS variable
-           color: var(--text-primary); // Use CSS variable
-         }
+      .clear-filters-btn { // Clear button style
+          @extend .btn;
+          @include mixins.button-outline-variant(--text-secondary, --text-primary);
+          border-color: var(--border-color); padding: $spacing-2 $spacing-3;
+          &:hover { background-color: var(--surface-alt-bg); }
       }
     }
 
+    // Tag filter section
     .tag-filter {
       margin-top: $spacing-3;
-
-      .tag-filter-label {
-        display: block;
-        margin-bottom: $spacing-2;
-        font-weight: $font-weight-medium;
-        color: var(--text-primary); // Use CSS variable
-        transition: color $transition-medium;
-      }
-
-      .tag-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: $spacing-2;
-
-        .filter-tag {
-          padding: $spacing-1 $spacing-3;
-          background-color: var(--surface-alt-bg); // Use CSS variable
-          color: var(--text-secondary); // Use CSS variable
-          border: 1px solid var(--border-color); // Use CSS variable
-          border-radius: $border-radius-full;
-          font-size: $font-size-sm;
-          cursor: pointer;
-          transition: all $transition-fast;
-
-          &:hover {
-            background-color: var(--surface-bg); // Use CSS variable
-            border-color: var(--border-color-strong); // Use CSS variable
-          }
-
-          &.selected {
-            background-color: var(--primary-color); // Use CSS variable
-            color: var(--text-inverted); // Use CSS variable
-            border-color: var(--primary-color); // Use CSS variable
-             &:hover {
-                background-color: var(--primary-dark); // Use CSS variable
-                border-color: var(--primary-dark); // Use CSS variable
-             }
+      .tag-filter-label { display: block; margin-bottom: $spacing-2; font-weight: $font-weight-medium; color: var(--text-primary); transition: color $transition-medium; }
+      .tag-list { display: flex; flex-wrap: wrap; gap: $spacing-2;
+        .filter-tag { // Individual clickable tag
+          padding: $spacing-1 $spacing-3; background-color: var(--surface-alt-bg); color: var(--text-secondary);
+          border: 1px solid var(--border-color); border-radius: $border-radius-full; font-size: $font-size-sm;
+          cursor: pointer; transition: all $transition-fast;
+          &:hover { background-color: var(--surface-bg); border-color: var(--border-color-strong); }
+          &.selected { // Style for selected tag
+            background-color: var(--primary-color); color: var(--text-inverted); border-color: var(--primary-color);
+            &:hover { background-color: var(--primary-dark); border-color: var(--primary-dark); }
           }
         }
       }
     }
   }
 
+  // --- Message for No Tickets Found ---
   .no-tickets {
-    background-color: var(--surface-bg); // Use CSS variable
-    border: 1px solid var(--border-color); // Use CSS variable
-    padding: $spacing-8;
-    border-radius: $border-radius-lg;
-    box-shadow: $shadow; // Shadow might need adjustment
-    text-align: center;
-    transition: background-color $transition-medium, border-color $transition-medium;
-
-    p {
-      color: var(--text-muted); // Use CSS variable
-      margin-bottom: $spacing-4;
-    }
-     .clear-filters-btn { 
-        background-color: var(--primary-light);
-         &:hover {
-           background-color: var(--primary-color);
-         }
+    background-color: var(--surface-bg); border: 1px solid var(--border-color);
+    padding: $spacing-8; border-radius: $border-radius-lg; box-shadow: $shadow;
+    text-align: center; transition: background-color $transition-medium, border-color $transition-medium;
+    p { color: var(--text-muted); margin-bottom: $spacing-4; }
+      .clear-filters-btn { // Button to clear filters
+        @extend .btn;
+        @include mixins.button-variant(--primary-light, --text-primary, --primary-color);
     }
   }
 
+  // --- Tickets Table Container ---
   .tickets-table-container {
-    background-color: var(--surface-bg); // Use CSS variable
-    border: 1px solid var(--border-color); // Use CSS variable
-    border-radius: $border-radius-lg;
-    box-shadow: $shadow; // Shadow might need adjustment
-    overflow: hidden;
-    overflow-x: auto; // Keep horizontal scroll if needed
+    background-color: var(--surface-bg); border: 1px solid var(--border-color);
+    border-radius: $border-radius-lg; box-shadow: $shadow;
+    overflow: hidden; overflow-x: auto; // Allow horizontal scroll
     transition: background-color $transition-medium, border-color $transition-medium;
   }
 
+  // --- Tickets Table ---
   .tickets-table {
-    width: 100%;
-    border-collapse: collapse;
-
-    // th, td, tr hover styles inherited from global.scss using CSS vars
-
-    th {
-      padding: $spacing-3 $spacing-4;
-      white-space: nowrap;
-    }
-
-    td {
-      padding: $spacing-3 $spacing-4;
-
+    // Uses global table styles
+    th { padding: $spacing-3 $spacing-4; white-space: nowrap; }
+    td { padding: $spacing-3 $spacing-4;
+      // Subject cell truncation and link style
       &.subject-cell {
-        max-width: 300px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-
-        a {
-          color: var(--text-link); // Use CSS variable
-          text-decoration: none;
-
-          &:hover {
-            text-decoration: underline;
-            color: var(--text-link-hover); // Use CSS variable
-          }
-        }
+        max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        a { color: var(--text-link); text-decoration: none; &:hover { text-decoration: underline; color: var(--text-link-hover); } }
       }
-
+      // Tags cell styling
       &.tags-cell {
         min-width: 150px;
-
-        .table-tags {
-          display: flex;
-          flex-wrap: wrap;
-          gap: $spacing-1;
-
-          .table-tag {
-            background-color: var(--surface-alt-bg); // Use CSS variable
-            color: var(--text-secondary); // Use CSS variable
-            padding: 2px $spacing-2;
-            border-radius: $border-radius-full;
-            font-size: $font-size-xs;
-            white-space: nowrap;
-            transition: background-color $transition-medium, color $transition-medium;
-          }
+        .table-tags { display: flex; flex-wrap: wrap; gap: $spacing-1;
+          .table-tag { background-color: var(--surface-alt-bg); color: var(--text-secondary); padding: 2px $spacing-2; border-radius: $border-radius-full; font-size: $font-size-xs; white-space: nowrap; transition: background-color $transition-medium, color $transition-medium; }
         }
-
-        .no-tags {
-          color: var(--text-muted); // Use CSS variable
-        }
+        .no-tags { color: var(--text-muted); }
       }
     }
+    // Make table rows clickable (if desired)
+    tbody tr { cursor: pointer; }
   }
 
-  // Badge styles (using CSS variables set globally and in TicketCard partial)
+  // --- Badge Styles ---
   .status-badge, .urgency-badge {
-    display: inline-block;
-    padding: $spacing-1 $spacing-2;
-    border-radius: $border-radius-full;
-    font-size: $font-size-xs;
-    font-weight: $font-weight-medium;
-    text-align: center;
-    min-width: 80px;
-    // Specific colors applied via classes in _TicketCard.scss using CSS vars
+    @include mixins.badge-base;
+    @include mixins.badge-alpha-variants; // Apply all color variants
+    min-width: 80px; // Consistent width
   }
 }
 
-// Responsive adjustments
-@media (max-width: $breakpoint-lg) {
-  .tickets-page {
-    .tickets-table {
-      th:nth-child(5), // Created
-      th:nth-child(8), // Tags
-      td:nth-child(5),
-      td:nth-child(8) {
-        display: none;
-      }
-    }
+// --- Responsive Adjustments ---
+@media (max-width: $breakpoint-lg) { // Hide columns on medium-large screens
+  .tickets-page .tickets-table {
+    th:nth-child(5), th:nth-child(8), // Hide Created, Tags
+    td:nth-child(5), td:nth-child(8) { display: none; }
   }
 }
-
-@media (max-width: $breakpoint-md) {
+@media (max-width: $breakpoint-md) { // Hide more columns and stack filters on small screens
   .tickets-page {
-    .filter-section {
-      .filters {
-        flex-direction: column;
-        align-items: flex-start;
-
-        .filter-group {
-          width: 100%;
-          margin-bottom: $spacing-2;
-
-          label {
-            width: 100px; // Or adjust
-          }
-
-          .filter-select {
-            flex: 1;
-          }
-        }
-
-        .clear-filters-btn {
-          width: 100%;
-          margin-top: $spacing-2;
-        }
-      }
+    .filter-section .filters { // Stack filters
+      flex-direction: column; align-items: flex-start;
+      .filter-group { width: 100%; margin-bottom: $spacing-2; label { width: 100px; } .filter-select { flex: 1; } }
+      .clear-filters-btn { width: 100%; margin-top: $spacing-2; }
     }
-
-    .tickets-table {
-      th:nth-child(4), // Urgency
-      th:nth-child(7), // Assigned To
-      td:nth-child(4),
-      td:nth-child(7) {
-        display: none;
-      }
+    .tickets-table { // Hide Urgency, Assigned To
+      th:nth-child(4), th:nth-child(7),
+      td:nth-child(4), td:nth-child(7) { display: none; }
     }
   }
 }

@@ -1,32 +1,34 @@
 // src/styles/pages/dashboard/_DashboardPage.scss
+// ==========================================================================
+// Styles specific to the main Dashboard page.
+// ==========================================================================
 
 @use '../../variables' as *;
+@use '../../mixins'; // Use mixins
 
 .dashboard-page {
   max-width: 100%;
-  margin-bottom: $spacing-8;
+  margin-bottom: $spacing-8; // Space at the bottom
 
+  // Page Header section
   .page-header {
-    h1 {
-       color: var(--text-primary); // Use CSS variable
-    }
-    p {
-      color: var(--text-muted); // Use CSS variable
-      margin-top: $spacing-2;
-    }
+    // Uses global styles, add specific overrides if needed
+    h1 { color: var(--text-primary); }
+    p { color: var(--text-muted); margin-top: $spacing-2; }
   }
 
+  // Statistics Cards section
   .stats-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); // Responsive grid
     gap: $spacing-4;
     margin-bottom: $spacing-8;
 
     .stats-card {
-      background-color: var(--surface-bg); // Use CSS variable
-      border: 1px solid var(--border-color); // Use CSS variable
+      background-color: var(--surface-bg);
+      border: 1px solid var(--border-color);
       border-radius: $border-radius-lg;
-      box-shadow: $shadow; // Shadow might need adjustment
+      box-shadow: $shadow;
       display: flex;
       flex-direction: column;
       transition: background-color $transition-medium, border-color $transition-medium;
@@ -34,16 +36,17 @@
       .card-content {
         padding: $spacing-4;
         text-align: center;
+        flex-grow: 1; // Allow content to grow
 
-        h3 {
+        h3 { // Card title (e.g., "Unassigned")
           font-size: $font-size-lg;
           font-weight: $font-weight-medium;
-          color: var(--text-secondary); // Use CSS variable
+          color: var(--text-secondary);
           margin-bottom: $spacing-2;
           transition: color $transition-medium;
         }
 
-        .count {
+        .count { // The large number
           font-size: $font-size-3xl;
           font-weight: $font-weight-bold;
           color: var(--primary-color); // Default color, overridden below
@@ -52,24 +55,25 @@
         }
       }
 
+      // "View All" link at the bottom
       .card-action {
         padding: $spacing-3;
         text-align: center;
-        background-color: var(--surface-alt-bg); // Use CSS variable
-        color: var(--primary-color); // Use CSS variable
-        border-top: 1px solid var(--border-color); // Use CSS variable
+        background-color: var(--surface-alt-bg);
+        color: var(--primary-color);
+        border-top: 1px solid var(--border-color);
         text-decoration: none;
         font-size: $font-size-sm;
         font-weight: $font-weight-medium;
-        border-radius: 0 0 $border-radius-lg $border-radius-lg;
+        border-radius: 0 0 $border-radius-lg $border-radius-lg; // Rounded bottom corners
         transition: background-color $transition-fast, color $transition-fast, border-color $transition-medium;
 
         &:hover {
-          background-color: rgba(var(--primary-color), 0.1); // Use CSS variable alpha
+          background-color: rgba(var(--primary-color), 0.1); // Use alpha background on hover
         }
       }
 
-      // Specific count colors (using CSS variables)
+      // Specific count colors (using CSS variables for theme adaptability)
       &:first-child .card-content .count { color: var(--status-unassigned-color); }
       &:nth-child(2) .card-content .count { color: var(--status-assigned-color); }
       &:nth-child(3) .card-content .count { color: var(--status-progress-color); }
@@ -77,58 +81,53 @@
     }
   }
 
+  // Main Dashboard Grid (Recent Tickets, My Tickets, Tasks, Actions)
   .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); // Responsive grid, min width 400px
     gap: $spacing-6;
 
     @media (max-width: $breakpoint-lg) {
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr; // Stack on smaller screens
     }
 
+    // Individual card within the grid
     .dashboard-card {
-      background-color: var(--surface-bg); // Use CSS variable
-      border: 1px solid var(--border-color); // Use CSS variable
-      border-radius: $border-radius-lg;
-      box-shadow: $shadow; // Shadow might need adjustment
-      display: flex;
+      @include mixins.card-base; // Use card mixin
+      padding: 0; // Override padding from mixin, apply to header/body
+      display: flex; // Ensure card takes full height if needed
       flex-direction: column;
-      transition: background-color $transition-medium, border-color $transition-medium;
 
       .card-header {
         padding: $spacing-4;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 1px solid var(--border-color); // Use CSS variable
+        border-bottom: 1px solid var(--border-color);
         transition: border-color $transition-medium;
 
-        h2 {
+        h2 { // Card title (e.g., "Recent Tickets")
           font-size: $font-size-xl;
           font-weight: $font-weight-semibold;
-          color: var(--text-primary); // Use CSS variable
+          color: var(--text-primary);
           margin: 0;
         }
 
-        .view-all {
-          color: var(--text-link); // Use CSS variable
+        .view-all { // "View All" link
+          color: var(--text-link);
           text-decoration: none;
           font-size: $font-size-sm;
           font-weight: $font-weight-medium;
-
-          &:hover {
-            text-decoration: underline;
-            color: var(--text-link-hover); // Use CSS variable
-          }
+          &:hover { text-decoration: underline; color: var(--text-link-hover); }
         }
       }
 
       .card-body {
         padding: $spacing-4;
-        flex-grow: 1;
+        flex-grow: 1; // Allow body to fill space
 
-        .no-data {
-          color: var(--text-muted); // Use CSS variable
+        .no-data { // Message when list is empty
+          color: var(--text-muted);
           text-align: center;
           padding: $spacing-6;
           font-style: italic;
@@ -137,100 +136,42 @@
     }
   }
 
-  // Table styles (using CSS variables set globally)
+  // Table styles within dashboard cards
   .dashboard-table {
-    width: 100%;
-    border-collapse: collapse;
-
-    th {
-      // Styles inherited from global.scss (uses CSS vars)
-      padding: $spacing-2 $spacing-3;
-      font-size: $font-size-sm;
-      font-weight: $font-weight-semibold;
-      white-space: nowrap;
-    }
-
-    td {
-      // Styles inherited from global.scss (uses CSS vars)
-      padding: $spacing-2 $spacing-3;
-      font-size: $font-size-sm;
-
-      a {
-        color: var(--text-link); // Use CSS variable
-        text-decoration: none;
-
-        &:hover {
-          text-decoration: underline;
-          color: var(--text-link-hover); // Use CSS variable
-        }
-      }
-    }
-
-    tr:hover {
-      // Hover handled globally
+    // Uses global table styles defined in global.scss
+    th { padding: $spacing-2 $spacing-3; font-size: $font-size-sm; font-weight: $font-weight-semibold; white-space: nowrap; }
+    td { padding: $spacing-2 $spacing-3; font-size: $font-size-sm;
+      a { color: var(--text-link); text-decoration: none; &:hover { text-decoration: underline; color: var(--text-link-hover); } }
     }
   }
 
-  // Badge styles (using CSS variables set globally and in TicketCard partial)
+  // Badge styles (reusing status/urgency badges)
   .status-badge, .urgency-badge {
-    display: inline-block;
-    padding: $spacing-1 $spacing-2;
-    border-radius: $border-radius-full;
-    font-size: $font-size-xs;
-    font-weight: $font-weight-medium;
-    text-align: center;
-    min-width: 80px;
-    // Specific colors applied via classes in _TicketCard.scss using CSS vars
+    @include mixins.badge-base;
+    @include mixins.badge-alpha-variants; // Apply all color variants
+    min-width: 80px; // Ensure consistent width
   }
 
+  // Task list styles
   .task-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-
+    list-style: none; padding: 0; margin: 0;
     .task-item {
-      border-bottom: 1px solid var(--border-color); // Use CSS variable
+      border-bottom: 1px solid var(--border-color);
       transition: border-color $transition-medium;
-
-      &:last-child {
-        border-bottom: none;
-      }
+      &:last-child { border-bottom: none; }
 
       .task-link {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: $spacing-3;
-        text-decoration: none;
-        color: var(--text-secondary); // Use CSS variable
+        display: flex; justify-content: space-between; align-items: center;
+        padding: $spacing-3; text-decoration: none; color: var(--text-secondary);
         transition: background-color $transition-fast, color $transition-medium;
+        &:hover { background-color: var(--surface-alt-bg); }
 
-        &:hover {
-          background-color: var(--surface-alt-bg); // Use CSS variable
-        }
-
-        .task-title {
-          font-weight: $font-weight-medium;
-          color: var(--text-primary); // Use CSS variable
-          flex-grow: 1;
-        }
-
-        .task-due {
-          font-size: $font-size-sm;
-          color: var(--text-muted); // Use CSS variable
-          margin: 0 $spacing-3;
-        }
-
-        .task-status {
-          padding: $spacing-1 $spacing-2;
-          border-radius: $border-radius-full;
-          font-size: $font-size-xs;
-          font-weight: $font-weight-medium;
+        .task-title { font-weight: $font-weight-medium; color: var(--text-primary); flex-grow: 1; }
+        .task-due { font-size: $font-size-sm; color: var(--text-muted); margin: 0 $spacing-3; }
+        .task-status { // Task-specific status badges
+          @include mixins.badge-base;
           min-width: 80px;
-          text-align: center;
-          transition: background-color $transition-medium, color $transition-medium;
-
-          // Use CSS variables for status colors
+          // Apply task status colors (could be part of badge-alpha-variants if vars are named consistently)
           &.status-open { background-color: rgba(var(--warning-color), 0.15); color: var(--warning-color); }
           &.status-in-progress { background-color: rgba(var(--info-color), 0.15); color: var(--info-color); }
           &.status-completed { background-color: rgba(var(--success-color), 0.15); color: var(--success-color); }
@@ -239,73 +180,44 @@
     }
   }
 
+  // Quick Actions section styles
   .quick-actions {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); // Adjust minmax
     gap: $spacing-3;
 
     .action-button {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background-color: var(--surface-alt-bg); // Use CSS variable
-      border: 1px solid var(--border-color); // Use CSS variable
-      border-radius: $border-radius;
-      padding: $spacing-4;
-      text-decoration: none;
-      color: var(--text-secondary); // Use CSS variable
-      transition: all $transition-fast;
-      text-align: center;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background-color: var(--surface-alt-bg); border: 1px solid var(--border-color);
+      border-radius: $border-radius; padding: $spacing-4; text-decoration: none;
+      color: var(--text-secondary); transition: all $transition-fast; text-align: center;
 
-      .icon {
-        font-size: $font-size-2xl;
-        margin-bottom: $spacing-2;
-        color: var(--text-primary); // Use CSS variable
-      }
-
-      span {
-        font-size: $font-size-sm;
-        font-weight: $font-weight-medium;
-      }
+      .icon { font-size: $font-size-2xl; margin-bottom: $spacing-2; color: var(--text-primary); }
+      span { font-size: $font-size-sm; font-weight: $font-weight-medium; }
 
       &:hover {
-        background-color: var(--surface-bg); // Use CSS variable
-        border-color: var(--border-color-strong); // Use CSS variable
-        color: var(--text-primary); // Use CSS variable
-        transform: translateY(-2px);
+        background-color: var(--surface-bg); border-color: var(--border-color-strong);
+        color: var(--text-primary); transform: translateY(-2px);
       }
     }
   }
 }
 
-// Responsive adjustments
+// --- Responsive Adjustments ---
 @media (max-width: $breakpoint-md) {
   .dashboard-page {
+    // Hide less important columns in tables on smaller screens
     .dashboard-table {
-      th:nth-child(4),
-      th:nth-child(5),
-      td:nth-child(4),
-      td:nth-child(5) {
+      th:nth-child(4), th:nth-child(5), // Example: Hide 4th and 5th columns
+      td:nth-child(4), td:nth-child(5) {
         display: none;
       }
     }
-
-    .task-list {
-      .task-item {
-        .task-link {
-          flex-wrap: wrap;
-
-          .task-title {
-            width: 100%;
-            margin-bottom: $spacing-1;
-          }
-
-          .task-due, .task-status {
-            margin-top: $spacing-1;
-          }
-        }
-      }
+    // Adjust task list layout
+    .task-list .task-item .task-link {
+      flex-wrap: wrap;
+      .task-title { width: 100%; margin-bottom: $spacing-1; }
+      .task-due, .task-status { margin-top: $spacing-1; }
     }
   }
 }
