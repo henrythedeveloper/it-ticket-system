@@ -2,6 +2,7 @@
 // ==========================================================================
 // Reusable Sidebar component for main application navigation.
 // Uses context for state and displays navigation links.
+// Fixed role filtering type error.
 // ==========================================================================
 
 import React from 'react';
@@ -21,11 +22,18 @@ interface SidebarProps {
 }
 
 // --- Navigation Link Type ---
+/**
+ * Defines the structure for a navigation item in the sidebar.
+ */
 interface NavItem {
+    /** The route path for the link. */
     path: string;
+    /** The text label for the link. */
     label: string;
+    /** The icon element to display next to the label. */
     icon: React.ReactElement;
-    requiredRole?: ('Admin' | 'Staff')[]; // Optional roles required to see the link
+    /** Optional array of roles allowed to see this link. If undefined or empty, visible to all authenticated users. */
+    requiredRole?: ('Admin' | 'Staff')[]; // Only Admin or Staff can be explicitly required
 }
 
 // --- Component ---
@@ -56,16 +64,22 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
     // --- Filtering Logic ---
     // Filter nav items based on the current user's role
     const filteredNavItems = navItems.filter(item => {
-    // If no requiredRole is specified, show the item to everyone
+    // If no requiredRole is specified, show the item to everyone logged in
     if (!item.requiredRole || item.requiredRole.length === 0) {
-        return true;
+        return true; // Assumes sidebar is only shown to authenticated users anyway
     }
-    // If user is not logged in, don't show role-restricted items
+    // If user is not logged in (shouldn't happen if protected route is used, but safe check)
     if (!user) {
         return false;
     }
-    // Show item if the user's role is included in the requiredRole array
-    return item.requiredRole.includes(user.role);
+    // FIX: Check if user's role is one of the valid types *before* calling includes
+    // This satisfies TypeScript because we ensure user.role is 'Admin' or 'Staff'
+    // before checking if it's included in an array of ('Admin' | 'Staff')[]
+    if (user.role === 'Admin' || user.role === 'Staff') {
+            return item.requiredRole.includes(user.role);
+    }
+    // If user role is 'User', they cannot match any requiredRole of 'Admin' or 'Staff'
+    return false;
     });
 
 

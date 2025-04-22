@@ -2,13 +2,15 @@
 // ==========================================================================
 // Component for displaying a summary of a ticket in a list format.
 // Used on dashboard and ticket list pages.
+// Fixed missing import for formatDateTime.
 // ==========================================================================
 
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Badge from '../common/Badge'; // Reusable Badge component
 import { Ticket } from '../../types'; // Ticket type definition
-import { formatDate, truncateString } from '../../utils/helpers'; // Helper functions
+// FIX: Import both formatDate and formatDateTime
+import { formatDate, formatDateTime, truncateString } from '../../utils/helpers';
 
 // --- Component Props ---
 
@@ -62,6 +64,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
           </div>
           <div> {/* Group creation date */}
             <span className="meta-label">Created:</span>
+            {/* Use formatDateTime for tooltip, formatDate for display */}
             <span className="meta-value" title={formatDateTime(ticket.createdAt)}>
                 {formatDate(ticket.createdAt)}
             </span>
@@ -88,7 +91,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
         </div>
       )}
 
-      {/* Footer Action: View Ticket Button */}
+      {/* Footer Action: View Ticket Button (Optional) */}
       {/* <footer className="ticket-footer">
           <Link to={`/tickets/${ticket.id}`} className="view-ticket-btn">
             View Details

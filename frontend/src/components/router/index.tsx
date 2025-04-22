@@ -8,9 +8,9 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 // --- Layout Components ---
-import MainLayout from '../layouts/MainLayout'; // Layout for authenticated routes
-import PublicLayout from '../layouts/PublicLayout'; // Layout for public routes
-import AuthLayout from '../layouts/AuthLayout'; // Layout for login/auth routes
+import MainLayout from '../../layouts/MainLayout'; // Adjusted path for authenticated routes
+import PublicLayout from '../../layouts/PublicLayout'; // Layout for public routes
+import AuthLayout from '../../layouts/AuthLayout'; // Layout for login/auth routes
 
 // --- Route Protection ---
 import ProtectedRoute from './ProtectedRoute'; // Component to guard private routes
@@ -18,24 +18,24 @@ import AdminRoute from './AdminRoute'; // Component to guard admin-only routes
 
 // --- Page Components ---
 // Public Pages
-import HomePage from '../pages/public/HomePage';
-import FAQPage from '../pages/public/FAQPage';
-import CreateTicketPage from '../pages/public/CreateTicketPage';
+import HomePage from '../../pages/public/HomePage';
+import FAQPage from '../../pages/public/FAQPage';
+import CreateTicketPage from '../../pages/public/CreateTicketPage';
 // Auth Pages
-import LoginPage from '../pages/auth/LoginPage';
+import LoginPage from '../../pages/auth/LoginPage';
 // Dashboard Pages (Authenticated)
-import DashboardPage from '../pages/dashboard/DashboardPage';
-import TicketsPage from '../pages/dashboard/TicketsPage';
-import TicketDetailPage from '../pages/dashboard/TicketDetailPage';
-import TasksPage from '../pages/dashboard/TasksPage';
-import TaskDetailPage from '../pages/dashboard/TaskDetailPage';
-import ProfilePage from '../pages/dashboard/ProfilePage';
+import DashboardPage from '../../pages/dashboard/DashboardPage';
+import TicketsPage from '../../pages/dashboard/TicketsPage';
+import TicketDetailPage from '../../pages/dashboard/TicketDetailPage';
+import TasksPage from '../../pages/dashboard/TasksPage';
+import TaskDetailPage from '../../pages/dashboard/TaskDetailPage';
+import ProfilePage from '../../pages/dashboard/ProfilePage';
 // Admin Pages
-import UsersPage from '../pages/dashboard/UsersPage';
-import UserFormPage from '../pages/dashboard/UserFormPage';
-import SettingsPage from '../pages/dashboard/SettingsPage';
+import UsersPage from '../../pages/dashboard/UsersPage';
+import UserFormPage from '../../pages/dashboard/UserFormPage';
+import SettingsPage from '../../pages/dashboard/SettingsPage';
 // Other
-import NotFoundPage from '../pages/NotFoundPage'; // 404 Page
+import NotFoundPage from '../../pages/NotFoundPage'; // 404 Page
 
 // --- Router Component ---
 

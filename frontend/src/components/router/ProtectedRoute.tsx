@@ -3,18 +3,20 @@
 // Route guard component. Checks if a user is authenticated.
 // If authenticated, renders the child components (usually a Layout + Outlet).
 // If not authenticated, redirects to the login page.
+// Fixed children prop type.
 // ==========================================================================
 
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth'; // Auth context hook
+import { useAuth } from '../../hooks/useAuth'; // Auth context hook
 import Loader from '../common/Loader'; // Loader component
 
 // --- Component Props ---
 
 interface ProtectedRouteProps {
     /** The child elements to render if the user is authenticated. */
-    children: React.ReactElement;
+    // FIX: Change type from React.ReactElement to React.ReactNode
+    children: React.ReactNode;
 }
 
 // --- Component ---
@@ -43,7 +45,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
     // 2. If authenticated, render the requested child route/component
     if (isAuthenticated) {
-    return children;
+    // Render children (can be one or more elements wrapped in Fragment implicitly)
+    return <>{children}</>;
     }
 
     // 3. If not authenticated, redirect to login page

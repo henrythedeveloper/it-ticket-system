@@ -6,10 +6,10 @@
 
 import React from 'react';
 import { Outlet, Link, NavLink } from 'react-router-dom'; // Renders nested routes & Links
-import Footer from '../common/Footer'; // Common Footer component
-import Button from '../common/Button'; // Common Button component
-import { useAuth } from '../../hooks/useAuth'; // Auth hook to show correct button
-import { useTheme } from '../../hooks/useTheme'; // Theme hook for toggle button
+import Footer from '../components/common/Footer'; // Common Footer component
+import Button from '../components/common/Button'; // Common Button component
+import { useAuth } from '../hooks/useAuth'; // Auth hook to show correct button
+import { useTheme } from '../hooks/useTheme'; // Theme hook for toggle button
 import { Home, HelpCircle, Send, LogIn, LayoutDashboard, Sun, Moon } from 'lucide-react'; // Icons
 
 // --- Component ---

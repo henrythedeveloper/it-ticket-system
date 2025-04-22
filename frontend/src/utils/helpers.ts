@@ -1,6 +1,7 @@
 // src/utils/helpers.ts
 // ==========================================================================
 // General utility functions used across the application.
+// Updated buildQueryString type.
 // ==========================================================================
 
 import { format, parseISO, differenceInDays, formatDistanceToNow } from 'date-fns';
@@ -165,12 +166,14 @@ export const debounce = <T extends (...args: any[]) => void>(func: T, delay: num
 
 /**
  * Creates a URL query string from an object of parameters, filtering out null/undefined values.
- * @param params - An object containing query parameters.
+ * @param params - An object containing query parameters. Accepts any object with string keys.
  * @returns A URL query string (e.g., "?status=Open&page=1").
  */
-export const buildQueryString = (params: Record<string, string | number | boolean | undefined | null>): string => {
+// FIX: Changed parameter type to Record<string, any> for more flexibility
+export const buildQueryString = (params: Record<string, any>): string => {
     const query = Object.entries(params)
-        .filter(([_, value]) => value !== null && value !== undefined && value !== '') // Filter out empty/null values
+        // Filter out null, undefined, or empty string values before encoding
+        .filter(([_, value]) => value !== null && value !== undefined && value !== '')
         .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
         .join('&');
     return query ? `?${query}` : '';

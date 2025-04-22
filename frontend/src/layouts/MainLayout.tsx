@@ -6,9 +6,9 @@
 
 import React from 'react';
 import { Outlet } from 'react-router-dom'; // Renders nested routes
-import Header from '../common/Header'; // Application header
-import Sidebar from '../common/Sidebar'; // Application sidebar
-import { useSidebar } from '../../hooks/useSidebar'; // Hook to get sidebar state
+import Header from '../components/common/Header'; // Application header
+import Sidebar from '../components/common/Sidebar'; // Application sidebar
+import { useSidebar } from '../hooks/useSidebar'; // Hook to get sidebar state
 
 // --- Component ---
 
