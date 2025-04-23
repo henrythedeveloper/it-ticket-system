@@ -2,11 +2,13 @@
 // ==========================================================================
 // Main SCSS entry point. Imports variables, mixins, components, layouts,
 // and page-specific styles. Defines global styles and theme overrides.
+// **UPDATED: Dark mode overrides now use the $themes map.**
 // ==========================================================================
 
 // --------------------------------------------------------------------------
 // Imports
 // --------------------------------------------------------------------------
+@use 'sass:map'; // Import sass:map to access the theme map
 @use 'variables' as *; // Core design tokens and CSS variable definitions
 @use 'mixins';         // Reusable SCSS mixins
 
@@ -110,12 +112,13 @@ ul, ol {
 .btn {
     @include mixins.button-base; // Apply base button styles
     // Default to primary variant
-    @include mixins.button-variant(--primary-color, --text-inverted, --primary-dark);
+    @include mixins.button-variant(--primary, --text-inverted, --primary-dark); // Use semantic var names
 
     // Define variants by extending or using mixins in component styles
-    &.btn-secondary { @include mixins.button-variant(--secondary-color, --text-inverted, --secondary-dark); }
-    &.btn-danger { @include mixins.button-variant(--error-color, $white, darken($red-500, 10%)); } // Danger text often stays white
-    &.btn-outline { @include mixins.button-outline-variant(--primary-color, --text-inverted); }
+    &.btn-secondary { @include mixins.button-variant(--secondary, --text-inverted, --secondary-dark); } // Use semantic var names
+    // FIX: Use CSS variable for error color text (likely --text-inverted or a specific light color)
+    &.btn-danger { @include mixins.button-variant(--error, var(--text-inverted), darken(map-get($themes, light, error), 10%)); } // Use CSS var for text, adjust darken if needed
+    &.btn-outline { @include mixins.button-outline-variant(--primary, --text-inverted); } // Use semantic var names
     &.btn-sm { padding: $spacing-2 $spacing-4; font-size: $font-size-sm; }
     &.btn-lg { padding: $spacing-4 $spacing-8; font-size: $font-size-lg; }
     &.loading { @include mixins.button-loading; } // Apply loading mixin
@@ -135,17 +138,18 @@ table {
 .alert {
   padding: $spacing-4; border-radius: $border-radius; margin-bottom: $spacing-4;
   border-width: 1px; border-style: solid;
-  &.alert-info { background-color: rgba(var(--info-color), 0.1); color: var(--info-color); border-color: rgba(var(--info-color), 0.2); }
-  &.alert-success { background-color: rgba(var(--success-color), 0.1); color: var(--success-color); border-color: rgba(var(--success-color), 0.2); }
-  &.alert-warning { background-color: rgba(var(--warning-color), 0.1); color: var(--warning-color); border-color: rgba(var(--warning-color), 0.2); }
-  &.alert-error { background-color: rgba(var(--error-color), 0.1); color: var(--error-color); border-color: rgba(var(--error-color), 0.2); }
+  // Use CSS variables directly for alpha colors if defined, otherwise use rgba with theme color vars
+  &.alert-info { background-color: rgba(var(--info), 0.1); color: var(--info); border-color: rgba(var(--info), 0.2); }
+  &.alert-success { background-color: rgba(var(--success), 0.1); color: var(--success); border-color: rgba(var(--success), 0.2); }
+  &.alert-warning { background-color: rgba(var(--warning), 0.1); color: var(--warning); border-color: rgba(var(--warning), 0.2); }
+  &.alert-error { background-color: rgba(var(--error), 0.1); color: var(--error); border-color: rgba(var(--error), 0.2); }
 }
 
 /* Loaders */
 .loader { /* Spinner styles */
   display: inline-block; width: 40px; height: 40px;
-  border: 3px solid rgba(var(--primary-color), 0.3); border-radius: 50%;
-  border-top-color: var(--primary-color); animation: spin 1s ease-in-out infinite;
+  border: 3px solid rgba(var(--primary), 0.3); border-radius: 50%; // Use primary alpha
+  border-top-color: var(--primary); animation: spin 1s ease-in-out infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 .loading { /* Loading container */
@@ -155,74 +159,22 @@ table {
 }
 
 /* Error and Success Messages */
-.error-message { background-color: var(--badge-error-bg-alpha); color: var(--error-color); padding: $spacing-3; border-radius: $border-radius; margin-bottom: $spacing-4; border: 1px solid rgba(var(--error-color), 0.3); }
-.success-message { background-color: var(--badge-success-bg-alpha); color: var(--success-color); padding: $spacing-3; border-radius: $border-radius; margin-bottom: $spacing-4; border: 1px solid rgba(var(--success-color), 0.3); }
+// Use CSS variables directly for alpha colors if defined, otherwise use rgba
+.error-message { background-color: rgba(var(--error), 0.1); color: var(--error); padding: $spacing-3; border-radius: $border-radius; margin-bottom: $spacing-4; border: 1px solid rgba(var(--error), 0.3); }
+.success-message { background-color: rgba(var(--success), 0.1); color: var(--success); padding: $spacing-3; border-radius: $border-radius; margin-bottom: $spacing-4; border: 1px solid rgba(var(--success), 0.3); }
 
 // --------------------------------------------------------------------------
 // Dark Mode Overrides
 // --------------------------------------------------------------------------
 body.dark-mode {
-  // Override CSS variables using base palette SCSS variables
-  --primary-color: #{$sky-500};
-  --primary-light: #{$sky-600};
-  --primary-dark: #{$sky-400};
-  --secondary-color: #{$teal-500};
-  --secondary-light: #{$teal-600};
-  --secondary-dark: #{$teal-400};
-  --accent-color: #{$violet-400};
-  --accent-light: #{$violet-500};
-  --accent-dark: #{$violet-300};
-
-  --body-bg: #{$gray-900};
-  --surface-bg: #{$gray-800};
-  --surface-alt-bg: #{$gray-700};
-
-  --text-primary: #{$gray-100};
-  --text-secondary: #{$gray-300};
-  --text-muted: #{$gray-400};
-  --text-inverted: #{$gray-900};
-  --text-link: #{$sky-500};
-  --text-link-hover: #{$sky-400};
-
-  --border-color: #{$gray-700};
-  --border-color-strong: #{$gray-600};
-
-  --success-color: #{$teal-400};
-  --error-color: #{$red-400};
-  --warning-color: #{$amber-400};
-  --info-color: #{$sky-400};
-
-  --status-unassigned-color: #{$amber-400};
-  --status-assigned-color: #{$sky-400};
-  --status-progress-color: #{$violet-400};
-  --status-closed-color: #{$teal-400};
-
-  --urgency-low-color: #{$teal-400};
-  --urgency-medium-color: #{$sky-400};
-  --urgency-high-color: #{$amber-400};
-  --urgency-critical-color: #{$red-400};
-
-  // Component Specific Overrides
-  --header-bg: var(--surface-bg);
-  --header-text: var(--text-primary);
-  --sidebar-bg: $gray-900;
-  --sidebar-text: $gray-300;
-  --sidebar-text-hover: $white;
-  --sidebar-active-bg: rgba($sky-500, 0.15);
-  --sidebar-active-border: $sky-500;
-  --footer-bg: $gray-900;
-  --footer-text: $gray-400;
-  --footer-link: $gray-300;
-  --footer-link-hover: $white;
-
-  // Badge Background Alphas (Use updated dark mode colors)
-  --badge-info-bg-alpha: rgba(var(--info-color), 0.15);
-  --badge-success-bg-alpha: rgba(var(--success-color), 0.15);
-  --badge-warning-bg-alpha: rgba(var(--warning-color), 0.15);
-  --badge-error-bg-alpha: rgba(var(--error-color), 0.15);
+  // --- Override CSS variables using the $themes map ---
+  // Loop through the 'dark' theme map and set the corresponding CSS variable
+  @each $key, $value in map.get($themes, dark) {
+    --#{$key}: #{$value};
+  }
 
   // --- Global Dark Mode Element Adjustments ---
-  // Selectors inside body.dark-mode ensure these only apply when dark mode is active
+  // These adjustments might still be needed if they go beyond simple color variable swaps
   a { color: var(--text-link); &:hover { color: var(--text-link-hover); } }
   h1, h2, h3, h4, h5, h6 { color: var(--text-primary); }
   table th { background-color: var(--surface-alt-bg); color: var(--text-primary); border-bottom-color: var(--border-color); }
@@ -230,18 +182,19 @@ body.dark-mode {
   table tr:hover td { background-color: var(--surface-alt-bg); }
   .card { background-color: var(--surface-bg); box-shadow: none; border: 1px solid var(--border-color); }
 
-  // Alerts
+  // Alerts (rely on the overridden CSS variables)
   .alert {
-      &.alert-info { background-color: rgba(var(--info-color), 0.15); color: var(--info-color); border-color: rgba(var(--info-color), 0.3); }
-      &.alert-success { background-color: rgba(var(--success-color), 0.15); color: var(--success-color); border-color: rgba(var(--success-color), 0.3); }
-      &.alert-warning { background-color: rgba(var(--warning-color), 0.15); color: var(--warning-color); border-color: rgba(var(--warning-color), 0.3); }
-      &.alert-error { background-color: rgba(var(--error-color), 0.15); color: var(--error-color); border-color: rgba(var(--error-color), 0.3); }
+      &.alert-info { background-color: rgba(var(--info), 0.15); color: var(--info); border-color: rgba(var(--info), 0.3); }
+      &.alert-success { background-color: rgba(var(--success), 0.15); color: var(--success); border-color: rgba(var(--success), 0.3); }
+      &.alert-warning { background-color: rgba(var(--warning), 0.15); color: var(--warning); border-color: rgba(var(--warning), 0.3); }
+      &.alert-error { background-color: rgba(var(--error), 0.15); color: var(--error); border-color: rgba(var(--error), 0.3); }
   }
-  // Disabled form elements
+
+  // Disabled form elements (using hardcoded values for better control in dark mode)
   input:disabled, select:disabled, textarea:disabled, button:disabled {
-      background-color: $gray-700 !important;
-      color: $gray-500 !important;
-      border-color: $gray-600 !important;
+      background-color: #374151 !important; // $gray-700
+      color: #6b7280 !important;        // $gray-500
+      border-color: #4b5563 !important;   // $gray-600
       cursor: not-allowed !important;
       opacity: 0.7 !important;
     }

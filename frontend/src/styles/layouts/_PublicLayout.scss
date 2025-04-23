@@ -2,10 +2,12 @@
 // ==========================================================================
 // Styles for the public-facing layout (Homepage, FAQ, Create Ticket).
 // Includes side navigation and footer.
+// **FIXED: Removed hardcoded fallback colors, now using only CSS variables.**
 // ==========================================================================
 
 @use '../variables' as *;
 @use '../mixins'; // For buttons
+@use 'sass:math'; // For calculations
 
 // --- Sticky Theme Toggle Button ---
 .theme-toggle-sticky {
@@ -31,14 +33,14 @@
   }
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.4);
+    box-shadow: 0 0 0 3px rgba(var(--primary), 0.4); // Use primary color alpha
   }
 }
 
 // --- Main Layout Container ---
 .public-layout {
   display: flex; // Use flex for sidebar + content layout
-  flex-direction: row; // Default row layout
+  flex-direction: row;
   min-height: 100vh;
   background-color: var(--body-bg);
 
@@ -49,11 +51,14 @@
     box-shadow: $shadow;
     padding: $spacing-4;
     position: fixed; // Fixed position
+    left: 0;
+    top: 0;
     height: 100vh;
     display: flex;
     flex-direction: column;
     border-right: 1px solid var(--border-color);
     transition: background-color $transition-medium, border-color $transition-medium;
+    z-index: $z-index-fixed; // Ensure sidebar is on top
 
     // Logo container
     .logo-container {
@@ -62,9 +67,10 @@
       transition: border-color $transition-medium;
       .logo {
         font-size: $font-size-xl; font-weight: $font-weight-bold;
-        color: var(--primary-color); text-decoration: none;
+        color: var(--primary); // Use theme variable
+        text-decoration: none;
         transition: color $transition-fast;
-        &:hover { color: var(--primary-dark); }
+        &:hover { color: var(--primary-dark); } // Use theme variable
       }
     }
 
@@ -79,7 +85,10 @@
           font-weight: $font-weight-medium; border-radius: $border-radius;
           transition: all $transition-fast;
           .icon { margin-right: $spacing-3; font-size: $font-size-xl; }
-          &:hover { color: var(--primary-color); background-color: rgba(var(--primary-color), 0.1); }
+          &:hover, &.active { // Style for hover and active NavLink
+            color: var(--primary);
+            background-color: rgba(var(--primary), 0.1); // Use theme variable alpha
+          }
         }
       }
     }
@@ -89,7 +98,7 @@
       padding-top: $spacing-4; border-top: 1px solid var(--border-color);
       transition: border-color $transition-medium;
       .login-btn, .dashboard-btn {
-        ; // Use global button base styles
+        // Use global button base styles
         width: 100%; padding: $spacing-3; // Adjust padding
         display: flex; align-items: center; justify-content: center;
         .icon { margin-right: $spacing-2; }
@@ -97,26 +106,32 @@
     }
   } // End .side-nav
 
-  // --- Main Content Area ---
-  main.public-content {
-    flex-grow: 1; // Take remaining width
-    padding: $spacing-8; // Add padding around content
+  // --- Container for Content + Footer ---
+  .content-footer-wrapper {
+    display: flex;
+    flex-direction: column; // Stack content on top of footer
+    min-height: 100vh;     // Ensure wrapper takes full viewport height
+    flex-grow: 1;          // Allow wrapper to take remaining space
     margin-left: $sidebar-width; // Offset by sidebar width
     width: calc(100% - #{$sidebar-width}); // Calculate remaining width
-    display: flex; // Use flex to make footer stick to bottom if content is short
-    flex-direction: column;
-    min-height: 100vh; // Ensure it takes full height for footer positioning
+    transition: margin-left $transition-medium, width $transition-medium;
+  }
+
+  // --- Main Content Area ---
+  main.public-content {
+    flex-grow: 1; // Allow content to push footer down
+    padding: $spacing-8; // Add padding around content
   }
 
   // --- Footer ---
   .public-footer {
-    margin-left: $sidebar-width; // Offset by sidebar width
+    // **FIX:** Use CSS variables directly without fallbacks
     background-color: var(--footer-bg);
     color: var(--footer-text);
     padding: $spacing-8 $spacing-6;
     font-size: $font-size-sm;
     transition: background-color $transition-medium, color $transition-medium;
-    margin-top: auto; // Push footer to bottom
+    flex-shrink: 0; // Prevent footer from shrinking
 
     // Footer content grid
     .footer-content {
@@ -127,9 +142,11 @@
       .footer-section {
         flex: 1; min-width: 200px;
         h3 { color: var(--text-inverted); font-size: $font-size-lg; margin-bottom: $spacing-4; font-weight: $font-weight-semibold; }
+        // **FIX:** Use CSS variable directly without fallback
         p { color: var(--footer-text); font-size: $font-size-sm; margin-bottom: $spacing-2; line-height: 1.6; }
         ul { list-style: none; padding: 0; margin: 0;
           li { margin-bottom: $spacing-2;
+            // **FIX:** Use CSS variables directly without fallbacks
             a { color: var(--footer-link); text-decoration: none; transition: color $transition-fast;
               &:hover { color: var(--footer-link-hover); text-decoration: underline; }
             }
@@ -151,23 +168,23 @@
 // --- Responsive Adjustments ---
 @media (max-width: $breakpoint-md) {
   .public-layout {
-    flex-direction: column; // Stack content and footer vertically
+    // No change needed for main layout direction
 
     .side-nav {
-        display: none; // Hide sidebar on smaller screens (consider a toggle)
+        display: none; // Hide sidebar on smaller screens
+    }
+
+    .content-footer-wrapper {
+        margin-left: 0; // Remove margin
+        width: 100%; // Full width
     }
 
     main.public-content {
-      margin-left: 0; // Remove margin
-      width: 100%; // Full width
       padding: $spacing-6 $spacing-4; // Adjust padding
-      min-height: calc(100vh - 100px); // Adjust height calculation if footer height is known/fixed
     }
 
     .public-footer {
-      margin-left: 0; // Remove margin
       padding: $spacing-6 $spacing-4; // Adjust padding
-      // Footer content already flex-wraps, might need text-align center if desired
       .footer-content { text-align: center; }
     }
 

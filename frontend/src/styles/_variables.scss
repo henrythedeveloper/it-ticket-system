@@ -2,169 +2,130 @@
 // ==========================================================================
 // Defines the core design tokens for the application, including:
 // 1. Base color palette (raw color values).
-// 2. Semantic SCSS variables for light mode (derived from the base palette).
-// 3. CSS custom properties (:root) for light mode (based on semantic SCSS vars).
+// 2. Theme map for light and dark modes.
+// 3. CSS custom properties (:root) derived from the theme map.
 // 4. Non-color SCSS variables (typography, spacing, layout, etc.).
-// Dark mode CSS variables are overridden in global.scss using the base palette.
 // ==========================================================================
 
 // --------------------------------------------------------------------------
-// Base Color Definitions
+// Base Color Definitions (Optional, can be directly in themes)
 // --------------------------------------------------------------------------
-// Raw color values used to build the theme palettes.
-$sky-400: #7DD3FC;
-$sky-500: #38bdf8;
-$sky-600: #0ea5e9;
-$sky-700: #0284c7;
-
-$teal-400: #5EEAD4;
-$teal-500: #2dd4bf;
-$teal-600: #0d9488;
-$teal-700: #0f766e;
-
-$violet-300: #C4B5FD;
-$violet-400: #a78bfa;
-$violet-500: #8b5cf6;
-$violet-600: #7c3aed;
-
-$gray-50: #f9fafb;
-$gray-100: #f3f4f6;
-$gray-200: #e5e7eb;
-$gray-300: #d1d5db;
-$gray-400: #9ca3af;
-$gray-500: #6b7280;
-$gray-600: #4b5563;
-$gray-700: #374151;
-$gray-800: #1f2937;
-$gray-900: #111827;
-
-$amber-400: #fbbf24;
-$amber-500: #f59e0b;
-
-$red-400: #f87171;
-$red-500: #ef4444;
-
-$white: #ffffff;
-$black: #000000;
+// You can keep raw color definitions here if you reuse them outside themes,
+// or define them directly within the $themes map below.
 
 // --------------------------------------------------------------------------
-// SCSS Variables (Light Mode Defaults - Semantic)
+// Theme Map
 // --------------------------------------------------------------------------
-// These variables give semantic meaning to the base colors for the light theme.
-// They are used to define the default CSS custom properties in :root.
-$primary-color: $sky-600;
-$primary-light: $sky-500;
-$primary-dark: $sky-700;
+// Defines light and dark theme palettes using semantic names.
+$themes: (
+  light: (
+    // Text Colors
+    text-primary: #080c09,      // Primary text (dark)
+    text-secondary: #4b5563,    // Secondary text (slightly lighter gray)
+    text-muted: #6b7280,        // Muted text (gray)
+    text-inverted: #f3f7f4,     // Text on dark backgrounds (light)
+    text-link: #6f9f76,         // Link color (primary)
+    text-link-hover: #609067,   // Link hover color (darker primary)
 
-$secondary-color: $teal-600;
-$secondary-light: $teal-500;
-$secondary-dark: $teal-700;
+    // Background Colors
+    body-bg: #f3f7f4,           // Main background (light)
+    surface-bg: #ffffff,        // Card/surface background (white)
+    surface-alt-bg: #e5e7eb,    // Alternate surface (light gray)
 
-$accent-color: $violet-500;
-$accent-light: $violet-400;
-$accent-dark: $violet-600;
+    // Border Colors
+    border-color: #d1d5db,      // Default border (gray)
+    border-color-strong: #9ca3af, // Stronger border (darker gray)
 
-$body-bg: $gray-100;
-$surface-bg: $white;
-$surface-alt-bg: $gray-50;
+    // Theme Accent Colors (Using provided palette)
+    primary: #6f9f76,           // Primary action color
+    primary-light: #88b78e,     // Lighter primary (derived or specified)
+    primary-dark: #609067,      // Darker primary
+    secondary: #a6c1c4,         // Secondary action color
+    secondary-light: #c1d7d9,   // Lighter secondary (derived or specified)
+    secondary-dark: #8faab0,    // Darker secondary
+    accent: #889eaf,            // Accent color
+    accent-light: #a3b8c4,      // Lighter accent (derived or specified)
+    accent-dark: #6d849a,       // Darker accent
 
-$text-primary: $gray-900;
-$text-secondary: $gray-700;
-$text-muted: $gray-500;
-$text-inverted: $white;
+    // State Colors (Derive or specify based on theme)
+    success: #10b981,           // Example success color (green)
+    error: #ef4444,             // Example error color (red)
+    warning: #f59e0b,           // Example warning color (amber)
+    info: #3b82f6,              // Example info color (blue)
 
-$border-color: $gray-200;
-$border-color-strong: $gray-300;
+    // Component Specific (Examples)
+    header-bg: var(--surface-bg),
+    sidebar-bg: #1f2937,        // Example dark sidebar
+    footer-bg: #374151,         // Example dark footer
+  ),
+  dark: (
+    // Text Colors
+    text-primary: #f3f7f4,      // Primary text (light)
+    text-secondary: #d1d5db,    // Secondary text (lighter gray)
+    text-muted: #9ca3af,        // Muted text (gray)
+    text-inverted: #080c09,     // Text on light backgrounds (dark)
+    text-link: #6f9f76,         // Link color (primary - same as light?)
+    text-link-hover: #88b78e,   // Link hover color (lighter primary)
 
-$status-unassigned: $amber-500;
-$status-assigned: $primary-light;
-$status-progress: $accent-light;
-$status-closed: $secondary-light;
+    // Background Colors
+    body-bg: #080c09,           // Main background (dark)
+    surface-bg: #1f2937,        // Card/surface background (dark gray)
+    surface-alt-bg: #374151,    // Alternate surface (lighter dark gray)
 
-$urgency-low: $secondary-light;
-$urgency-medium: $primary-light;
-$urgency-high: $amber-500;
-$urgency-critical: $red-500;
+    // Border Colors
+    border-color: #4b5563,      // Default border (dark gray)
+    border-color-strong: #6b7280, // Stronger border (lighter dark gray)
 
-$success-color: $secondary-color;
-$error-color: $red-500;
-$warning-color: $amber-500;
-$info-color: $primary-color;
+    // Theme Accent Colors (Using provided palette)
+    primary: #609067,           // Primary action color (darker variant)
+    primary-light: #6f9f76,     // Lighter primary (original light primary)
+    primary-dark: #517a57,      // Darker primary (derived or specified)
+    secondary: #3b5659,         // Secondary action color (darker variant)
+    secondary-light: #507579,   // Lighter secondary (derived or specified)
+    secondary-dark: #2c4144,    // Darker secondary
+    accent: #506677,            // Accent color (darker variant)
+    accent-light: #6d849a,      // Lighter accent (derived or specified)
+    accent-dark: #3a4c5a,       // Darker accent
+
+    // State Colors (Adjust for dark mode contrast)
+    success: #34d399,           // Example success color (lighter green)
+    error: #f87171,             // Example error color (lighter red)
+    warning: #fbbf24,           // Example warning color (lighter amber)
+    info: #60a5fa,              // Example info color (lighter blue)
+
+    // Component Specific (Examples)
+    header-bg: var(--surface-bg),
+    sidebar-bg: #111827,        // Example dark sidebar
+    footer-bg: #1f2937,         // Example dark footer
+  )
+);
 
 // --------------------------------------------------------------------------
-// CSS Custom Properties (:root - Light Mode Defaults)
+// Function to Get Theme Variable
 // --------------------------------------------------------------------------
-// Defines the CSS variables available globally, defaulted to the light theme.
-// Dark mode overrides these variables within the `body.dark-mode` scope in global.scss.
-:root {
-  // Theme Colors
-  --primary-color: #{$primary-color};
-  --primary-light: #{$primary-light};
-  --primary-dark: #{$primary-dark};
-  --secondary-color: #{$secondary-color};
-  --secondary-light: #{$secondary-light};
-  --secondary-dark: #{$secondary-dark};
-  --accent-color: #{$accent-color};
-  --accent-light: #{$accent-light};
-  --accent-dark: #{$accent-dark};
-
-  // Backgrounds & Surfaces
-  --body-bg: #{$body-bg};
-  --surface-bg: #{$surface-bg};
-  --surface-alt-bg: #{$surface-alt-bg};
-
-  // Text Colors
-  --text-primary: #{$text-primary};
-  --text-secondary: #{$text-secondary};
-  --text-muted: #{$text-muted};
-  --text-inverted: #{$text-inverted};
-  --text-link: #{$primary-color};
-  --text-link-hover: #{$primary-dark};
-
-  // Border Colors
-  --border-color: #{$border-color};
-  --border-color-strong: #{$border-color-strong};
-
-  // State Colors
-  --success-color: #{$success-color};
-  --error-color: #{$error-color};
-  --warning-color: #{$warning-color};
-  --info-color: #{$info-color};
-
-  // Status Colors (Used for badges etc., often with alpha)
-  --status-unassigned-color: #{$status-unassigned};
-  --status-assigned-color: #{$status-assigned};
-  --status-progress-color: #{$status-progress};
-  --status-closed-color: #{$status-closed};
-
-  // Urgency Colors (Used for badges etc., often with alpha)
-  --urgency-low-color: #{$urgency-low};
-  --urgency-medium-color: #{$urgency-medium};
-  --urgency-high-color: #{$urgency-high};
-  --urgency-critical-color: #{$urgency-critical};
-
-  // Component Specific Defaults (Examples)
-  --header-bg: var(--surface-bg);
-  --header-text: var(--text-primary);
-  --sidebar-bg: #{$gray-900}; // Sidebar is dark even in light mode
-  --sidebar-text: #{$gray-300};
-  --sidebar-text-hover: #{$white};
-  --sidebar-active-bg: rgba(var(--primary-color), 0.1); // Use CSS var for alpha
-  --sidebar-active-border: #{$primary-color};
-  --footer-bg: #{$gray-800}; // Footer is dark even in light mode
-  --footer-text: #{$gray-300};
-  --footer-link: #{$gray-300};
-  --footer-link-hover: #{$white};
-
-  // Pre-defined Alpha Backgrounds for Badges (Optional, but convenient)
-  --badge-info-bg-alpha: rgba(56, 189, 248, 0.1); // Example: Using base color value
-  --badge-success-bg-alpha: rgba(13, 148, 136, 0.1);
-  --badge-warning-bg-alpha: rgba(245, 158, 11, 0.1);
-  --badge-error-bg-alpha: rgba(239, 68, 68, 0.1);
+// Helper function to access theme variables easily.
+@function theme-var($key) {
+  // This function is primarily useful if you need SCSS logic based on theme vars.
+  // For direct CSS output, using CSS variables is preferred.
+  // Example usage: color: theme-var(text-primary);
+  // This requires more setup to dynamically switch themes with SCSS alone.
+  // It's generally better to output CSS variables as shown below.
+  @return var(--#{$key}); // Returns the CSS variable reference
 }
 
-// --- REMOVED Dark Mode Semantic SCSS Variables ---
-// Dark mode overrides are now handled directly in global.scss
+// --------------------------------------------------------------------------
+// Generate CSS Custom Properties from Theme Map
+// --------------------------------------------------------------------------
+// Creates the :root variables based on the light theme map.
+:root {
+  @each $key, $value in map-get($themes, light) {
+    --#{$key}: #{$value};
+  }
+  // Add derived alpha colors if needed (example)
+  --primary-alpha-10: rgba(var(--primary), 0.1);
+}
+
+// Dark mode overrides are generated in global.scss using `body.dark-mode` selector
 
 // --------------------------------------------------------------------------
 // Non-Color Variables

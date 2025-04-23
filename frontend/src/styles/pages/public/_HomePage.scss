@@ -2,6 +2,7 @@
 // ==========================================================================
 // Styles specific to the public Home page.
 // Includes Hero, Features, How It Works, and CTA sections.
+// **FIXED: Replaced hardcoded #ffffff with theme variable var(--text-inverted).**
 // ==========================================================================
 
 @use '../../variables' as *;
@@ -15,7 +16,7 @@
   // --- Hero Section ---
   .hero {
     // Gradient background - consider adjusting colors for dark mode if needed
-    background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary)); // Use CSS vars
     color: var(--text-inverted); // Text on dark background
     padding: $spacing-16 $spacing-6; // Generous padding
     text-align: center;
@@ -33,13 +34,15 @@
           font-weight: $font-weight-semibold; transition: all $transition-fast; text-decoration: none;
           // Primary button style (inverted for hero)
           &.btn-primary {
-            background-color: $white; color: var(--primary-dark); // White bg, dark text
-            &:hover { background-color: rgba($white, 0.9); transform: translateY(-2px); }
+            // FIX: Use CSS variable for white background
+            background-color: var(--text-inverted); color: var(--primary-dark);
+            &:hover { background-color: rgba(255, 255, 255, 0.9); transform: translateY(-2px); } // Keep rgba for hover effect
           }
           // Outline button style (inverted for hero)
           &.btn-outline {
-            border: 2px solid $white; color: var(--text-inverted); // White border/text
-            &:hover { background-color: rgba($white, 0.1); transform: translateY(-2px); }
+            // FIX: Use CSS variable for white border/text
+            border: 2px solid var(--text-inverted); color: var(--text-inverted);
+            &:hover { background-color: rgba(255, 255, 255, 0.1); transform: translateY(-2px); } // Keep rgba for hover effect
           }
         }
       }
@@ -60,8 +63,8 @@
         padding: $spacing-6; // Adjust padding
         transition: transform $transition-medium, box-shadow $transition-medium, background-color $transition-medium, border-color $transition-medium;
         &:hover { transform: translateY(-5px); box-shadow: $shadow-lg; border-color: var(--border-color-strong); }
-        .feature-icon { font-size: 2.5rem; margin-bottom: $spacing-4; color: var(--primary-color); }
-        h3 { font-size: $font-size-xl; margin-bottom: $spacing-3; color: var(--primary-dark); transition: color $transition-medium; }
+        .feature-icon { font-size: 2.5rem; margin-bottom: $spacing-4; color: var(--primary); } // Use CSS var
+        h3 { font-size: $font-size-xl; margin-bottom: $spacing-3; color: var(--primary-dark); transition: color $transition-medium; } // Use CSS var
         p { color: var(--text-secondary); line-height: 1.6; transition: color $transition-medium; }
       }
     }
@@ -88,7 +91,7 @@
         }
         // Numbered circle
         .step-number {
-          width: 60px; height: 60px; border-radius: 50%; background-color: var(--primary-color);
+          width: 60px; height: 60px; border-radius: 50%; background-color: var(--primary); // Use CSS var
           color: var(--text-inverted); display: flex; align-items: center; justify-content: center;
           font-size: $font-size-2xl; font-weight: $font-weight-bold; margin: 0 auto $spacing-4 auto;
           transition: background-color $transition-medium, color $transition-medium;
@@ -108,8 +111,9 @@
     h2 { font-size: $font-size-3xl; margin-bottom: $spacing-4; color: var(--text-inverted); }
     p { font-size: $font-size-lg; margin-bottom: $spacing-8; opacity: 0.9; max-width: 600px; margin-left: auto; margin-right: auto; color: var(--text-inverted); }
     .btn-primary { // CTA button style (inverted)
-      ; background-color: $white; color: var(--primary-dark);
-      &:hover { background-color: rgba($white, 0.9); transform: translateY(-2px); }
+      // FIX: Use CSS variable for white background
+      background-color: var(--text-inverted); color: var(--primary-dark);
+      &:hover { background-color: rgba(255, 255, 255, 0.9); transform: translateY(-2px); } // Keep rgba for hover effect
     }
   }
 

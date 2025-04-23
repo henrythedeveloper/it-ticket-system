@@ -1,7 +1,8 @@
-// src/components/layouts/PublicLayout.tsx
+// src/layouts/PublicLayout.tsx
 // ==========================================================================
 // Layout component for public-facing pages (e.g., Home, FAQ, Create Ticket).
 // Includes side navigation and a footer.
+// **REVISED: Wrapped Outlet and Footer in a flex container.**
 // ==========================================================================
 
 import React from 'react';
@@ -83,15 +84,19 @@ const PublicLayout: React.FC = () => {
         </div>
       </nav>
 
-      {/* Main Content Area - Nested routes render here */}
-      <main className="public-content">
-        <Outlet />
-      </main>
+      {/* **NEW:** Wrapper for main content and footer */}
+      <div className="content-footer-wrapper">
+        {/* Main Content Area - Nested routes render here */}
+        <main className="public-content">
+          <Outlet />
+        </main>
 
-      {/* Footer */}
-      <Footer />
+        {/* Footer */}
+        <Footer /> {/* Footer is now inside the wrapper */}
+      </div>
     </div>
   );
 };
 
 export default PublicLayout;
+
