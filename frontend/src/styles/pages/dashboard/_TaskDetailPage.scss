@@ -25,9 +25,6 @@
       }
       h1 { margin-bottom: 0; color: var(--text-primary); transition: color $transition-medium; }
     }
-    .header-right { // Container for edit button
-        .edit-task-btn { @extend .btn; } // Use global button styles
-    }
   }
 
   // --- Main Task Container (Card) ---
@@ -61,11 +58,10 @@
         .status-actions {
           display: flex; gap: $spacing-3;
           .start-btn, .complete-btn {
-              @extend .btn; // Use base button styles
               padding: $spacing-2 $spacing-4; font-size: $font-size-sm; // Adjust size
+              // Base button styles applied via .btn class in JSX
           }
-          .start-btn { @include mixins.button-variant(--info-color, --text-inverted, --primary-dark); } // Use info color
-          .complete-btn { @include mixins.button-variant(--success-color, --text-inverted, --secondary-dark); } // Use success color
+          // Color variants applied via Button component props or specific classes
         }
       }
 
@@ -88,16 +84,16 @@
           }
         }
       }
-    }
+    } // End .task-details
 
     // --- Task Actions Section (Assign, Delete) ---
     .task-actions {
       display: flex; gap: $spacing-3; margin-top: $spacing-6; padding-top: $spacing-6;
       border-top: 1px solid var(--border-color); transition: border-color $transition-medium;
-      button { @extend .btn; } // Use global button styles
-      .delete-btn { @extend .btn-danger; } // Use danger variant
-    }
-  }
+      // Button base styles applied via .btn class in JSX
+    } // <-- Added missing closing brace here
+
+  } // <-- Added missing closing brace here for .task-container
 
   // --- Task Updates/Comments Section ---
   .task-updates {
@@ -115,7 +111,7 @@
       flex-shrink: 0; // Prevent header from shrinking
 
       h3 { font-size: $font-size-lg; color: var(--text-primary); margin: 0; transition: color $transition-medium; }
-      .add-comment-btn { @extend .btn; padding: $spacing-2 $spacing-3; font-size: $font-size-sm; } // Smaller add button
+      .add-comment-btn { padding: $spacing-2 $spacing-3; font-size: $font-size-sm; } // Smaller add button
     }
 
     // Add Update/Comment Form
@@ -131,8 +127,6 @@
         .form-group { margin-bottom: $spacing-3; textarea { min-height: 100px; } }
         .form-actions { // Inherited styles, adjust if needed
           margin-top: $spacing-3;
-          .cancel-btn { @extend .btn; @include mixins.button-outline-variant(--text-secondary, --text-primary); border-color: var(--border-color); }
-          .submit-btn { @extend .btn; }
         }
       }
     }
@@ -187,12 +181,11 @@
         color: var(--text-muted); text-align: center; padding: $spacing-6; font-style: italic;
       }
     }
-  }
-}
+  } // End .task-updates
 
-// --- Responsive Adjustments ---
-@media (max-width: $breakpoint-md) {
-  .task-detail-page {
+  // --- Responsive Adjustments ---
+  @media (max-width: $breakpoint-md) {
+    // Styles within the media query block
     .task-container {
       padding: $spacing-4;
       .task-details {
@@ -209,5 +202,5 @@
       }
       .comment-form-container { padding: $spacing-3; }
     }
-  }
-}
+  } // End @media
+} 

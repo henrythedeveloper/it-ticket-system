@@ -111,7 +111,6 @@
         border-radius: $border-radius 0 0 $border-radius; // Adjust radius
       }
       .add-btn { // Example button class
-        @extend .btn; // Extend base button styles
         border-radius: 0 $border-radius $border-radius 0; // Adjust radius
         padding: 0 $spacing-4; // Adjust padding
       }
@@ -139,9 +138,6 @@
 
   // Specific button styles within actions if needed
   .cancel-btn { // Example cancel button style
-      @extend .btn; // Extend base button
-      // Use outline variant or specific colors
-      @include mixins.button-outline-variant(--text-secondary, --text-primary);
       border-color: var(--border-color-strong); // Use stronger border for contrast
       color: var(--text-secondary);
 
@@ -150,9 +146,6 @@
         border-color: var(--border-color-strong);
         color: var(--text-primary);
       }
-  }
-  .submit-btn { // Example submit button
-      @extend .btn; // Already primary by default .btn styles
   }
 }
 

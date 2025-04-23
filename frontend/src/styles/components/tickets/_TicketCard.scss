@@ -131,7 +131,6 @@
 
       // View Ticket Button
       .view-ticket-btn {
-        @extend .btn; // Extend base button styles defined globally
         // Apply specific overrides for this button's appearance
         background-color: var(--surface-alt-bg);
         color: var(--text-secondary);

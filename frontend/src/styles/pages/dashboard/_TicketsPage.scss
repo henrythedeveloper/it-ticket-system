@@ -25,7 +25,7 @@
     .search-form {
       display: flex; margin-bottom: $spacing-4;
       .search-input { @include mixins.form-element-base; flex: 1; border-radius: $border-radius 0 0 $border-radius; }
-      .search-button { @extend .btn; padding: $spacing-3 $spacing-5; border-radius: 0 $border-radius $border-radius 0; }
+      .search-button { padding: $spacing-3 $spacing-5; border-radius: 0 $border-radius $border-radius 0; }
     }
 
     // Dropdown filters container
@@ -36,8 +36,6 @@
         .filter-select { @include mixins.form-element-base; @include mixins.select-arrow; padding: $spacing-2; min-width: 150px; }
       }
       .clear-filters-btn { // Clear button style
-          @extend .btn;
-          @include mixins.button-outline-variant(--text-secondary, --text-primary);
           border-color: var(--border-color); padding: $spacing-2 $spacing-3;
           &:hover { background-color: var(--surface-alt-bg); }
       }
@@ -68,10 +66,6 @@
     padding: $spacing-8; border-radius: $border-radius-lg; box-shadow: $shadow;
     text-align: center; transition: background-color $transition-medium, border-color $transition-medium;
     p { color: var(--text-muted); margin-bottom: $spacing-4; }
-      .clear-filters-btn { // Button to clear filters
-        @extend .btn;
-        @include mixins.button-variant(--primary-light, --text-primary, --primary-color);
-    }
   }
 
   // --- Tickets Table Container ---

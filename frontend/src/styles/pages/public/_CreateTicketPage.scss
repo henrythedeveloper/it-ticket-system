@@ -27,10 +27,6 @@
     text-align: center; transition: background-color $transition-medium, border-color $transition-medium;
     h2 { color: var(--success-color); margin-bottom: $spacing-4; transition: color $transition-medium; }
     p { margin-bottom: $spacing-3; color: var(--text-secondary); transition: color $transition-medium; }
-    .new-ticket-btn { // Button to submit another ticket
-      @extend .btn;
-      @include mixins.button-variant(--success-color, $white, --secondary-dark); // Use success colors
-    }
   }
 
   // --- Ticket Form ---
@@ -63,10 +59,8 @@
 
     // Submit button styling
     .submit-button {
-      @extend .btn; // Use global button styles
       display: block; width: 100%; // Full width
       padding: $spacing-4; font-size: $font-size-lg; // Larger button
-      &.loading { @include mixins.button-loading; } // Apply loading state
     }
   }
 }

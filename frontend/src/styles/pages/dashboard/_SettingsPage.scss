@@ -67,7 +67,6 @@
                 border-radius: $border-radius 0 0 $border-radius;
               }
               .add-btn {
-                @extend .btn; // Use base button styles
                 border-radius: 0 $border-radius $border-radius 0;
                 padding: 0 $spacing-4; // Adjust padding
               }
@@ -105,14 +104,6 @@
       } // End .settings-section
     } // End .settings-form
   } // End .settings-container
-
-  // Form actions (Save button)
-  .form-actions {
-    // Inherited from _forms.scss
-    .submit-btn {
-        @extend .btn; // Use global button styles
-    }
-  }
 }
 
 // --- Responsive Adjustments ---

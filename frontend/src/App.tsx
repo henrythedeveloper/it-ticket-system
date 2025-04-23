@@ -4,7 +4,8 @@
 // ==========================================================================
 
 import { BrowserRouter as Router } from 'react-router-dom';
-import AppRouter from './router'; // Main application router configuration
+// Correct the import path for AppRouter
+import AppRouter from './components/router'; // Main application router configuration
 import { useTheme } from './hooks/useTheme'; // Hook to manage theme changes
 import { useEffect } from 'react';
 

@@ -224,21 +224,15 @@ body.dark-mode .form-group select {
   margin-top: 1.5rem;
 }
 .form-actions .cancel-btn {
-  background-color: transparent;
-  border: 1px solid var(--text-secondary);
-  color: var(--text-secondary);
   border-color: var(--border-color-strong);
   color: var(--text-secondary);
-}
-.form-actions .cancel-btn:hover:not(:disabled) {
-  background-color: var(--text-secondary);
-  color: var(--text-primary);
 }
 .form-actions .cancel-btn:hover {
   background-color: var(--surface-alt-bg);
   border-color: var(--border-color-strong);
   color: var(--text-primary);
 }
+
 @media (max-width: 768px) {
   .form-row {
     flex-direction: column;
@@ -247,7 +241,7 @@ body.dark-mode .form-group select {
   .form-actions {
     flex-direction: column;
   }
-  .form-actions .btn, .form-actions .form-group .input-with-button .add-btn, .form-group .input-with-button .form-actions .add-btn, .form-actions .cancel-btn, .form-actions .submit-btn {
+  .form-actions .btn {
     width: 100%;
   }
 }
@@ -256,6 +250,8 @@ body.dark-mode .form-group select {
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  padding: 1.5rem;
+  transition: background-color 300ms ease, border-color 300ms ease;
   padding: 1rem;
   margin-bottom: 1rem;
   transition: transform 150ms ease, box-shadow 150ms ease, background-color 300ms ease, border-color 300ms ease;
@@ -330,6 +326,10 @@ body.dark-mode .form-group select {
   margin-bottom: 0.75rem;
   line-height: 1.5;
   transition: color 300ms ease;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 .ticket-card .ticket-tags {
   display: flex;
@@ -346,15 +346,11 @@ body.dark-mode .form-group select {
   transition: background-color 300ms ease, color 300ms ease;
 }
 .ticket-card .view-ticket-btn {
-  display: inline-block;
   background-color: var(--surface-alt-bg);
   color: var(--text-secondary);
-  padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
-  text-decoration: none;
-  font-size: 0.875rem;
   border: 1px solid var(--border-color);
-  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
 }
 .ticket-card .view-ticket-btn:hover {
   background-color: var(--primary-color);
@@ -363,116 +359,73 @@ body.dark-mode .form-group select {
 }
 
 .status-badge, .urgency-badge {
+  display: inline-block;
   padding: 0.25rem 0.5rem;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
+  text-align: center;
   transition: background-color 300ms ease, color 300ms ease;
 }
-
-.status-badge.badge-unassigned {
-  background-color: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
+.status-badge.badge-info, .urgency-badge.badge-info {
+  background-color: var(--badge-info-bg-alpha);
+  color: var(--info-color);
 }
-.status-badge.badge-assigned {
-  background-color: rgba(56, 189, 248, 0.1);
-  color: #38bdf8;
+.status-badge.badge-success, .urgency-badge.badge-success {
+  background-color: var(--badge-success-bg-alpha);
+  color: var(--success-color);
 }
-.status-badge.badge-progress {
-  background-color: rgba(167, 139, 250, 0.1);
-  color: #a78bfa;
+.status-badge.badge-warning, .urgency-badge.badge-warning {
+  background-color: var(--badge-warning-bg-alpha);
+  color: var(--warning-color);
 }
-.status-badge.badge-closed {
-  background-color: rgba(45, 212, 191, 0.1);
-  color: #2dd4bf;
+.status-badge.badge-error, .urgency-badge.badge-error {
+  background-color: var(--badge-error-bg-alpha);
+  color: var(--error-color);
 }
-
-.urgency-badge.badge-low {
-  background-color: rgba(45, 212, 191, 0.1);
-  color: #2dd4bf;
-}
-.urgency-badge.badge-medium {
-  background-color: rgba(56, 189, 248, 0.1);
-  color: #38bdf8;
-}
-.urgency-badge.badge-high {
-  background-color: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
-}
-.urgency-badge.badge-critical {
-  background-color: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-}
-
-body.dark-mode .status-badge.badge-unassigned {
-  background-color: rgba(var(--status-unassigned-color), 0.2);
+.status-badge.badge-unassigned, .urgency-badge.badge-unassigned {
+  background-color: rgba(var(--status-unassigned-color), 0.15);
   color: var(--status-unassigned-color);
 }
-body.dark-mode .status-badge.badge-assigned {
-  background-color: rgba(var(--status-assigned-color), 0.2);
+.status-badge.badge-assigned, .urgency-badge.badge-assigned {
+  background-color: rgba(var(--status-assigned-color), 0.15);
   color: var(--status-assigned-color);
 }
-body.dark-mode .status-badge.badge-progress {
-  background-color: rgba(var(--status-progress-color), 0.2);
+.status-badge.badge-progress, .urgency-badge.badge-progress {
+  background-color: rgba(var(--status-progress-color), 0.15);
   color: var(--status-progress-color);
 }
-body.dark-mode .status-badge.badge-closed {
-  background-color: rgba(var(--status-closed-color), 0.2);
+.status-badge.badge-closed, .urgency-badge.badge-closed {
+  background-color: rgba(var(--status-closed-color), 0.15);
   color: var(--status-closed-color);
 }
-body.dark-mode .urgency-badge.badge-low {
-  background-color: rgba(var(--urgency-low-color), 0.2);
+.status-badge.badge-low, .urgency-badge.badge-low {
+  background-color: rgba(var(--urgency-low-color), 0.15);
   color: var(--urgency-low-color);
 }
-body.dark-mode .urgency-badge.badge-medium {
-  background-color: rgba(var(--urgency-medium-color), 0.2);
+.status-badge.badge-medium, .urgency-badge.badge-medium {
+  background-color: rgba(var(--urgency-medium-color), 0.15);
   color: var(--urgency-medium-color);
 }
-body.dark-mode .urgency-badge.badge-high {
-  background-color: rgba(var(--urgency-high-color), 0.2);
+.status-badge.badge-high, .urgency-badge.badge-high {
+  background-color: rgba(var(--urgency-high-color), 0.15);
   color: var(--urgency-high-color);
 }
-body.dark-mode .urgency-badge.badge-critical {
-  background-color: rgba(var(--urgency-critical-color), 0.2);
+.status-badge.badge-critical, .urgency-badge.badge-critical {
+  background-color: rgba(var(--urgency-critical-color), 0.15);
   color: var(--urgency-critical-color);
 }
-
-@media (prefers-color-scheme: dark) {
-  .status-badge.badge-unassigned {
-    background-color: rgba(var(--status-unassigned-color), 0.2);
-    color: var(--status-unassigned-color);
-  }
-  .status-badge.badge-assigned {
-    background-color: rgba(var(--status-assigned-color), 0.2);
-    color: var(--status-assigned-color);
-  }
-  .status-badge.badge-progress {
-    background-color: rgba(var(--status-progress-color), 0.2);
-    color: var(--status-progress-color);
-  }
-  .status-badge.badge-closed {
-    background-color: rgba(var(--status-closed-color), 0.2);
-    color: var(--status-closed-color);
-  }
-  .urgency-badge.badge-low {
-    background-color: rgba(var(--urgency-low-color), 0.2);
-    color: var(--urgency-low-color);
-  }
-  .urgency-badge.badge-medium {
-    background-color: rgba(var(--urgency-medium-color), 0.2);
-    color: var(--urgency-medium-color);
-  }
-  .urgency-badge.badge-high {
-    background-color: rgba(var(--urgency-high-color), 0.2);
-    color: var(--urgency-high-color);
-  }
-  .urgency-badge.badge-critical {
-    background-color: rgba(var(--urgency-critical-color), 0.2);
-    color: var(--urgency-critical-color);
-  }
+.status-badge.badge-admin, .urgency-badge.badge-admin {
+  background-color: rgba(var(--accent-color), 0.15);
+  color: var(--accent-color);
 }
+.status-badge.badge-staff, .urgency-badge.badge-staff {
+  background-color: rgba(var(--info-color), 0.15);
+  color: var(--info-color);
+}
+
 @media (max-width: 768px) {
-  .ticket-meta {
+  .ticket-card .ticket-meta {
     flex-direction: column;
     gap: 0.25rem;
   }
@@ -662,14 +615,9 @@ body.dark-mode .urgency-badge.badge-critical {
   background: none;
   border: none;
   cursor: pointer;
-  display: flex;
-  align-items: center;
   padding: 0.5rem;
   color: var(--text-secondary);
-}
-.header .header-right .dropdown .dropdown-toggle .profile-icon {
-  font-size: 1.25rem;
-  font-style: normal;
+  font-size: 1.125rem;
 }
 .header .header-right .dropdown .dropdown-toggle:hover {
   color: var(--text-primary);
@@ -687,14 +635,6 @@ body.dark-mode .urgency-badge.badge-critical {
   flex-direction: column;
   z-index: 1000;
   border: 1px solid var(--border-color);
-  opacity: 0;
-  transform: translateY(-10px);
-  transition: opacity 150ms ease, transform 150ms ease;
-}
-.header .header-right .dropdown .dropdown-menu.show {
-  display: flex;
-  opacity: 1;
-  transform: translateY(0);
 }
 .header .header-right .dropdown .dropdown-menu a, .header .header-right .dropdown .dropdown-menu button {
   display: block;
@@ -712,6 +652,9 @@ body.dark-mode .urgency-badge.badge-critical {
 .header .header-right .dropdown .dropdown-menu a:hover, .header .header-right .dropdown .dropdown-menu button:hover {
   background-color: var(--surface-alt-bg);
   color: var(--primary-color);
+}
+.header .header-right .dropdown:hover .dropdown-menu {
+  display: flex;
 }
 
 .sidebar {
@@ -778,10 +721,6 @@ body.dark-mode .urgency-badge.badge-critical {
   .main-layout.sidebar-closed .sidebar {
     transform: translateX(-100%);
   }
-  .main-layout.sidebar-closed .main-content {
-    margin-left: 0;
-    width: 100%;
-  }
   .sidebar {
     transform: translateX(-100%);
     transition: transform 300ms ease;
@@ -833,7 +772,7 @@ body.dark-mode .urgency-badge.badge-critical {
 
 .public-layout {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   min-height: 100vh;
   background-color: var(--body-bg);
 }
@@ -900,14 +839,7 @@ body.dark-mode .urgency-badge.badge-critical {
 }
 .public-layout .side-nav .auth-buttons .login-btn, .public-layout .side-nav .auth-buttons .dashboard-btn {
   width: 100%;
-  background-color: var(--primary-color);
-  color: var(--text-inverted);
-  border: none;
   padding: 0.75rem;
-  border-radius: 0.25rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 150ms ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -915,14 +847,14 @@ body.dark-mode .urgency-badge.badge-critical {
 .public-layout .side-nav .auth-buttons .login-btn .icon, .public-layout .side-nav .auth-buttons .dashboard-btn .icon {
   margin-right: 0.5rem;
 }
-.public-layout .side-nav .auth-buttons .login-btn:hover, .public-layout .side-nav .auth-buttons .dashboard-btn:hover {
-  background-color: var(--primary-dark);
-}
 .public-layout main.public-content {
   flex-grow: 1;
   padding: 2rem;
   margin-left: 16rem;
   width: calc(100% - 16rem);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 .public-layout .public-footer {
   margin-left: 16rem;
@@ -931,6 +863,7 @@ body.dark-mode .urgency-badge.badge-critical {
   padding: 2rem 1.5rem;
   font-size: 0.875rem;
   transition: background-color 300ms ease, color 300ms ease;
+  margin-top: auto;
 }
 .public-layout .public-footer .footer-content {
   display: flex;
@@ -988,24 +921,28 @@ body.dark-mode .urgency-badge.badge-critical {
 }
 
 @media (max-width: 768px) {
+  .public-layout {
+    flex-direction: column;
+  }
+  .public-layout .side-nav {
+    display: none;
+  }
   .public-layout main.public-content {
     margin-left: 0;
     width: 100%;
     padding: 1.5rem 1rem;
+    min-height: calc(100vh - 100px);
   }
   .public-layout .public-footer {
     margin-left: 0;
     padding: 1.5rem 1rem;
   }
   .public-layout .public-footer .footer-content {
-    flex-direction: column;
     text-align: center;
   }
-  .public-layout .public-footer .footer-content .footer-section {
-    margin-bottom: 1.5rem;
-  }
-  .public-layout .public-footer .footer-content .footer-section:last-child {
-    margin-bottom: 0;
+  .public-layout .theme-toggle-sticky {
+    top: 0.5rem;
+    right: 0.5rem;
   }
 }
 .dashboard-page {
@@ -1037,6 +974,7 @@ body.dark-mode .urgency-badge.badge-critical {
 .dashboard-page .stats-cards .stats-card .card-content {
   padding: 1rem;
   text-align: center;
+  flex-grow: 1;
 }
 .dashboard-page .stats-cards .stats-card .card-content h3 {
   font-size: 1.125rem;
@@ -1081,7 +1019,7 @@ body.dark-mode .urgency-badge.badge-critical {
 }
 .dashboard-page .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 1.5rem;
 }
 @media (max-width: 1024px) {
@@ -1094,9 +1032,11 @@ body.dark-mode .urgency-badge.badge-critical {
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  padding: 1.5rem;
+  transition: background-color 300ms ease, border-color 300ms ease;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  transition: background-color 300ms ease, border-color 300ms ease;
 }
 .dashboard-page .dashboard-grid .dashboard-card .card-header {
   padding: 1rem;
@@ -1132,10 +1072,6 @@ body.dark-mode .urgency-badge.badge-critical {
   padding: 1.5rem;
   font-style: italic;
 }
-.dashboard-page .dashboard-table {
-  width: 100%;
-  border-collapse: collapse;
-}
 .dashboard-page .dashboard-table th {
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
@@ -1161,7 +1097,64 @@ body.dark-mode .urgency-badge.badge-critical {
   font-size: 0.75rem;
   font-weight: 500;
   text-align: center;
+  transition: background-color 300ms ease, color 300ms ease;
   min-width: 80px;
+}
+.dashboard-page .status-badge.badge-info, .dashboard-page .urgency-badge.badge-info {
+  background-color: var(--badge-info-bg-alpha);
+  color: var(--info-color);
+}
+.dashboard-page .status-badge.badge-success, .dashboard-page .urgency-badge.badge-success {
+  background-color: var(--badge-success-bg-alpha);
+  color: var(--success-color);
+}
+.dashboard-page .status-badge.badge-warning, .dashboard-page .urgency-badge.badge-warning {
+  background-color: var(--badge-warning-bg-alpha);
+  color: var(--warning-color);
+}
+.dashboard-page .status-badge.badge-error, .dashboard-page .urgency-badge.badge-error {
+  background-color: var(--badge-error-bg-alpha);
+  color: var(--error-color);
+}
+.dashboard-page .status-badge.badge-unassigned, .dashboard-page .urgency-badge.badge-unassigned {
+  background-color: rgba(var(--status-unassigned-color), 0.15);
+  color: var(--status-unassigned-color);
+}
+.dashboard-page .status-badge.badge-assigned, .dashboard-page .urgency-badge.badge-assigned {
+  background-color: rgba(var(--status-assigned-color), 0.15);
+  color: var(--status-assigned-color);
+}
+.dashboard-page .status-badge.badge-progress, .dashboard-page .urgency-badge.badge-progress {
+  background-color: rgba(var(--status-progress-color), 0.15);
+  color: var(--status-progress-color);
+}
+.dashboard-page .status-badge.badge-closed, .dashboard-page .urgency-badge.badge-closed {
+  background-color: rgba(var(--status-closed-color), 0.15);
+  color: var(--status-closed-color);
+}
+.dashboard-page .status-badge.badge-low, .dashboard-page .urgency-badge.badge-low {
+  background-color: rgba(var(--urgency-low-color), 0.15);
+  color: var(--urgency-low-color);
+}
+.dashboard-page .status-badge.badge-medium, .dashboard-page .urgency-badge.badge-medium {
+  background-color: rgba(var(--urgency-medium-color), 0.15);
+  color: var(--urgency-medium-color);
+}
+.dashboard-page .status-badge.badge-high, .dashboard-page .urgency-badge.badge-high {
+  background-color: rgba(var(--urgency-high-color), 0.15);
+  color: var(--urgency-high-color);
+}
+.dashboard-page .status-badge.badge-critical, .dashboard-page .urgency-badge.badge-critical {
+  background-color: rgba(var(--urgency-critical-color), 0.15);
+  color: var(--urgency-critical-color);
+}
+.dashboard-page .status-badge.badge-admin, .dashboard-page .urgency-badge.badge-admin {
+  background-color: rgba(var(--accent-color), 0.15);
+  color: var(--accent-color);
+}
+.dashboard-page .status-badge.badge-staff, .dashboard-page .urgency-badge.badge-staff {
+  background-color: rgba(var(--info-color), 0.15);
+  color: var(--info-color);
 }
 .dashboard-page .task-list {
   list-style: none;
@@ -1198,13 +1191,14 @@ body.dark-mode .urgency-badge.badge-critical {
   margin: 0 0.75rem;
 }
 .dashboard-page .task-list .task-item .task-link .task-status {
+  display: inline-block;
   padding: 0.25rem 0.5rem;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
-  min-width: 80px;
   text-align: center;
   transition: background-color 300ms ease, color 300ms ease;
+  min-width: 80px;
 }
 .dashboard-page .task-list .task-item .task-link .task-status.status-open {
   background-color: rgba(var(--warning-color), 0.15);
@@ -1220,7 +1214,7 @@ body.dark-mode .urgency-badge.badge-critical {
 }
 .dashboard-page .quick-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 0.75rem;
 }
 .dashboard-page .quick-actions .action-button {
@@ -1254,10 +1248,8 @@ body.dark-mode .urgency-badge.badge-critical {
 }
 
 @media (max-width: 768px) {
-  .dashboard-page .dashboard-table th:nth-child(4),
-  .dashboard-page .dashboard-table th:nth-child(5),
-  .dashboard-page .dashboard-table td:nth-child(4),
-  .dashboard-page .dashboard-table td:nth-child(5) {
+  .dashboard-page .dashboard-table th:nth-child(4), .dashboard-page .dashboard-table th:nth-child(5),
+  .dashboard-page .dashboard-table td:nth-child(4), .dashboard-page .dashboard-table td:nth-child(5) {
     display: none;
   }
   .dashboard-page .task-list .task-item .task-link {
@@ -1292,6 +1284,7 @@ body.dark-mode .urgency-badge.badge-critical {
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   padding: 1.5rem;
   transition: background-color 300ms ease, border-color 300ms ease;
+  padding: 1.5rem;
 }
 .profile-page .profile-container .profile-info .profile-header {
   display: flex;
@@ -1333,12 +1326,61 @@ body.dark-mode .urgency-badge.badge-critical {
   font-weight: 500;
   text-align: center;
   transition: background-color 300ms ease, color 300ms ease;
+  min-width: 70px;
 }
-.profile-page .profile-container .profile-info .profile-header .profile-meta .profile-details .role-badge.admin {
+.profile-page .profile-container .profile-info .profile-header .profile-meta .profile-details .role-badge.badge-info {
+  background-color: var(--badge-info-bg-alpha);
+  color: var(--info-color);
+}
+.profile-page .profile-container .profile-info .profile-header .profile-meta .profile-details .role-badge.badge-success {
+  background-color: var(--badge-success-bg-alpha);
+  color: var(--success-color);
+}
+.profile-page .profile-container .profile-info .profile-header .profile-meta .profile-details .role-badge.badge-warning {
+  background-color: var(--badge-warning-bg-alpha);
+  color: var(--warning-color);
+}
+.profile-page .profile-container .profile-info .profile-header .profile-meta .profile-details .role-badge.badge-error {
+  background-color: var(--badge-error-bg-alpha);
+  color: var(--error-color);
+}
+.profile-page .profile-container .profile-info .profile-header .profile-meta .profile-details .role-badge.badge-unassigned {
+  background-color: rgba(var(--status-unassigned-color), 0.15);
+  color: var(--status-unassigned-color);
+}
+.profile-page .profile-container .profile-info .profile-header .profile-meta .profile-details .role-badge.badge-assigned {
+  background-color: rgba(var(--status-assigned-color), 0.15);
+  color: var(--status-assigned-color);
+}
+.profile-page .profile-container .profile-info .profile-header .profile-meta .profile-details .role-badge.badge-progress {
+  background-color: rgba(var(--status-progress-color), 0.15);
+  color: var(--status-progress-color);
+}
+.profile-page .profile-container .profile-info .profile-header .profile-meta .profile-details .role-badge.badge-closed {
+  background-color: rgba(var(--status-closed-color), 0.15);
+  color: var(--status-closed-color);
+}
+.profile-page .profile-container .profile-info .profile-header .profile-meta .profile-details .role-badge.badge-low {
+  background-color: rgba(var(--urgency-low-color), 0.15);
+  color: var(--urgency-low-color);
+}
+.profile-page .profile-container .profile-info .profile-header .profile-meta .profile-details .role-badge.badge-medium {
+  background-color: rgba(var(--urgency-medium-color), 0.15);
+  color: var(--urgency-medium-color);
+}
+.profile-page .profile-container .profile-info .profile-header .profile-meta .profile-details .role-badge.badge-high {
+  background-color: rgba(var(--urgency-high-color), 0.15);
+  color: var(--urgency-high-color);
+}
+.profile-page .profile-container .profile-info .profile-header .profile-meta .profile-details .role-badge.badge-critical {
+  background-color: rgba(var(--urgency-critical-color), 0.15);
+  color: var(--urgency-critical-color);
+}
+.profile-page .profile-container .profile-info .profile-header .profile-meta .profile-details .role-badge.badge-admin {
   background-color: rgba(var(--accent-color), 0.15);
   color: var(--accent-color);
 }
-.profile-page .profile-container .profile-info .profile-header .profile-meta .profile-details .role-badge.staff {
+.profile-page .profile-container .profile-info .profile-header .profile-meta .profile-details .role-badge.badge-staff {
   background-color: rgba(var(--info-color), 0.15);
   color: var(--info-color);
 }
@@ -1354,6 +1396,7 @@ body.dark-mode .urgency-badge.badge-critical {
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   padding: 1.5rem;
   transition: background-color 300ms ease, border-color 300ms ease;
+  padding: 1.5rem;
 }
 .profile-page .profile-container .profile-form-container h3 {
   color: var(--text-primary);
@@ -1369,41 +1412,40 @@ body.dark-mode .urgency-badge.badge-critical {
   gap: 1rem;
 }
 .profile-page .profile-container .profile-form-container .profile-form .form-group .static-field {
+  width: 100%;
   padding: 0.75rem;
-  background-color: var(--surface-alt-bg);
   border: 1px solid var(--border-color-strong);
   border-radius: 0.25rem;
+  font-size: 1rem;
+  background-color: var(--surface-alt-bg);
+  color: var(--text-primary);
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 300ms ease, color 300ms ease;
+  background-color: var(--surface-alt-bg);
   color: var(--text-secondary);
-  transition: background-color 300ms ease, border-color 300ms ease, color 300ms ease;
+  cursor: default;
 }
-.profile-page .profile-container .profile-form-container .profile-form .form-group .field-note {
+.profile-page .profile-container .profile-form-container .profile-form .form-group .static-field:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.2);
+  outline: none;
+}
+.profile-page .profile-container .profile-form-container .profile-form .form-group .static-field::-moz-placeholder {
+  color: var(--text-muted);
+  -moz-transition: color 300ms ease;
+  transition: color 300ms ease;
+}
+.profile-page .profile-container .profile-form-container .profile-form .form-group .static-field::placeholder {
+  color: var(--text-muted);
+  transition: color 300ms ease;
+}
+.profile-page .profile-container .profile-form-container .profile-form .form-group .static-field:disabled {
+  cursor: not-allowed;
+}
+.profile-page .profile-container .profile-form-container .profile-form .form-group .field-note, .profile-page .profile-container .profile-form-container .profile-form .form-group .field-info {
   font-size: 0.875rem;
   color: var(--text-muted);
   margin-top: 0.25rem;
   transition: color 300ms ease;
-}
-.profile-page .form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-}
-.profile-page .form-actions .submit-btn {
-  padding: 0.5rem 1.5rem;
-  background-color: #0ea5e9;
-  color: #ffffff;
-  border: none;
-  border-radius: 0.25rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 150ms ease;
-}
-.profile-page .form-actions .submit-btn:hover {
-  background-color: #0284c7;
-}
-.profile-page .form-actions .submit-btn:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {
@@ -1449,6 +1491,7 @@ body.dark-mode .urgency-badge.badge-critical {
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   padding: 1.5rem;
   transition: background-color 300ms ease, border-color 300ms ease;
+  padding: 1.5rem;
 }
 .settings-page .settings-container .settings-form .settings-section {
   margin-bottom: 2rem;
@@ -1477,20 +1520,37 @@ body.dark-mode .urgency-badge.badge-critical {
   display: flex;
 }
 .settings-page .settings-container .settings-form .settings-section .form-group .input-with-button input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color-strong);
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  background-color: var(--surface-alt-bg);
+  color: var(--text-primary);
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 300ms ease, color 300ms ease;
   flex: 1;
   border-radius: 0.25rem 0 0 0.25rem;
 }
+.settings-page .settings-container .settings-form .settings-section .form-group .input-with-button input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.2);
+  outline: none;
+}
+.settings-page .settings-container .settings-form .settings-section .form-group .input-with-button input::-moz-placeholder {
+  color: var(--text-muted);
+  -moz-transition: color 300ms ease;
+  transition: color 300ms ease;
+}
+.settings-page .settings-container .settings-form .settings-section .form-group .input-with-button input::placeholder {
+  color: var(--text-muted);
+  transition: color 300ms ease;
+}
+.settings-page .settings-container .settings-form .settings-section .form-group .input-with-button input:disabled {
+  cursor: not-allowed;
+}
 .settings-page .settings-container .settings-form .settings-section .form-group .input-with-button .add-btn {
-  background-color: var(--primary-color);
-  color: var(--text-inverted);
-  border: none;
   border-radius: 0 0.25rem 0.25rem 0;
   padding: 0 1rem;
-  cursor: pointer;
-  transition: background-color 150ms ease;
-}
-.settings-page .settings-container .settings-form .settings-section .form-group .input-with-button .add-btn:hover {
-  background-color: var(--primary-dark);
 }
 .settings-page .settings-container .settings-form .settings-section .issue-types-list {
   display: flex;
@@ -1522,29 +1582,6 @@ body.dark-mode .urgency-badge.badge-critical {
 }
 .settings-page .settings-container .settings-form .settings-section .issue-types-list .issue-type-item .remove-btn:hover {
   color: var(--error-color);
-}
-.settings-page .form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-}
-.settings-page .form-actions .submit-btn {
-  padding: 0.5rem 1.5rem;
-  background-color: #0ea5e9;
-  color: #ffffff;
-  border: none;
-  border-radius: 0.25rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 150ms ease;
-}
-.settings-page .form-actions .submit-btn:hover {
-  background-color: #0284c7;
-}
-.settings-page .form-actions .submit-btn:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {
@@ -1598,8 +1635,9 @@ body.dark-mode .urgency-badge.badge-critical {
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   padding: 1.5rem;
-  margin-bottom: 1.5rem;
   transition: background-color 300ms ease, border-color 300ms ease;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 .task-detail-page .task-container .task-form-container {
   max-width: 800px;
@@ -1621,10 +1659,11 @@ body.dark-mode .urgency-badge.badge-critical {
 }
 .task-detail-page .task-container .task-details .status-bar .status-badge {
   display: inline-block;
-  padding: 0.5rem 0.75rem;
+  padding: 0.25rem 0.5rem;
   border-radius: 9999px;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 500;
+  text-align: center;
   transition: background-color 300ms ease, color 300ms ease;
 }
 .task-detail-page .task-container .task-details .status-bar .status-badge.status-open {
@@ -1645,26 +1684,7 @@ body.dark-mode .urgency-badge.badge-critical {
 }
 .task-detail-page .task-container .task-details .status-bar .status-actions .start-btn, .task-detail-page .task-container .task-details .status-bar .status-actions .complete-btn {
   padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
   font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 150ms ease;
-  border: none;
-}
-.task-detail-page .task-container .task-details .status-bar .status-actions .start-btn {
-  background-color: var(--info-color);
-  color: var(--text-inverted);
-}
-.task-detail-page .task-container .task-details .status-bar .status-actions .start-btn:hover {
-  background-color: var(--primary-dark);
-}
-.task-detail-page .task-container .task-details .status-bar .status-actions .complete-btn {
-  background-color: var(--success-color);
-  color: var(--text-inverted);
-}
-.task-detail-page .task-container .task-details .status-bar .status-actions .complete-btn:hover {
-  background-color: var(--secondary-dark);
 }
 .task-detail-page .task-container .task-details .detail-section {
   margin-bottom: 1.5rem;
@@ -1713,30 +1733,19 @@ body.dark-mode .urgency-badge.badge-critical {
   border-top: 1px solid var(--border-color);
   transition: border-color 300ms ease;
 }
-.task-detail-page .task-container .task-actions button {
-  padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 150ms ease;
-  border: none;
-}
-.task-detail-page .task-container .task-actions .assign-to-me-btn {
-  background-color: var(--primary-color);
-}
-.task-detail-page .task-container .task-actions .assign-to-me-btn:hover {
-  background-color: var(--primary-dark);
-}
 .task-detail-page .task-updates {
   background-color: var(--surface-bg);
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   padding: 1.5rem;
-  margin-top: 1.5rem;
-  max-height: 40vh;
-  overflow-y: auto;
   transition: background-color 300ms ease, border-color 300ms ease;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  max-height: 50vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 .task-detail-page .task-updates .updates-header {
   display: flex;
@@ -1746,6 +1755,7 @@ body.dark-mode .urgency-badge.badge-critical {
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border-color);
   transition: border-color 300ms ease;
+  flex-shrink: 0;
 }
 .task-detail-page .task-updates .updates-header h3 {
   font-size: 1.125rem;
@@ -1764,6 +1774,7 @@ body.dark-mode .urgency-badge.badge-critical {
   margin-bottom: 1rem;
   border: 1px solid var(--border-color-strong);
   transition: background-color 300ms ease, border-color 300ms ease;
+  flex-shrink: 0;
 }
 .task-detail-page .task-updates .comment-form-container h4 {
   font-size: 1rem;
@@ -1779,18 +1790,11 @@ body.dark-mode .urgency-badge.badge-critical {
   min-height: 100px;
 }
 .task-detail-page .task-updates .comment-form-container .comment-form .form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
   margin-top: 0.75rem;
 }
-.task-detail-page .task-updates .comment-form-container .comment-form .form-actions .cancel-btn {
-  background-color: var(--surface-bg);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-}
-.task-detail-page .task-updates .comment-form-container .comment-form .form-actions .cancel-btn:hover {
-  background-color: var(--surface-alt-bg);
+.task-detail-page .task-updates .updates-timeline {
+  flex-grow: 1;
+  overflow-y: auto;
 }
 .task-detail-page .task-updates .updates-timeline .update-item {
   padding: 1rem 0 1rem 1.25rem;
@@ -1846,16 +1850,6 @@ body.dark-mode .urgency-badge.badge-critical {
   align-items: center;
   transition: color 300ms ease;
 }
-.task-detail-page .task-updates .updates-timeline .update-item .update-header .update-author .internal-badge {
-  background-color: var(--accent-light);
-  color: var(--text-inverted);
-  font-size: 0.75rem;
-  padding: 2px 0.25rem;
-  border-radius: 0.125rem;
-  margin-left: 0.5rem;
-  text-transform: uppercase;
-  font-weight: 700;
-}
 .task-detail-page .task-updates .updates-timeline .update-item .update-header .update-time {
   font-size: 0.875rem;
   color: var(--text-muted);
@@ -1874,40 +1868,6 @@ body.dark-mode .urgency-badge.badge-critical {
   padding: 1.5rem;
   font-style: italic;
 }
-.task-detail-page .form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-}
-.task-detail-page .form-actions .cancel-btn, .task-detail-page .form-actions .submit-btn {
-  padding: 0.5rem 1.5rem;
-  border-radius: 0.25rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 150ms ease;
-}
-.task-detail-page .form-actions .cancel-btn {
-  background-color: #ffffff;
-  color: #374151;
-  border: 1px solid #d1d5db;
-}
-.task-detail-page .form-actions .cancel-btn:hover {
-  background-color: #f3f4f6;
-}
-.task-detail-page .form-actions .submit-btn {
-  background-color: #0ea5e9;
-  color: #ffffff;
-  border: none;
-}
-.task-detail-page .form-actions .submit-btn:hover {
-  background-color: #0284c7;
-}
-.task-detail-page .form-actions .submit-btn:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
-
 @media (max-width: 768px) {
   .task-detail-page .task-container {
     padding: 1rem;
@@ -1948,13 +1908,11 @@ body.dark-mode .urgency-badge.badge-critical {
     align-items: flex-start;
     gap: 0.25rem;
   }
-  .task-detail-page .task-updates .updates-timeline .update-item .update-header .update-time {
-    margin-top: 0;
-  }
   .task-detail-page .task-updates .comment-form-container {
     padding: 0.75rem;
   }
 }
+
 .tasks-page {
   max-width: 100%;
   margin-bottom: 2rem;
@@ -1973,8 +1931,33 @@ body.dark-mode .urgency-badge.badge-critical {
   margin-bottom: 1rem;
 }
 .tasks-page .filter-section .search-form .search-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color-strong);
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  background-color: var(--surface-alt-bg);
+  color: var(--text-primary);
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 300ms ease, color 300ms ease;
   flex: 1;
   border-radius: 0.25rem 0 0 0.25rem;
+}
+.tasks-page .filter-section .search-form .search-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.2);
+  outline: none;
+}
+.tasks-page .filter-section .search-form .search-input::-moz-placeholder {
+  color: var(--text-muted);
+  -moz-transition: color 300ms ease;
+  transition: color 300ms ease;
+}
+.tasks-page .filter-section .search-form .search-input::placeholder {
+  color: var(--text-muted);
+  transition: color 300ms ease;
+}
+.tasks-page .filter-section .search-form .search-input:disabled {
+  cursor: not-allowed;
 }
 .tasks-page .filter-section .search-form .search-button {
   padding: 0.75rem 1.25rem;
@@ -1997,17 +1980,51 @@ body.dark-mode .urgency-badge.badge-critical {
   transition: color 300ms ease;
 }
 .tasks-page .filter-section .filters .filter-group .filter-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color-strong);
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  background-color: var(--surface-alt-bg);
+  color: var(--text-primary);
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 300ms ease, color 300ms ease;
+  -webkit-appearance: none;
+     -moz-appearance: none;
+          appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
   padding: 0.5rem;
+  min-width: 150px;
+}
+.tasks-page .filter-section .filters .filter-group .filter-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.2);
+  outline: none;
+}
+.tasks-page .filter-section .filters .filter-group .filter-select::-moz-placeholder {
+  color: var(--text-muted);
+  -moz-transition: color 300ms ease;
+  transition: color 300ms ease;
+}
+.tasks-page .filter-section .filters .filter-group .filter-select::placeholder {
+  color: var(--text-muted);
+  transition: color 300ms ease;
+}
+.tasks-page .filter-section .filters .filter-group .filter-select:disabled {
+  cursor: not-allowed;
+}
+body.dark-mode .tasks-page .filter-section .filters .filter-group .filter-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
 }
 .tasks-page .filter-section .filters .clear-filters-btn {
-  background-color: var(--surface-bg);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
+  border-color: var(--border-color);
   padding: 0.5rem 0.75rem;
 }
 .tasks-page .filter-section .filters .clear-filters-btn:hover {
   background-color: var(--surface-alt-bg);
-  color: var(--text-primary);
 }
 .tasks-page .no-tasks {
   background-color: var(--surface-bg);
@@ -2022,23 +2039,14 @@ body.dark-mode .urgency-badge.badge-critical {
   color: var(--text-muted);
   margin-bottom: 1rem;
 }
-.tasks-page .no-tasks .clear-filters-btn {
-  background-color: var(--primary-light);
-}
-.tasks-page .no-tasks .clear-filters-btn:hover {
-  background-color: var(--primary-color);
-}
 .tasks-page .tasks-table-container {
   background-color: var(--surface-bg);
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   overflow: hidden;
+  overflow-x: auto;
   transition: background-color 300ms ease, border-color 300ms ease;
-}
-.tasks-page .tasks-table {
-  width: 100%;
-  border-collapse: collapse;
 }
 .tasks-page .tasks-table th {
   padding: 0.75rem 1rem;
@@ -2069,23 +2077,6 @@ body.dark-mode .urgency-badge.badge-critical {
 }
 .tasks-page .tasks-table td.actions-cell .view-btn, .tasks-page .tasks-table td.actions-cell .delete-btn {
   padding: 0.25rem 0.75rem;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 150ms ease;
-  text-decoration: none;
-  border: none;
-}
-.tasks-page .tasks-table td.actions-cell .view-btn {
-  background-color: var(--primary-light);
-  padding: 0.25rem 0.75rem;
-  font-size: 0.875rem;
-}
-.tasks-page .tasks-table td.actions-cell .view-btn:hover {
-  background-color: var(--primary-color);
-}
-.tasks-page .tasks-table td.actions-cell .delete-btn {
-  padding: 0.25rem 0.75rem;
   font-size: 0.875rem;
 }
 .tasks-page .status-badge {
@@ -2095,8 +2086,8 @@ body.dark-mode .urgency-badge.badge-critical {
   font-size: 0.75rem;
   font-weight: 500;
   text-align: center;
-  min-width: 80px;
   transition: background-color 300ms ease, color 300ms ease;
+  min-width: 80px;
 }
 .tasks-page .status-badge.badge-open {
   background-color: rgba(var(--warning-color), 0.15);
@@ -2125,13 +2116,15 @@ body.dark-mode .urgency-badge.badge-critical {
   .tasks-page .filter-section .filters .filter-group .filter-select {
     flex: 1;
   }
+  .tasks-page .filter-section .filters .clear-filters-btn {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
   .tasks-page .tasks-table th, .tasks-page .tasks-table td {
     padding: 0.5rem;
   }
-  .tasks-page .tasks-table th:nth-child(5),
-  .tasks-page .tasks-table th:nth-child(6),
-  .tasks-page .tasks-table td:nth-child(5),
-  .tasks-page .tasks-table td:nth-child(6) {
+  .tasks-page .tasks-table th:nth-child(5), .tasks-page .tasks-table th:nth-child(6),
+  .tasks-page .tasks-table td:nth-child(5), .tasks-page .tasks-table td:nth-child(6) {
     display: none;
   }
 }
@@ -2184,6 +2177,7 @@ body.dark-mode .urgency-badge.badge-critical {
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   padding: 1.5rem;
   transition: background-color 300ms ease, border-color 300ms ease;
+  padding: 1.5rem;
 }
 .ticket-detail-page .ticket-card .ticket-header {
   margin-bottom: 1rem;
@@ -2282,13 +2276,9 @@ body.dark-mode .urgency-badge.badge-critical {
 }
 .ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .image-attachment .image-preview .image-placeholder .load-image-btn {
   padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
   background-color: var(--surface-alt-bg);
   color: var(--text-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 0.125rem;
-  cursor: pointer;
-  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
 }
 .ticket-detail-page .ticket-card .ticket-attachments .attachment-list .attachment-item .image-attachment .image-preview .image-placeholder .load-image-btn:hover {
   background-color: var(--surface-bg);
@@ -2359,6 +2349,7 @@ body.dark-mode .urgency-badge.badge-critical {
   color: var(--text-secondary);
   line-height: 1.5;
   transition: color 300ms ease;
+  white-space: pre-line;
 }
 .ticket-detail-page .ticket-updates {
   background-color: var(--surface-bg);
@@ -2367,6 +2358,9 @@ body.dark-mode .urgency-badge.badge-critical {
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   padding: 1.5rem;
   transition: background-color 300ms ease, border-color 300ms ease;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
 }
 .ticket-detail-page .ticket-updates .updates-header {
   display: flex;
@@ -2376,6 +2370,7 @@ body.dark-mode .urgency-badge.badge-critical {
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 0.75rem;
   transition: border-color 300ms ease;
+  flex-shrink: 0;
 }
 .ticket-detail-page .ticket-updates .updates-header h3 {
   font-size: 1.125rem;
@@ -2394,6 +2389,7 @@ body.dark-mode .urgency-badge.badge-critical {
   margin-bottom: 1rem;
   border: 1px solid var(--border-color-strong);
   transition: background-color 300ms ease, border-color 300ms ease;
+  flex-shrink: 0;
 }
 .ticket-detail-page .ticket-updates .comment-form-container h4, .ticket-detail-page .ticket-updates .status-form-container h4 {
   font-size: 1rem;
@@ -2407,22 +2403,10 @@ body.dark-mode .urgency-badge.badge-critical {
 .ticket-detail-page .ticket-updates .comment-form-container .comment-form .form-group textarea, .ticket-detail-page .ticket-updates .comment-form-container .status-form .form-group textarea, .ticket-detail-page .ticket-updates .status-form-container .comment-form .form-group textarea, .ticket-detail-page .ticket-updates .status-form-container .status-form .form-group textarea {
   min-height: 100px;
 }
-.ticket-detail-page .ticket-updates .comment-form-container .comment-form .form-actions, .ticket-detail-page .ticket-updates .comment-form-container .status-form .form-actions, .ticket-detail-page .ticket-updates .status-form-container .comment-form .form-actions, .ticket-detail-page .ticket-updates .status-form-container .status-form .form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-}
-.ticket-detail-page .ticket-updates .comment-form-container .comment-form .form-actions .cancel-btn, .ticket-detail-page .ticket-updates .comment-form-container .status-form .form-actions .cancel-btn, .ticket-detail-page .ticket-updates .status-form-container .comment-form .form-actions .cancel-btn, .ticket-detail-page .ticket-updates .status-form-container .status-form .form-actions .cancel-btn {
-  background-color: var(--surface-bg);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-}
-.ticket-detail-page .ticket-updates .comment-form-container .comment-form .form-actions .cancel-btn:hover, .ticket-detail-page .ticket-updates .comment-form-container .status-form .form-actions .cancel-btn:hover, .ticket-detail-page .ticket-updates .status-form-container .comment-form .form-actions .cancel-btn:hover, .ticket-detail-page .ticket-updates .status-form-container .status-form .form-actions .cancel-btn:hover {
-  background-color: var(--surface-alt-bg);
-}
 .ticket-detail-page .ticket-updates .updates-timeline {
-  max-height: 40vh;
+  max-height: 50vh;
   overflow-y: auto;
+  flex-grow: 1;
 }
 .ticket-detail-page .ticket-updates .updates-timeline .update-item {
   padding: 1rem 0 1rem 1.25rem;
@@ -2444,6 +2428,10 @@ body.dark-mode .urgency-badge.badge-critical {
   border: 2px solid var(--surface-bg);
   transition: background-color 300ms ease, border-color 300ms ease;
 }
+.ticket-detail-page .ticket-updates .updates-timeline .update-item:last-child {
+  margin-bottom: 0;
+  border-left-color: transparent;
+}
 .ticket-detail-page .ticket-updates .updates-timeline .update-item.system-update {
   background-color: rgba(var(--text-muted), 0.03);
   border-left-color: var(--border-color-strong);
@@ -2461,6 +2449,14 @@ body.dark-mode .urgency-badge.badge-critical {
 .ticket-detail-page .ticket-updates .updates-timeline .update-item.internal-note:before {
   background-color: var(--accent-color);
 }
+.ticket-detail-page .ticket-updates .updates-timeline .update-item.internal-note .update-author .internal-badge {
+  background-color: var(--accent-light);
+  color: var(--text-inverted);
+  font-size: 0.75rem;
+  padding: 2px 0.25rem;
+  border-radius: 0.125rem;
+  margin-left: 0.5rem;
+}
 .ticket-detail-page .ticket-updates .updates-timeline .update-item .update-header {
   display: flex;
   justify-content: space-between;
@@ -2472,14 +2468,6 @@ body.dark-mode .urgency-badge.badge-critical {
   display: flex;
   align-items: center;
   transition: color 300ms ease;
-}
-.ticket-detail-page .ticket-updates .updates-timeline .update-item .update-header .update-author .internal-badge {
-  background-color: var(--accent-light);
-  color: var(--text-inverted);
-  font-size: 0.75rem;
-  padding: 2px 0.25rem;
-  border-radius: 0.125rem;
-  margin-left: 0.5rem;
 }
 .ticket-detail-page .ticket-updates .updates-timeline .update-item .update-header .update-time {
   font-size: 0.875rem;
@@ -2508,8 +2496,9 @@ body.dark-mode .urgency-badge.badge-critical {
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  padding: 1rem;
+  padding: 1.5rem;
   transition: background-color 300ms ease, border-color 300ms ease;
+  padding: 1rem;
 }
 .ticket-detail-page .ticket-sidebar .sidebar-card h3 {
   font-size: 1.125rem;
@@ -2566,23 +2555,8 @@ body.dark-mode .urgency-badge.badge-critical {
   overflow: hidden;
   z-index: -1;
 }
-.ticket-detail-page .ticket-sidebar .sidebar-card .sidebar-actions .assign-to-me-btn {
-  background-color: var(--primary-light);
-}
-.ticket-detail-page .ticket-sidebar .sidebar-card .sidebar-actions .assign-to-me-btn:hover {
-  background-color: var(--primary-color);
-}
-.ticket-detail-page .ticket-sidebar .sidebar-card .sidebar-actions .start-work-btn {
-  background-color: var(--info-color);
-}
-.ticket-detail-page .ticket-sidebar .sidebar-card .sidebar-actions .start-work-btn:hover {
-  background-color: var(--primary-dark);
-}
-.ticket-detail-page .ticket-sidebar .sidebar-card .sidebar-actions .close-ticket-btn {
-  background-color: var(--success-color);
-}
-.ticket-detail-page .ticket-sidebar .sidebar-card .sidebar-actions .close-ticket-btn:hover {
-  background-color: var(--secondary-dark);
+.ticket-detail-page .ticket-sidebar .sidebar-card .sidebar-actions button {
+  width: 100%;
 }
 .ticket-detail-page .status-badge, .ticket-detail-page .urgency-badge {
   display: inline-block;
@@ -2591,7 +2565,64 @@ body.dark-mode .urgency-badge.badge-critical {
   font-size: 0.75rem;
   font-weight: 500;
   text-align: center;
+  transition: background-color 300ms ease, color 300ms ease;
   min-width: 80px;
+}
+.ticket-detail-page .status-badge.badge-info, .ticket-detail-page .urgency-badge.badge-info {
+  background-color: var(--badge-info-bg-alpha);
+  color: var(--info-color);
+}
+.ticket-detail-page .status-badge.badge-success, .ticket-detail-page .urgency-badge.badge-success {
+  background-color: var(--badge-success-bg-alpha);
+  color: var(--success-color);
+}
+.ticket-detail-page .status-badge.badge-warning, .ticket-detail-page .urgency-badge.badge-warning {
+  background-color: var(--badge-warning-bg-alpha);
+  color: var(--warning-color);
+}
+.ticket-detail-page .status-badge.badge-error, .ticket-detail-page .urgency-badge.badge-error {
+  background-color: var(--badge-error-bg-alpha);
+  color: var(--error-color);
+}
+.ticket-detail-page .status-badge.badge-unassigned, .ticket-detail-page .urgency-badge.badge-unassigned {
+  background-color: rgba(var(--status-unassigned-color), 0.15);
+  color: var(--status-unassigned-color);
+}
+.ticket-detail-page .status-badge.badge-assigned, .ticket-detail-page .urgency-badge.badge-assigned {
+  background-color: rgba(var(--status-assigned-color), 0.15);
+  color: var(--status-assigned-color);
+}
+.ticket-detail-page .status-badge.badge-progress, .ticket-detail-page .urgency-badge.badge-progress {
+  background-color: rgba(var(--status-progress-color), 0.15);
+  color: var(--status-progress-color);
+}
+.ticket-detail-page .status-badge.badge-closed, .ticket-detail-page .urgency-badge.badge-closed {
+  background-color: rgba(var(--status-closed-color), 0.15);
+  color: var(--status-closed-color);
+}
+.ticket-detail-page .status-badge.badge-low, .ticket-detail-page .urgency-badge.badge-low {
+  background-color: rgba(var(--urgency-low-color), 0.15);
+  color: var(--urgency-low-color);
+}
+.ticket-detail-page .status-badge.badge-medium, .ticket-detail-page .urgency-badge.badge-medium {
+  background-color: rgba(var(--urgency-medium-color), 0.15);
+  color: var(--urgency-medium-color);
+}
+.ticket-detail-page .status-badge.badge-high, .ticket-detail-page .urgency-badge.badge-high {
+  background-color: rgba(var(--urgency-high-color), 0.15);
+  color: var(--urgency-high-color);
+}
+.ticket-detail-page .status-badge.badge-critical, .ticket-detail-page .urgency-badge.badge-critical {
+  background-color: rgba(var(--urgency-critical-color), 0.15);
+  color: var(--urgency-critical-color);
+}
+.ticket-detail-page .status-badge.badge-admin, .ticket-detail-page .urgency-badge.badge-admin {
+  background-color: rgba(var(--accent-color), 0.15);
+  color: var(--accent-color);
+}
+.ticket-detail-page .status-badge.badge-staff, .ticket-detail-page .urgency-badge.badge-staff {
+  background-color: rgba(var(--info-color), 0.15);
+  color: var(--info-color);
 }
 
 @media (max-width: 768px) {
@@ -2607,9 +2638,6 @@ body.dark-mode .urgency-badge.badge-critical {
     align-items: flex-start;
     gap: 0.25rem;
   }
-  .ticket-detail-page .updates-timeline .update-item .update-header .update-time {
-    margin-top: 0;
-  }
   .ticket-detail-page .form-actions {
     flex-direction: column;
   }
@@ -2624,10 +2652,10 @@ body.dark-mode .urgency-badge.badge-critical {
 }
 .tickets-page .filter-section {
   background-color: var(--surface-bg);
+  padding: 1rem;
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  padding: 1rem;
   margin-bottom: 1.5rem;
   transition: background-color 300ms ease, border-color 300ms ease;
 }
@@ -2636,8 +2664,33 @@ body.dark-mode .urgency-badge.badge-critical {
   margin-bottom: 1rem;
 }
 .tickets-page .filter-section .search-form .search-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color-strong);
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  background-color: var(--surface-alt-bg);
+  color: var(--text-primary);
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 300ms ease, color 300ms ease;
   flex: 1;
   border-radius: 0.25rem 0 0 0.25rem;
+}
+.tickets-page .filter-section .search-form .search-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.2);
+  outline: none;
+}
+.tickets-page .filter-section .search-form .search-input::-moz-placeholder {
+  color: var(--text-muted);
+  -moz-transition: color 300ms ease;
+  transition: color 300ms ease;
+}
+.tickets-page .filter-section .search-form .search-input::placeholder {
+  color: var(--text-muted);
+  transition: color 300ms ease;
+}
+.tickets-page .filter-section .search-form .search-input:disabled {
+  cursor: not-allowed;
 }
 .tickets-page .filter-section .search-form .search-button {
   padding: 0.75rem 1.25rem;
@@ -2661,17 +2714,51 @@ body.dark-mode .urgency-badge.badge-critical {
   transition: color 300ms ease;
 }
 .tickets-page .filter-section .filters .filter-group .filter-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color-strong);
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  background-color: var(--surface-alt-bg);
+  color: var(--text-primary);
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 300ms ease, color 300ms ease;
+  -webkit-appearance: none;
+     -moz-appearance: none;
+          appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
   padding: 0.5rem;
+  min-width: 150px;
+}
+.tickets-page .filter-section .filters .filter-group .filter-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.2);
+  outline: none;
+}
+.tickets-page .filter-section .filters .filter-group .filter-select::-moz-placeholder {
+  color: var(--text-muted);
+  -moz-transition: color 300ms ease;
+  transition: color 300ms ease;
+}
+.tickets-page .filter-section .filters .filter-group .filter-select::placeholder {
+  color: var(--text-muted);
+  transition: color 300ms ease;
+}
+.tickets-page .filter-section .filters .filter-group .filter-select:disabled {
+  cursor: not-allowed;
+}
+body.dark-mode .tickets-page .filter-section .filters .filter-group .filter-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
 }
 .tickets-page .filter-section .filters .clear-filters-btn {
-  background-color: var(--surface-bg);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
+  border-color: var(--border-color);
   padding: 0.5rem 0.75rem;
 }
 .tickets-page .filter-section .filters .clear-filters-btn:hover {
   background-color: var(--surface-alt-bg);
-  color: var(--text-primary);
 }
 .tickets-page .filter-section .tag-filter {
   margin-top: 0.75rem;
@@ -2724,12 +2811,6 @@ body.dark-mode .urgency-badge.badge-critical {
   color: var(--text-muted);
   margin-bottom: 1rem;
 }
-.tickets-page .no-tickets .clear-filters-btn {
-  background-color: var(--primary-light);
-}
-.tickets-page .no-tickets .clear-filters-btn:hover {
-  background-color: var(--primary-color);
-}
 .tickets-page .tickets-table-container {
   background-color: var(--surface-bg);
   border: 1px solid var(--border-color);
@@ -2738,10 +2819,6 @@ body.dark-mode .urgency-badge.badge-critical {
   overflow: hidden;
   overflow-x: auto;
   transition: background-color 300ms ease, border-color 300ms ease;
-}
-.tickets-page .tickets-table {
-  width: 100%;
-  border-collapse: collapse;
 }
 .tickets-page .tickets-table th {
   padding: 0.75rem 1rem;
@@ -2784,6 +2861,9 @@ body.dark-mode .urgency-badge.badge-critical {
 .tickets-page .tickets-table td.tags-cell .no-tags {
   color: var(--text-muted);
 }
+.tickets-page .tickets-table tbody tr {
+  cursor: pointer;
+}
 .tickets-page .status-badge, .tickets-page .urgency-badge {
   display: inline-block;
   padding: 0.25rem 0.5rem;
@@ -2791,14 +2871,69 @@ body.dark-mode .urgency-badge.badge-critical {
   font-size: 0.75rem;
   font-weight: 500;
   text-align: center;
+  transition: background-color 300ms ease, color 300ms ease;
   min-width: 80px;
+}
+.tickets-page .status-badge.badge-info, .tickets-page .urgency-badge.badge-info {
+  background-color: var(--badge-info-bg-alpha);
+  color: var(--info-color);
+}
+.tickets-page .status-badge.badge-success, .tickets-page .urgency-badge.badge-success {
+  background-color: var(--badge-success-bg-alpha);
+  color: var(--success-color);
+}
+.tickets-page .status-badge.badge-warning, .tickets-page .urgency-badge.badge-warning {
+  background-color: var(--badge-warning-bg-alpha);
+  color: var(--warning-color);
+}
+.tickets-page .status-badge.badge-error, .tickets-page .urgency-badge.badge-error {
+  background-color: var(--badge-error-bg-alpha);
+  color: var(--error-color);
+}
+.tickets-page .status-badge.badge-unassigned, .tickets-page .urgency-badge.badge-unassigned {
+  background-color: rgba(var(--status-unassigned-color), 0.15);
+  color: var(--status-unassigned-color);
+}
+.tickets-page .status-badge.badge-assigned, .tickets-page .urgency-badge.badge-assigned {
+  background-color: rgba(var(--status-assigned-color), 0.15);
+  color: var(--status-assigned-color);
+}
+.tickets-page .status-badge.badge-progress, .tickets-page .urgency-badge.badge-progress {
+  background-color: rgba(var(--status-progress-color), 0.15);
+  color: var(--status-progress-color);
+}
+.tickets-page .status-badge.badge-closed, .tickets-page .urgency-badge.badge-closed {
+  background-color: rgba(var(--status-closed-color), 0.15);
+  color: var(--status-closed-color);
+}
+.tickets-page .status-badge.badge-low, .tickets-page .urgency-badge.badge-low {
+  background-color: rgba(var(--urgency-low-color), 0.15);
+  color: var(--urgency-low-color);
+}
+.tickets-page .status-badge.badge-medium, .tickets-page .urgency-badge.badge-medium {
+  background-color: rgba(var(--urgency-medium-color), 0.15);
+  color: var(--urgency-medium-color);
+}
+.tickets-page .status-badge.badge-high, .tickets-page .urgency-badge.badge-high {
+  background-color: rgba(var(--urgency-high-color), 0.15);
+  color: var(--urgency-high-color);
+}
+.tickets-page .status-badge.badge-critical, .tickets-page .urgency-badge.badge-critical {
+  background-color: rgba(var(--urgency-critical-color), 0.15);
+  color: var(--urgency-critical-color);
+}
+.tickets-page .status-badge.badge-admin, .tickets-page .urgency-badge.badge-admin {
+  background-color: rgba(var(--accent-color), 0.15);
+  color: var(--accent-color);
+}
+.tickets-page .status-badge.badge-staff, .tickets-page .urgency-badge.badge-staff {
+  background-color: rgba(var(--info-color), 0.15);
+  color: var(--info-color);
 }
 
 @media (max-width: 1024px) {
-  .tickets-page .tickets-table th:nth-child(5),
-  .tickets-page .tickets-table th:nth-child(8),
-  .tickets-page .tickets-table td:nth-child(5),
-  .tickets-page .tickets-table td:nth-child(8) {
+  .tickets-page .tickets-table th:nth-child(5), .tickets-page .tickets-table th:nth-child(8),
+  .tickets-page .tickets-table td:nth-child(5), .tickets-page .tickets-table td:nth-child(8) {
     display: none;
   }
 }
@@ -2821,10 +2956,8 @@ body.dark-mode .urgency-badge.badge-critical {
     width: 100%;
     margin-top: 0.5rem;
   }
-  .tickets-page .tickets-table th:nth-child(4),
-  .tickets-page .tickets-table th:nth-child(7),
-  .tickets-page .tickets-table td:nth-child(4),
-  .tickets-page .tickets-table td:nth-child(7) {
+  .tickets-page .tickets-table th:nth-child(4), .tickets-page .tickets-table th:nth-child(7),
+  .tickets-page .tickets-table td:nth-child(4), .tickets-page .tickets-table td:nth-child(7) {
     display: none;
   }
 }
@@ -2832,7 +2965,7 @@ body.dark-mode .urgency-badge.badge-critical {
   width: 100%;
   margin-bottom: 2rem;
 }
-.user-form-page .page-header .back-button {
+.user-form-page .page-header .header-left .back-button {
   background: none;
   border: none;
   color: var(--text-link);
@@ -2844,11 +2977,11 @@ body.dark-mode .urgency-badge.badge-critical {
   margin-bottom: 0.5rem;
   transition: color 150ms ease;
 }
-.user-form-page .page-header .back-button:hover {
+.user-form-page .page-header .header-left .back-button:hover {
   color: var(--text-link-hover);
   text-decoration: underline;
 }
-.user-form-page .page-header h1 {
+.user-form-page .page-header .header-left h1 {
   color: var(--text-primary);
 }
 .user-form-page .user-form-container {
@@ -2857,9 +2990,10 @@ body.dark-mode .urgency-badge.badge-critical {
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   padding: 1.5rem;
+  transition: background-color 300ms ease, border-color 300ms ease;
+  padding: 1.5rem;
   max-width: 600px;
   margin: 0 auto;
-  transition: background-color 300ms ease, border-color 300ms ease;
 }
 .user-form-page .user-form-container .user-form {
   display: flex;
@@ -2870,7 +3004,6 @@ body.dark-mode .urgency-badge.badge-critical {
   margin-bottom: 1rem;
 }
 .user-form-page .user-form-container .user-form .form-group select:disabled {
-  background-color: var(--surface-alt-bg);
   opacity: 0.7;
 }
 .user-form-page .user-form-container .user-form .form-group .field-info {
@@ -2880,13 +3013,12 @@ body.dark-mode .urgency-badge.badge-critical {
   transition: color 300ms ease;
 }
 .user-form-page .form-actions .cancel-btn {
-  background-color: var(--surface-bg);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
+  border-color: var(--border-color);
 }
 .user-form-page .form-actions .cancel-btn:hover {
   background-color: var(--surface-alt-bg);
 }
+
 @media (max-width: 768px) {
   .user-form-page .user-form-container {
     padding: 1rem;
@@ -2902,7 +3034,7 @@ body.dark-mode .urgency-badge.badge-critical {
   max-width: 100%;
   margin-bottom: 2rem;
 }
-.users-page .header-actions .add-user-btn {
+.users-page .page-header .header-actions .add-user-btn {
   text-decoration: none;
 }
 .users-page .search-filter {
@@ -2916,6 +3048,31 @@ body.dark-mode .urgency-badge.badge-critical {
 }
 .users-page .search-filter .search-input {
   width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color-strong);
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  background-color: var(--surface-alt-bg);
+  color: var(--text-primary);
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 300ms ease, color 300ms ease;
+  width: 100%;
+}
+.users-page .search-filter .search-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.2);
+  outline: none;
+}
+.users-page .search-filter .search-input::-moz-placeholder {
+  color: var(--text-muted);
+  -moz-transition: color 300ms ease;
+  transition: color 300ms ease;
+}
+.users-page .search-filter .search-input::placeholder {
+  color: var(--text-muted);
+  transition: color 300ms ease;
+}
+.users-page .search-filter .search-input:disabled {
+  cursor: not-allowed;
 }
 .users-page .no-users {
   background-color: var(--surface-bg);
@@ -2938,10 +3095,6 @@ body.dark-mode .urgency-badge.badge-critical {
   overflow: hidden;
   transition: background-color 300ms ease, border-color 300ms ease;
 }
-.users-page .users-table {
-  width: 100%;
-  border-collapse: collapse;
-}
 .users-page .users-table th {
   padding: 0.75rem 1rem;
   white-space: nowrap;
@@ -2956,23 +3109,6 @@ body.dark-mode .urgency-badge.badge-critical {
 }
 .users-page .users-table td.actions-cell .edit-btn, .users-page .users-table td.actions-cell .delete-btn {
   padding: 0.25rem 0.75rem;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 150ms ease;
-  text-decoration: none;
-  border: none;
-}
-.users-page .users-table td.actions-cell .edit-btn {
-  background-color: var(--primary-light);
-  padding: 0.25rem 0.75rem;
-  font-size: 0.875rem;
-}
-.users-page .users-table td.actions-cell .edit-btn:hover {
-  background-color: var(--primary-color);
-}
-.users-page .users-table td.actions-cell .delete-btn {
-  padding: 0.25rem 0.75rem;
   font-size: 0.875rem;
 }
 .users-page .role-badge {
@@ -2982,14 +3118,62 @@ body.dark-mode .urgency-badge.badge-critical {
   font-size: 0.75rem;
   font-weight: 500;
   text-align: center;
-  min-width: 70px;
   transition: background-color 300ms ease, color 300ms ease;
+  min-width: 70px;
 }
-.users-page .role-badge.admin {
+.users-page .role-badge.badge-info {
+  background-color: var(--badge-info-bg-alpha);
+  color: var(--info-color);
+}
+.users-page .role-badge.badge-success {
+  background-color: var(--badge-success-bg-alpha);
+  color: var(--success-color);
+}
+.users-page .role-badge.badge-warning {
+  background-color: var(--badge-warning-bg-alpha);
+  color: var(--warning-color);
+}
+.users-page .role-badge.badge-error {
+  background-color: var(--badge-error-bg-alpha);
+  color: var(--error-color);
+}
+.users-page .role-badge.badge-unassigned {
+  background-color: rgba(var(--status-unassigned-color), 0.15);
+  color: var(--status-unassigned-color);
+}
+.users-page .role-badge.badge-assigned {
+  background-color: rgba(var(--status-assigned-color), 0.15);
+  color: var(--status-assigned-color);
+}
+.users-page .role-badge.badge-progress {
+  background-color: rgba(var(--status-progress-color), 0.15);
+  color: var(--status-progress-color);
+}
+.users-page .role-badge.badge-closed {
+  background-color: rgba(var(--status-closed-color), 0.15);
+  color: var(--status-closed-color);
+}
+.users-page .role-badge.badge-low {
+  background-color: rgba(var(--urgency-low-color), 0.15);
+  color: var(--urgency-low-color);
+}
+.users-page .role-badge.badge-medium {
+  background-color: rgba(var(--urgency-medium-color), 0.15);
+  color: var(--urgency-medium-color);
+}
+.users-page .role-badge.badge-high {
+  background-color: rgba(var(--urgency-high-color), 0.15);
+  color: var(--urgency-high-color);
+}
+.users-page .role-badge.badge-critical {
+  background-color: rgba(var(--urgency-critical-color), 0.15);
+  color: var(--urgency-critical-color);
+}
+.users-page .role-badge.badge-admin {
   background-color: rgba(var(--accent-color), 0.15);
   color: var(--accent-color);
 }
-.users-page .role-badge.staff {
+.users-page .role-badge.badge-staff {
   background-color: rgba(var(--info-color), 0.15);
   color: var(--info-color);
 }
@@ -2998,8 +3182,7 @@ body.dark-mode .urgency-badge.badge-critical {
   .users-page .users-table th, .users-page .users-table td {
     padding: 0.5rem;
   }
-  .users-page .users-table th:nth-child(4),
-  .users-page .users-table td:nth-child(4) {
+  .users-page .users-table th:nth-child(4), .users-page .users-table td:nth-child(4) {
     display: none;
   }
 }
@@ -3043,13 +3226,6 @@ body.dark-mode .urgency-badge.badge-critical {
   color: var(--text-secondary);
   transition: color 300ms ease;
 }
-.create-ticket-page .success-message .new-ticket-btn {
-  background-color: var(--success-color);
-  color: #ffffff;
-}
-.create-ticket-page .success-message .new-ticket-btn:hover {
-  background-color: var(--secondary-dark);
-}
 .create-ticket-page .ticket-form {
   background-color: var(--surface-bg);
   border: 1px solid var(--border-color);
@@ -3057,6 +3233,7 @@ body.dark-mode .urgency-badge.badge-critical {
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   padding: 1.5rem;
   transition: background-color 300ms ease, border-color 300ms ease;
+  padding: 1.5rem;
 }
 .create-ticket-page .ticket-form .form-group {
   margin-bottom: 1.5rem;
@@ -3099,6 +3276,7 @@ body.dark-mode .urgency-badge.badge-critical {
   padding: 1rem;
   font-size: 1.125rem;
 }
+
 @media (max-width: 768px) {
   .create-ticket-page .ticket-form {
     padding: 1rem;
@@ -3135,8 +3313,33 @@ body.dark-mode .urgency-badge.badge-critical {
   display: flex;
 }
 .faq-page .faq-header .search-form .search-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color-strong);
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  background-color: var(--surface-alt-bg);
+  color: var(--text-primary);
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 300ms ease, color 300ms ease;
   flex: 1;
   border-radius: 0.25rem 0 0 0.25rem;
+}
+.faq-page .faq-header .search-form .search-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.2);
+  outline: none;
+}
+.faq-page .faq-header .search-form .search-input::-moz-placeholder {
+  color: var(--text-muted);
+  -moz-transition: color 300ms ease;
+  transition: color 300ms ease;
+}
+.faq-page .faq-header .search-form .search-input::placeholder {
+  color: var(--text-muted);
+  transition: color 300ms ease;
+}
+.faq-page .faq-header .search-form .search-input:disabled {
+  cursor: not-allowed;
 }
 .faq-page .faq-header .search-form .search-button {
   padding: 0.75rem 1.25rem;
@@ -3153,7 +3356,7 @@ body.dark-mode .urgency-badge.badge-critical {
   color: var(--error-color);
   margin-bottom: 1rem;
 }
-.faq-page .error-message .btn, .faq-page .error-message .faq-footer .cta-button, .faq-page .faq-footer .error-message .cta-button, .faq-page .error-message .faq-content .faq-list .no-results .clear-search, .faq-page .faq-content .faq-list .no-results .error-message .clear-search, .faq-page .error-message .btn, .faq-page .error-message .faq-header .search-form .search-button, .faq-page .faq-header .search-form .error-message .search-button {
+.faq-page .error-message .btn {
   padding: 0.5rem 1rem;
 }
 .faq-page .faq-content {
@@ -3187,6 +3390,8 @@ body.dark-mode .urgency-badge.badge-critical {
   font-size: 0.875rem;
   color: var(--text-secondary);
   transition: all 150ms ease;
+  text-align: left;
+  width: 100%;
 }
 .faq-page .faq-content .category-filters button:hover {
   background-color: var(--surface-bg);
@@ -3234,7 +3439,7 @@ body.dark-mode .urgency-badge.badge-critical {
   border-bottom: 1px solid var(--border-color);
 }
 .faq-page .faq-content .faq-list .faq-item .faq-question.expanded .expand-icon {
-  color: var(--primary-color);
+  color: var(--primary-color); /* transform: rotate(45deg); Optional: rotate icon */
 }
 .faq-page .faq-content .faq-list .faq-item .faq-answer {
   padding: 1rem 1.25rem;
@@ -3254,11 +3459,7 @@ body.dark-mode .urgency-badge.badge-critical {
   margin-bottom: 1rem;
 }
 .faq-page .faq-content .faq-list .no-results .clear-search {
-  background-color: var(--primary-light);
   padding: 0.5rem 1rem;
-}
-.faq-page .faq-content .faq-list .no-results .clear-search:hover {
-  background-color: var(--primary-color);
 }
 .faq-page .faq-footer {
   margin-top: 4rem;
@@ -3319,26 +3520,26 @@ body.dark-mode .urgency-badge.badge-critical {
   gap: 1rem;
   flex-wrap: wrap;
 }
-.home-page .hero .hero-content .hero-buttons .btn, .home-page .hero .hero-content .hero-buttons .cta .btn-primary, .home-page .cta .hero .hero-content .hero-buttons .btn-primary {
+.home-page .hero .hero-content .hero-buttons .btn {
   padding: 0.75rem 1.5rem;
   border-radius: 0.25rem;
   font-weight: 600;
   transition: all 150ms ease;
   text-decoration: none;
 }
-.home-page .hero .hero-content .hero-buttons .btn.btn-primary, .home-page .hero .hero-content .hero-buttons .cta .btn-primary, .home-page .cta .hero .hero-content .hero-buttons .btn-primary {
+.home-page .hero .hero-content .hero-buttons .btn.btn-primary {
   background-color: #ffffff;
   color: var(--primary-dark);
 }
-.home-page .hero .hero-content .hero-buttons .btn.btn-primary:hover, .home-page .hero .hero-content .hero-buttons .cta .btn-primary:hover, .home-page .cta .hero .hero-content .hero-buttons .btn-primary:hover {
+.home-page .hero .hero-content .hero-buttons .btn.btn-primary:hover {
   background-color: rgba(255, 255, 255, 0.9);
   transform: translateY(-2px);
 }
-.home-page .hero .hero-content .hero-buttons .btn.btn-outline, .home-page .hero .hero-content .hero-buttons .cta .btn-outline.btn-primary, .home-page .cta .hero .hero-content .hero-buttons .btn-outline.btn-primary {
+.home-page .hero .hero-content .hero-buttons .btn.btn-outline {
   border: 2px solid #ffffff;
   color: var(--text-inverted);
 }
-.home-page .hero .hero-content .hero-buttons .btn.btn-outline:hover, .home-page .hero .hero-content .hero-buttons .cta .btn-outline.btn-primary:hover, .home-page .cta .hero .hero-content .hero-buttons .btn-outline.btn-primary:hover {
+.home-page .hero .hero-content .hero-buttons .btn.btn-outline:hover {
   background-color: rgba(255, 255, 255, 0.1);
   transform: translateY(-2px);
 }
@@ -3362,9 +3563,11 @@ body.dark-mode .urgency-badge.badge-critical {
 .home-page .features .feature-grid .feature-card {
   background-color: var(--surface-bg);
   border: 1px solid var(--border-color);
-  padding: 1.5rem;
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  padding: 1.5rem;
+  transition: background-color 300ms ease, border-color 300ms ease;
+  padding: 1.5rem;
   transition: transform 300ms ease, box-shadow 300ms ease, background-color 300ms ease, border-color 300ms ease;
 }
 .home-page .features .feature-grid .feature-card:hover {
@@ -3505,7 +3708,7 @@ body.dark-mode .urgency-badge.badge-critical {
     align-items: center;
     gap: 0.75rem;
   }
-  .home-page .hero-buttons .btn, .home-page .hero-buttons .cta .btn-primary, .home-page .cta .hero-buttons .btn-primary {
+  .home-page .hero-buttons .btn {
     width: 100%;
     max-width: 250px;
   }
@@ -3598,9 +3801,6 @@ ul, ol {
   padding: 1.5rem;
   transition: background-color 300ms ease, border-color 300ms ease;
 }
-.card .card-header { /* Example nested style */ }
-.card .card-body { /* Example nested style */ }
-.card .card-footer { /* Example nested style */ }
 
 /* Base Button Style */
 .btn {

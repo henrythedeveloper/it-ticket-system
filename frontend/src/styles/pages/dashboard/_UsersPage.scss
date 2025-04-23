@@ -15,7 +15,6 @@
       // Uses global styles
       .header-actions {
           .add-user-btn { // Style Add User button/link
-              @extend .btn; // Use global button styles
               text-decoration: none; // Ensure link looks like button
           }
       }
@@ -62,13 +61,8 @@
       &.actions-cell {
         white-space: nowrap; display: flex; gap: $spacing-2;
         .edit-btn, .delete-btn {
-          @extend .btn; // Use base button styles
           padding: $spacing-1 $spacing-3; font-size: $font-size-sm; // Smaller buttons
         }
-        .edit-btn { // Specific edit button style
-          @include mixins.button-variant(--primary-light, --text-primary, --primary-color);
-        }
-        .delete-btn { @extend .btn-danger; } // Use danger variant
       }
     }
   }

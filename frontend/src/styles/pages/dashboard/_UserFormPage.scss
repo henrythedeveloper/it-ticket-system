@@ -57,12 +57,9 @@
   .form-actions {
       // Inherited from _forms.scss
       .cancel-btn { // Example cancel button style
-          @extend .btn;
-          @include mixins.button-outline-variant(--text-secondary, --text-primary);
           border-color: var(--border-color);
           &:hover { background-color: var(--surface-alt-bg); }
       }
-      .submit-btn { @extend .btn; } // Use global primary button style
   }
 }
 

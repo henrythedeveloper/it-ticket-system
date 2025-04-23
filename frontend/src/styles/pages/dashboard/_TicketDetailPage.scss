@@ -25,9 +25,6 @@
       }
       h1 { color: var(--text-primary); } // Ticket #
     }
-    .header-right { // Container for Update Status button
-      .update-ticket-btn { @extend .btn; }
-    }
   }
 
   // --- Main Grid Layout (Ticket Content + Sidebar) ---
@@ -102,7 +99,6 @@
                 text-align: center; font-size: $font-size-xs; color: var(--text-muted);
                 span { display: block; margin-bottom: $spacing-1; }
                 .load-image-btn { // Button to trigger image load
-                  @extend .btn; @extend .btn-sm; // Use small button styles
                   padding: $spacing-1 $spacing-2; // Further adjust padding
                   background-color: var(--surface-alt-bg); color: var(--text-secondary);
                   border: 1px solid var(--border-color);
@@ -153,7 +149,7 @@
       padding-bottom: $spacing-3; transition: border-color $transition-medium;
       flex-shrink: 0; // Prevent header shrinking
       h3 { font-size: $font-size-lg; color: var(--text-primary); margin: 0; transition: color $transition-medium; }
-      .add-comment-btn { @extend .btn; padding: $spacing-2 $spacing-3; font-size: $font-size-sm; }
+      .add-comment-btn { padding: $spacing-2 $spacing-3; font-size: $font-size-sm; }
     }
 
     // Comment Form / Status Update Form Container
@@ -167,10 +163,6 @@
       h4 { font-size: $font-size-base; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; }
       .comment-form, .status-form { // Form styles inherited
         .form-group { margin-bottom: $spacing-3; textarea { min-height: 100px; } }
-        .form-actions { // Inherited styles, adjust if needed
-          .cancel-btn { @extend .btn; @include mixins.button-outline-variant(--text-secondary, --text-primary); border-color: var(--border-color); &:hover { background-color: var(--surface-alt-bg); } }
-          .submit-btn { @extend .btn; }
-        }
       }
     }
 
@@ -248,10 +240,8 @@
           }
         }
         // Action buttons extend base .btn style
-        button { @extend .btn; width: 100%; } // Make buttons full width
-        .assign-to-me-btn { @include mixins.button-variant(--primary-light, --text-primary, --primary-color); }
-        .start-work-btn { @include mixins.button-variant(--info-color, --text-inverted, --primary-dark); }
-        .close-ticket-btn { @include mixins.button-variant(--success-color, --text-inverted, --secondary-dark); }
+        button { width: 100%; } // Make buttons full width
+
       }
     }
   }

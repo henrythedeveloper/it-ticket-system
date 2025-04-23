@@ -2,11 +2,13 @@
 import { defineConfig } from '@rsbuild/core';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSvgr } from '@rsbuild/plugin-svgr';
+import { pluginSass } from '@rsbuild/plugin-sass';
 
 export default defineConfig({
   plugins: [
     pluginReact(), // Enable React support
     pluginSvgr(),  // Enable SVG as React components
+    pluginSass(),  // <-- Add sass plugin HERE
   ],
   html: {
     // Point to your main HTML file (now expected in root or configured path)
@@ -26,6 +28,11 @@ export default defineConfig({
     assetPrefix: '/',
   },
   source: {
+    // Explicitly define the entry point
+    entry: {
+      // Point rsbuild to the correct entry file (main.tsx instead of index.tsx)
+      index: './src/main.tsx',
+    },
     // If you used src="" paths in CRA (jsconfig.json baseUrl='src'),
     // configure aliases if needed, though often imports work directly.
     // alias: { '@': './src', },
@@ -49,7 +56,7 @@ export default defineConfig({
   // },
   // Optional: Configure Sass if needed (often works out-of-box)
   // tools: {
-  //   sass: {
+  //   sass: { // <-- This section is likely not needed now that pluginSass is used
   //     // additionalData: `@import "@/styles/variables.scss";`,
   //   },
   // },

@@ -11,14 +11,6 @@
   max-width: 100%;
   margin-bottom: $spacing-8;
 
-  // --- Page Header ---
-  .page-header {
-    // Uses global styles
-    .header-actions { // Container for create button
-      .create-task-btn { @extend .btn; } // Use global button style
-    }
-  }
-
   // --- Filter Section ---
   .filter-section {
     background-color: var(--surface-bg);
@@ -39,7 +31,6 @@
         border-radius: $border-radius 0 0 $border-radius; // Adjust radius
       }
       .search-button { // Search button
-          @extend .btn; // Use base button style
           padding: $spacing-3 $spacing-5; // Specific padding
           border-radius: 0 $border-radius $border-radius 0; // Adjust radius
       }
@@ -65,8 +56,6 @@
       }
 
       .clear-filters-btn { // Clear button style
-          @extend .btn; // Use base button style
-          @include mixins.button-outline-variant(--text-secondary, --text-primary); // Use outline style
           border-color: var(--border-color);
           padding: $spacing-2 $spacing-3; // Smaller padding
           &:hover { background-color: var(--surface-alt-bg); }
@@ -80,10 +69,6 @@
     padding: $spacing-8; border-radius: $border-radius-lg; box-shadow: $shadow;
     text-align: center; transition: background-color $transition-medium, border-color $transition-medium;
     p { color: var(--text-muted); margin-bottom: $spacing-4; }
-    .clear-filters-btn { // Button to clear filters when none are found
-        @extend .btn;
-        @include mixins.button-variant(--primary-light, --text-primary, --primary-color); // Lighter primary bg
-    }
   }
 
   // --- Tasks Table Container ---
@@ -111,13 +96,8 @@
       &.actions-cell {
         white-space: nowrap; display: flex; gap: $spacing-2;
         .view-btn, .delete-btn {
-          @extend .btn; // Use base button styles
           padding: $spacing-1 $spacing-3; font-size: $font-size-sm; // Smaller buttons
         }
-        .view-btn { // Specific view button style
-          @include mixins.button-variant(--primary-light, --text-primary, --primary-color);
-        }
-        .delete-btn { @extend .btn-danger; } // Use danger variant
       }
     }
   }

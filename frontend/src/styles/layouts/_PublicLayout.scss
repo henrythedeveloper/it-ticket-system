@@ -89,7 +89,7 @@
       padding-top: $spacing-4; border-top: 1px solid var(--border-color);
       transition: border-color $transition-medium;
       .login-btn, .dashboard-btn {
-        @extend .btn; // Use global button base styles
+        ; // Use global button base styles
         width: 100%; padding: $spacing-3; // Adjust padding
         display: flex; align-items: center; justify-content: center;
         .icon { margin-right: $spacing-2; }

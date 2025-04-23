@@ -106,14 +106,6 @@
       }
     } // End .profile-form-container
   } // End .profile-container
-
-  // Form actions styling (uses global .form-actions styles)
-  .form-actions {
-    // Inherited from _forms.scss
-    .submit-btn {
-        @extend .btn; // Use global button styles
-    }
-  }
 }
 
 // --- Responsive Adjustments ---
