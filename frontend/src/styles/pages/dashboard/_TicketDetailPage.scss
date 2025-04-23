@@ -2,6 +2,7 @@
 // ==========================================================================
 // Styles specific to the Ticket Detail page.
 // Includes main ticket info, sidebar, updates, attachments.
+// **REVISED: Fixed map.get error on delete button hover.**
 // ==========================================================================
 
 @use '../../variables' as *;
@@ -17,13 +18,13 @@
     .header-left {
       display: flex; flex-direction: column;
       .back-button { // Back navigation link
-        background: none; border: none; color: var(--text-link);
+        background: none; border: none; color: var(--text-link); // Use CSS var
         font-weight: $font-weight-medium; cursor: pointer; padding: 0;
         display: flex; align-items: center; margin-bottom: $spacing-2;
         transition: color $transition-fast;
-        &:hover { color: var(--text-link-hover); text-decoration: underline; }
+        &:hover { color: var(--text-link-hover); text-decoration: underline; } // Use CSS var
       }
-      h1 { color: var(--text-primary); } // Ticket #
+        h1 { color: var(--text-primary); } // Ticket # (Use CSS var)
     }
   }
 
@@ -45,30 +46,30 @@
 
   // --- Ticket Information Card ---
   .ticket-card {
-    @include mixins.card-base; // Use card mixin
+    @include mixins.card-base; // Use card mixin (uses CSS vars)
     padding: $spacing-6; // Maintain specific padding
 
     .ticket-header {
       margin-bottom: $spacing-4;
       h2 { // Ticket Subject
-        font-size: $font-size-2xl; color: var(--text-primary);
+        font-size: $font-size-2xl; color: var(--text-primary); // Use CSS var
         margin-bottom: $spacing-3; transition: color $transition-medium;
       }
       .ticket-meta { // Status and Urgency badges
         display: flex; gap: $spacing-3;
-        // Badges styled below
+        // Badges styled below (use CSS vars)
       }
     }
 
     .ticket-body {
       .ticket-description { // Main ticket body/description
-        color: var(--text-secondary); line-height: 1.6; white-space: pre-line;
+        color: var(--text-secondary); line-height: 1.6; white-space: pre-line; // Use CSS var
         margin-bottom: $spacing-4; transition: color $transition-medium;
       }
       .ticket-tags { // Associated tags
         display: flex; flex-wrap: wrap; gap: $spacing-2; margin-bottom: $spacing-4;
         .tag {
-          background-color: var(--surface-alt-bg); color: var(--text-secondary);
+          background-color: var(--surface-alt-bg); color: var(--text-secondary); // Use CSS vars
           padding: $spacing-1 $spacing-3; border-radius: $border-radius-full;
           font-size: $font-size-sm; transition: background-color $transition-medium, color $transition-medium;
         }
@@ -78,52 +79,62 @@
     // --- Attachments Section ---
     .ticket-attachments {
       margin-top: $spacing-6; padding-top: $spacing-4;
-      border-top: 1px solid var(--border-color); transition: border-color $transition-medium;
-      h3 { font-size: $font-size-lg; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; }
+      border-top: 1px solid var(--border-color); transition: border-color $transition-medium; // Use CSS var
+      h3 { font-size: $font-size-lg; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; } // Use CSS var
       .attachment-list { list-style: none; padding: 0; margin: 0;
         .attachment-item {
           margin-bottom: $spacing-3; padding: $spacing-2 0;
-          border-bottom: 1px solid var(--border-color); transition: border-color $transition-medium;
+          border-bottom: 1px solid var(--border-color); transition: border-color $transition-medium; // Use CSS var
           &:last-child { border-bottom: none; margin-bottom: 0; }
 
           // Image attachment specific styles
           .image-attachment {
             display: flex; align-items: center; gap: $spacing-3;
             .image-preview { // Container for image or placeholder
-              flex-shrink: 0; width: 100px; height: 75px; background-color: var(--surface-alt-bg);
-              border-radius: $border-radius; border: 1px solid var(--border-color-strong);
+              flex-shrink: 0; width: 100px; height: 75px; background-color: var(--surface-alt-bg); // Use CSS var
+              border-radius: $border-radius; border: 1px solid var(--border-color-strong); // Use CSS var
               display: flex; align-items: center; justify-content: center; overflow: hidden;
               transition: background-color $transition-medium, border-color $transition-medium;
               img { display: block; max-width: 100%; max-height: 100%; object-fit: cover; }
               .image-placeholder { // Shown before image loads
-                text-align: center; font-size: $font-size-xs; color: var(--text-muted);
+                text-align: center; font-size: $font-size-xs; color: var(--text-muted); // Use CSS var
                 span { display: block; margin-bottom: $spacing-1; }
                 .load-image-btn { // Button to trigger image load
                   padding: $spacing-1 $spacing-2; // Further adjust padding
-                  background-color: var(--surface-alt-bg); color: var(--text-secondary);
-                  border: 1px solid var(--border-color);
-                  &:hover { background-color: var(--surface-bg); }
+                  background-color: var(--surface-alt-bg); color: var(--text-secondary); // Use CSS vars
+                  border: 1px solid var(--border-color); // Use CSS var
+                  &:hover { background-color: var(--surface-bg); } // Use CSS var
                 }
               }
             }
-            .attachment-filename { flex-grow: 1; font-size: $font-size-sm; color: var(--text-secondary); word-break: break-all; }
+            .attachment-filename { flex-grow: 1; font-size: $font-size-sm; color: var(--text-secondary); word-break: break-all; } // Use CSS var
             .download-icon-btn { // Separate download button for images
               flex-shrink: 0; background: none; border: none; font-size: $font-size-lg;
-              color: var(--text-muted); cursor: pointer; padding: $spacing-1; transition: color $transition-fast;
-              &:hover { color: var(--primary-color); }
+              color: var(--text-muted); cursor: pointer; padding: $spacing-1; transition: color $transition-fast; // Use CSS var
+              &:hover { color: var(--primary); } // Use CSS var
+            }
+            .delete-icon-btn { // Delete button
+                color: var(--error); // Use CSS var
+                // Use a variable for the hover color if defined, otherwise fallback
+                &:hover { color: var(--error-dark, darken(red, 10%)); } // Use CSS var or fallback
             }
           }
 
           // Non-image attachment link/button
           .attachment-link-button {
             display: flex; align-items: center; width: 100%; padding: $spacing-2;
-            border: 1px solid var(--border-color); background-color: var(--surface-bg);
+            border: 1px solid var(--border-color); background-color: var(--surface-bg); // Use CSS vars
             border-radius: $border-radius; text-align: left; cursor: pointer;
             transition: background-color $transition-fast, border-color $transition-fast; gap: $spacing-2;
-            &:hover { background-color: var(--surface-alt-bg); border-color: var(--border-color-strong); }
-            .attachment-icon { color: var(--text-muted); }
-            .attachment-name { flex-grow: 1; color: var(--text-link); font-weight: $font-weight-medium; font-size: $font-size-sm; }
-            .attachment-size { color: var(--text-muted); font-size: $font-size-xs; white-space: nowrap; }
+            &:hover { background-color: var(--surface-alt-bg); border-color: var(--border-color-strong); } // Use CSS vars
+            .attachment-icon { color: var(--text-muted); } // Use CSS var
+            .attachment-name { flex-grow: 1; color: var(--text-link); font-weight: $font-weight-medium; font-size: $font-size-sm; } // Use CSS var
+            .attachment-size { color: var(--text-muted); font-size: $font-size-xs; white-space: nowrap; } // Use CSS var
+            .delete-icon-btn { // Delete button
+                color: var(--error); // Use CSS var
+                // Use a variable for the hover color if defined, otherwise fallback
+                &:hover { color: var(--error-dark, darken(red, 10%)); } // Use CSS var or fallback
+            }
           }
         }
       }
@@ -132,36 +143,36 @@
     // --- Resolution Notes Section ---
     .resolution-notes {
       margin-top: $spacing-6; padding-top: $spacing-4;
-      border-top: 1px solid var(--border-color); transition: border-color $transition-medium;
-      h3 { font-size: $font-size-lg; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; }
-      p { color: var(--text-secondary); line-height: 1.5; transition: color $transition-medium; white-space: pre-line; }
+      border-top: 1px solid var(--border-color); transition: border-color $transition-medium; // Use CSS var
+      h3 { font-size: $font-size-lg; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; } // Use CSS var
+      p { color: var(--text-secondary); line-height: 1.5; transition: color $transition-medium; white-space: pre-line; } // Use CSS var
     }
   }
 
   // --- Ticket Updates/Comments Section ---
   .ticket-updates {
-    @include mixins.card-base; // Use card mixin
+    @include mixins.card-base; // Use card mixin (uses CSS vars)
     padding: $spacing-6; display: flex; flex-direction: column; // Allow scrolling
 
     .updates-header {
       display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: $spacing-4; border-bottom: 1px solid var(--border-color);
+      margin-bottom: $spacing-4; border-bottom: 1px solid var(--border-color); // Use CSS var
       padding-bottom: $spacing-3; transition: border-color $transition-medium;
       flex-shrink: 0; // Prevent header shrinking
-      h3 { font-size: $font-size-lg; color: var(--text-primary); margin: 0; transition: color $transition-medium; }
+      h3 { font-size: $font-size-lg; color: var(--text-primary); margin: 0; transition: color $transition-medium; } // Use CSS var
       .add-comment-btn { padding: $spacing-2 $spacing-3; font-size: $font-size-sm; }
     }
 
     // Comment Form / Status Update Form Container
     .comment-form-container, .status-form-container {
-      background-color: var(--surface-alt-bg); border-radius: $border-radius;
+      background-color: var(--surface-alt-bg); border-radius: $border-radius; // Use CSS var
       padding: $spacing-4; margin-bottom: $spacing-4;
-      border: 1px solid var(--border-color-strong);
+      border: 1px solid var(--border-color-strong); // Use CSS var
       transition: background-color $transition-medium, border-color $transition-medium;
       flex-shrink: 0; // Prevent form shrinking
 
-      h4 { font-size: $font-size-base; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; }
-      .comment-form, .status-form { // Form styles inherited
+      h4 { font-size: $font-size-base; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; } // Use CSS var
+      .comment-form, .status-form { // Form styles inherited (use CSS vars)
         .form-group { margin-bottom: $spacing-3; textarea { min-height: 100px; } }
       }
     }
@@ -172,38 +183,38 @@
       overflow-y: auto; flex-grow: 1; // Allow timeline to scroll
 
       .update-item { // Individual update/comment item
-        padding: $spacing-4 0 $spacing-4 $spacing-5; border-left: 3px solid var(--border-color);
+        padding: $spacing-4 0 $spacing-4 $spacing-5; border-left: 3px solid var(--border-color); // Use CSS var
         margin-left: $spacing-2; margin-bottom: $spacing-4; position: relative;
         transition: border-color $transition-medium;
         &:before { // Timeline dot
           content: ''; position: absolute; width: 12px; height: 12px;
-          background-color: var(--border-color-strong); border-radius: 50%;
-          left: -7.5px; top: $spacing-4; border: 2px solid var(--surface-bg);
+          background-color: var(--border-color-strong); border-radius: 50%; // Use CSS var
+          left: -7.5px; top: $spacing-4; border: 2px solid var(--surface-bg); // Use CSS var
           transition: background-color $transition-medium, border-color $transition-medium;
         }
         &:last-child { margin-bottom: 0; border-left-color: transparent; }
 
         // System update styling
-        &.system-update { background-color: rgba(var(--text-muted), 0.03); border-left-color: var(--border-color-strong);
-          &:before { background-color: var(--text-muted); }
+        &.system-update { background-color: rgba(var(--text-muted-rgb, 107, 114, 128), 0.03); border-left-color: var(--border-color-strong); // Use RGB var if defined
+          &:before { background-color: var(--text-muted); } // Use CSS var
           .update-author span { font-style: italic; }
         }
         // Internal note styling
-        &.internal-note { border-left-color: var(--accent-color); background-color: rgba(var(--accent-color), 0.05);
-          &:before { background-color: var(--accent-color); }
-          .update-author .internal-badge { background-color: var(--accent-light); color: var(--text-inverted); font-size: $font-size-xs; padding: 2px $spacing-1; border-radius: $border-radius-sm; margin-left: $spacing-2; }
+        &.internal-note { border-left-color: var(--accent); background-color: rgba(var(--accent-rgb), 0.05); // Use CSS vars
+          &:before { background-color: var(--accent); } // Use CSS var
+          .update-author .internal-badge { background-color: var(--accent-light); color: var(--text-inverted); font-size: $font-size-xs; padding: 2px $spacing-1; border-radius: $border-radius-sm; margin-left: $spacing-2; } // Use CSS vars
         }
 
         // Header (author, time)
         .update-header { display: flex; justify-content: space-between; margin-bottom: $spacing-2;
-          .update-author { font-weight: $font-weight-medium; color: var(--text-primary); display: flex; align-items: center; transition: color $transition-medium; }
-          .update-time { font-size: $font-size-sm; color: var(--text-muted); transition: color $transition-medium; }
+          .update-author { font-weight: $font-weight-medium; color: var(--text-primary); display: flex; align-items: center; transition: color $transition-medium; } // Use CSS var
+          .update-time { font-size: $font-size-sm; color: var(--text-muted); transition: color $transition-medium; } // Use CSS var
         }
         // Content (comment text)
-        .update-content { color: var(--text-secondary); line-height: 1.5; white-space: pre-line; transition: color $transition-medium; }
+        .update-content { color: var(--text-secondary); line-height: 1.5; white-space: pre-line; transition: color $transition-medium; } // Use CSS var
       }
 
-      .no-updates { color: var(--text-muted); text-align: center; padding: $spacing-6; font-style: italic; }
+      .no-updates { color: var(--text-muted); text-align: center; padding: $spacing-6; font-style: italic; } // Use CSS var
     }
   }
 
@@ -211,18 +222,18 @@
   .ticket-sidebar {
     display: flex; flex-direction: column; gap: $spacing-6;
     .sidebar-card { // Card containing info or actions
-      @include mixins.card-base; padding: $spacing-4; // Use card mixin, adjust padding
+      @include mixins.card-base; padding: $spacing-4; // Use card mixin, adjust padding (uses CSS vars)
 
       h3 { // Card title
-        font-size: $font-size-lg; color: var(--text-primary); margin-bottom: $spacing-4;
-        padding-bottom: $spacing-2; border-bottom: 1px solid var(--border-color);
+        font-size: $font-size-lg; color: var(--text-primary); margin-bottom: $spacing-4; // Use CSS var
+        padding-bottom: $spacing-2; border-bottom: 1px solid var(--border-color); // Use CSS var
         transition: color $transition-medium, border-color $transition-medium;
       }
       // Info display (label/value pairs)
       .info-group { display: flex; margin-bottom: $spacing-3;
-        label { width: 120px; font-weight: $font-weight-medium; color: var(--text-muted); transition: color $transition-medium; }
-        span { flex-grow: 1; color: var(--text-secondary); transition: color $transition-medium;
-          // Badges are styled separately below
+        label { width: 120px; font-weight: $font-weight-medium; color: var(--text-muted); transition: color $transition-medium; } // Use CSS var
+        span { flex-grow: 1; color: var(--text-secondary); transition: color $transition-medium; // Use CSS var
+          // Badges are styled separately below (use CSS vars)
         }
       }
       // Action buttons in sidebar
@@ -230,16 +241,16 @@
         .file-upload-container { position: relative; // For hiding input
           .file-upload-btn { // Style the label like a button
             display: block; width: 100%; padding: $spacing-2; text-align: center;
-            background-color: var(--surface-alt-bg); color: var(--text-secondary);
-            border: 1px dashed var(--border-color-strong); border-radius: $border-radius;
+            background-color: var(--surface-alt-bg); color: var(--text-secondary); // Use CSS vars
+            border: 1px dashed var(--border-color-strong); border-radius: $border-radius; // Use CSS var
             cursor: pointer; transition: all $transition-fast;
-            &:hover { background-color: var(--surface-bg); border-color: var(--primary-color); }
+            &:hover { background-color: var(--surface-bg); border-color: var(--primary); } // Use CSS vars
           }
           .file-input { // Visually hide the actual file input
               position: absolute; width: 0.1px; height: 0.1px; opacity: 0; overflow: hidden; z-index: -1;
           }
         }
-        // Action buttons extend base .btn style
+        // Action buttons extend base .btn style (which use CSS vars)
         button { width: 100%; } // Make buttons full width
 
       }
@@ -247,7 +258,7 @@
   }
 
   // --- Badge Styles ---
-  // Reusing status/urgency badge styles
+  // Reusing status/urgency badge styles (Mixin uses CSS vars)
   .status-badge, .urgency-badge {
     @include mixins.badge-base;
     @include mixins.badge-alpha-variants; // Apply all color variants
@@ -262,6 +273,6 @@
     .updates-timeline .update-item { padding: $spacing-3 0 $spacing-3 $spacing-4; margin-left: $spacing-1;
       .update-header { flex-direction: column; align-items: flex-start; gap: $spacing-1; }
     }
-    .form-actions { flex-direction: column; button { width: 100%; margin-bottom: $spacing-2; } }
+    .form-actions { flex-direction: column; button { width: 100%; margin-bottom: $spacing-2; } } // Styles from _forms.scss
   }
 }

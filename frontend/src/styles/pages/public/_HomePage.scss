@@ -2,7 +2,7 @@
 // ==========================================================================
 // Styles specific to the public Home page.
 // Includes Hero, Features, How It Works, and CTA sections.
-// **FIXED: Replaced hardcoded #ffffff with theme variable var(--text-inverted).**
+// **REVISED: Ensured all colors use CSS variables.**
 // ==========================================================================
 
 @use '../../variables' as *;
@@ -15,17 +15,17 @@
 
   // --- Hero Section ---
   .hero {
-    // Gradient background - consider adjusting colors for dark mode if needed
-    background: linear-gradient(135deg, var(--primary-dark), var(--primary)); // Use CSS vars
-    color: var(--text-inverted); // Text on dark background
+    // Gradient background - uses CSS variables
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    color: var(--text-inverted); // Use CSS var
     padding: $spacing-16 $spacing-6; // Generous padding
     text-align: center;
     border-radius: 0 0 $border-radius-xl $border-radius-xl; // Rounded bottom corners
 
     .hero-content {
       max-width: 800px; margin: 0 auto; // Center content
-      h1 { font-size: $font-size-4xl; margin-bottom: $spacing-4; color: var(--text-inverted); }
-      p { font-size: $font-size-xl; margin-bottom: $spacing-8; opacity: 0.9; color: var(--text-inverted); }
+      h1 { font-size: $font-size-4xl; margin-bottom: $spacing-4; color: var(--text-inverted); } // Use CSS var
+      p { font-size: $font-size-xl; margin-bottom: $spacing-8; opacity: 0.9; color: var(--text-inverted); } // Use CSS var
       // Buttons in hero
       .hero-buttons {
         display: flex; justify-content: center; gap: $spacing-4; flex-wrap: wrap;
@@ -34,14 +34,12 @@
           font-weight: $font-weight-semibold; transition: all $transition-fast; text-decoration: none;
           // Primary button style (inverted for hero)
           &.btn-primary {
-            // FIX: Use CSS variable for white background
-            background-color: var(--text-inverted); color: var(--primary-dark);
+            background-color: var(--text-inverted); color: var(--primary-dark); // Use CSS vars
             &:hover { background-color: rgba(255, 255, 255, 0.9); transform: translateY(-2px); } // Keep rgba for hover effect
           }
           // Outline button style (inverted for hero)
           &.btn-outline {
-            // FIX: Use CSS variable for white border/text
-            border: 2px solid var(--text-inverted); color: var(--text-inverted);
+            border: 2px solid var(--text-inverted); color: var(--text-inverted); // Use CSS vars
             &:hover { background-color: rgba(255, 255, 255, 0.1); transform: translateY(-2px); } // Keep rgba for hover effect
           }
         }
@@ -52,20 +50,20 @@
   // --- Features Section ---
   .features {
     padding: $spacing-16 $spacing-6;
-    background-color: var(--surface-alt-bg); // Slightly off-white/gray background
+    background-color: var(--surface-alt-bg); // Use CSS var
     transition: background-color $transition-medium;
-    h2 { text-align: center; font-size: $font-size-3xl; margin-bottom: $spacing-10; color: var(--text-primary); transition: color $transition-medium; }
+    h2 { text-align: center; font-size: $font-size-3xl; margin-bottom: $spacing-10; color: var(--text-primary); transition: color $transition-medium; } // Use CSS var
     // Grid for feature cards
     .feature-grid {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: $spacing-6;
       .feature-card { // Individual feature card
-        @include mixins.card-base; // Use card mixin
+        @include mixins.card-base; // Use card mixin (uses CSS vars)
         padding: $spacing-6; // Adjust padding
         transition: transform $transition-medium, box-shadow $transition-medium, background-color $transition-medium, border-color $transition-medium;
-        &:hover { transform: translateY(-5px); box-shadow: $shadow-lg; border-color: var(--border-color-strong); }
+        &:hover { transform: translateY(-5px); box-shadow: $shadow-lg; border-color: var(--border-color-strong); } // Use CSS var
         .feature-icon { font-size: 2.5rem; margin-bottom: $spacing-4; color: var(--primary); } // Use CSS var
         h3 { font-size: $font-size-xl; margin-bottom: $spacing-3; color: var(--primary-dark); transition: color $transition-medium; } // Use CSS var
-        p { color: var(--text-secondary); line-height: 1.6; transition: color $transition-medium; }
+        p { color: var(--text-secondary); line-height: 1.6; transition: color $transition-medium; } // Use CSS var
       }
     }
   }
@@ -73,9 +71,9 @@
   // --- How It Works Section ---
   .how-it-works {
     padding: $spacing-16 $spacing-6;
-    background-color: var(--body-bg);
+    background-color: var(--body-bg); // Use CSS var
     transition: background-color $transition-medium;
-    h2 { text-align: center; font-size: $font-size-3xl; margin-bottom: $spacing-10; color: var(--text-primary); transition: color $transition-medium; }
+    h2 { text-align: center; font-size: $font-size-3xl; margin-bottom: $spacing-10; color: var(--text-primary); transition: color $transition-medium; } // Use CSS var
     // Steps container
     .steps {
       display: flex; flex-wrap: wrap; justify-content: center; gap: $spacing-8;
@@ -85,34 +83,33 @@
         &:not(:last-child)::after {
           content: ''; position: absolute; top: 30px; // Align with center of number circle
           right: -(math.div($spacing-8, 2)); // Position between steps
-          width: $spacing-8; height: 2px; background-color: var(--border-color-strong);
+          width: $spacing-8; height: 2px; background-color: var(--border-color-strong); // Use CSS var
           display: none; transition: background-color $transition-medium;
           @media (min-width: $breakpoint-lg) { display: block; } // Show only on large screens
         }
         // Numbered circle
         .step-number {
           width: 60px; height: 60px; border-radius: 50%; background-color: var(--primary); // Use CSS var
-          color: var(--text-inverted); display: flex; align-items: center; justify-content: center;
+          color: var(--text-inverted); display: flex; align-items: center; justify-content: center; // Use CSS var
           font-size: $font-size-2xl; font-weight: $font-weight-bold; margin: 0 auto $spacing-4 auto;
           transition: background-color $transition-medium, color $transition-medium;
         }
-        h3 { font-size: $font-size-lg; margin-bottom: $spacing-2; color: var(--text-primary); transition: color $transition-medium; }
-        p { color: var(--text-secondary); font-size: $font-size-sm; transition: color $transition-medium; }
+        h3 { font-size: $font-size-lg; margin-bottom: $spacing-2; color: var(--text-primary); transition: color $transition-medium; } // Use CSS var
+        p { color: var(--text-secondary); font-size: $font-size-sm; transition: color $transition-medium; } // Use CSS var
       }
     }
   }
 
   // --- Call to Action Section ---
   .cta {
-    padding: $spacing-16 $spacing-6; background-color: var(--primary-dark); // Darker background
-    color: var(--text-inverted); text-align: center;
+    padding: $spacing-16 $spacing-6; background-color: var(--primary-dark); // Use CSS var
+    color: var(--text-inverted); text-align: center; // Use CSS var
     border-radius: $border-radius-xl $border-radius-xl 0 0; // Rounded top corners
     transition: background-color $transition-medium, color $transition-medium;
-    h2 { font-size: $font-size-3xl; margin-bottom: $spacing-4; color: var(--text-inverted); }
-    p { font-size: $font-size-lg; margin-bottom: $spacing-8; opacity: 0.9; max-width: 600px; margin-left: auto; margin-right: auto; color: var(--text-inverted); }
+    h2 { font-size: $font-size-3xl; margin-bottom: $spacing-4; color: var(--text-inverted); } // Use CSS var
+    p { font-size: $font-size-lg; margin-bottom: $spacing-8; opacity: 0.9; max-width: 600px; margin-left: auto; margin-right: auto; color: var(--text-inverted); } // Use CSS var
     .btn-primary { // CTA button style (inverted)
-      // FIX: Use CSS variable for white background
-      background-color: var(--text-inverted); color: var(--primary-dark);
+      background-color: var(--text-inverted); color: var(--primary-dark); // Use CSS vars
       &:hover { background-color: rgba(255, 255, 255, 0.9); transform: translateY(-2px); } // Keep rgba for hover effect
     }
   }

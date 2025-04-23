@@ -1,6 +1,7 @@
 // src/styles/pages/dashboard/_UserFormPage.scss
 // ==========================================================================
 // Styles specific to the User Form page (Add/Edit User).
+// **REVISED: Ensured all colors use CSS variables.**
 // ==========================================================================
 
 @use '../../variables' as *;
@@ -15,19 +16,19 @@
     // Uses global styles
     .header-left {
       .back-button { // Back navigation link
-        background: none; border: none; color: var(--text-link);
+        background: none; border: none; color: var(--text-link); // Use CSS var
         font-weight: $font-weight-medium; cursor: pointer; padding: 0;
         display: flex; align-items: center; margin-bottom: $spacing-2;
         transition: color $transition-fast;
-        &:hover { color: var(--text-link-hover); text-decoration: underline; }
+        &:hover { color: var(--text-link-hover); text-decoration: underline; } // Use CSS var
       }
-        h1 { color: var(--text-primary); } // Page title
+        h1 { color: var(--text-primary); } // Page title (Use CSS var)
     }
   }
 
   // --- Form Container ---
   .user-form-container {
-    @include mixins.card-base; // Use card mixin
+    @include mixins.card-base; // Use card mixin (uses CSS vars)
     padding: $spacing-6;
     max-width: 600px; // Limit form width
     margin: 0 auto; // Center the form container
@@ -36,7 +37,7 @@
       display: flex; flex-direction: column;
       gap: $spacing-4; // Spacing between form groups
 
-        // Form group styles inherited from _forms.scss
+        // Form group styles inherited from _forms.scss (which use CSS vars)
       .form-group {
           margin-bottom: $spacing-4; // Adjust spacing if needed
 
@@ -46,7 +47,7 @@
           }
 
           .field-info { // Helper text for Role field
-            font-size: $font-size-sm; color: var(--text-muted);
+            font-size: $font-size-sm; color: var(--text-muted); // Use CSS var
             margin-top: $spacing-1; transition: color $transition-medium;
           }
       }
@@ -55,10 +56,10 @@
 
   // --- Form Actions ---
   .form-actions {
-      // Inherited from _forms.scss
+      // Inherited from _forms.scss (which use CSS vars)
       .cancel-btn { // Example cancel button style
-          border-color: var(--border-color);
-          &:hover { background-color: var(--surface-alt-bg); }
+          border-color: var(--border-color); // Use CSS var
+          &:hover { background-color: var(--surface-alt-bg); } // Use CSS var
       }
   }
 }

@@ -2,6 +2,7 @@
 // ==========================================================================
 // Styles specific to the Tickets list page.
 // Includes filtering, search, tag filters, and the main ticket table.
+// **REVISED: Ensured all colors use CSS variables.**
 // ==========================================================================
 
 @use '../../variables' as *;
@@ -13,9 +14,9 @@
 
   // --- Filter Section ---
   .filter-section {
-    background-color: var(--surface-bg);
+    background-color: var(--surface-bg); // Use CSS var
     padding: $spacing-4;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-color); // Use CSS var
     border-radius: $border-radius-lg;
     box-shadow: $shadow;
     margin-bottom: $spacing-6;
@@ -24,36 +25,36 @@
     // Search form
     .search-form {
       display: flex; margin-bottom: $spacing-4;
-      .search-input { @include mixins.form-element-base; flex: 1; border-radius: $border-radius 0 0 $border-radius; }
-      .search-button { padding: $spacing-3 $spacing-5; border-radius: 0 $border-radius $border-radius 0; }
+      .search-input { @include mixins.form-element-base; flex: 1; border-radius: $border-radius 0 0 $border-radius; } // Mixin uses CSS vars
+      .search-button { padding: $spacing-3 $spacing-5; border-radius: 0 $border-radius $border-radius 0; } // Uses global .btn styles
     }
 
     // Dropdown filters container
     .filters {
       display: flex; flex-wrap: wrap; gap: $spacing-4; align-items: center; margin-bottom: $spacing-4;
       .filter-group { display: flex; align-items: center;
-        label { margin-right: $spacing-2; font-weight: $font-weight-medium; color: var(--text-primary); transition: color $transition-medium; }
-        .filter-select { @include mixins.form-element-base; @include mixins.select-arrow; padding: $spacing-2; min-width: 150px; }
+        label { margin-right: $spacing-2; font-weight: $font-weight-medium; color: var(--text-primary); transition: color $transition-medium; } // Use CSS var
+        .filter-select { @include mixins.form-element-base; @include mixins.select-arrow; padding: $spacing-2; min-width: 150px; } // Mixins use CSS vars
       }
-      .clear-filters-btn { // Clear button style
-          border-color: var(--border-color); padding: $spacing-2 $spacing-3;
-          &:hover { background-color: var(--surface-alt-bg); }
+      .clear-filters-btn { // Clear button style (uses global .btn.btn-outline)
+          border-color: var(--border-color); padding: $spacing-2 $spacing-3; // Use CSS var
+          &:hover { background-color: var(--surface-alt-bg); } // Use CSS var
       }
     }
 
     // Tag filter section
     .tag-filter {
       margin-top: $spacing-3;
-      .tag-filter-label { display: block; margin-bottom: $spacing-2; font-weight: $font-weight-medium; color: var(--text-primary); transition: color $transition-medium; }
+      .tag-filter-label { display: block; margin-bottom: $spacing-2; font-weight: $font-weight-medium; color: var(--text-primary); transition: color $transition-medium; } // Use CSS var
       .tag-list { display: flex; flex-wrap: wrap; gap: $spacing-2;
         .filter-tag { // Individual clickable tag
-          padding: $spacing-1 $spacing-3; background-color: var(--surface-alt-bg); color: var(--text-secondary);
-          border: 1px solid var(--border-color); border-radius: $border-radius-full; font-size: $font-size-sm;
+          padding: $spacing-1 $spacing-3; background-color: var(--surface-alt-bg); color: var(--text-secondary); // Use CSS vars
+          border: 1px solid var(--border-color); border-radius: $border-radius-full; font-size: $font-size-sm; // Use CSS var
           cursor: pointer; transition: all $transition-fast;
-          &:hover { background-color: var(--surface-bg); border-color: var(--border-color-strong); }
+          &:hover { background-color: var(--surface-bg); border-color: var(--border-color-strong); } // Use CSS vars
           &.selected { // Style for selected tag
-            background-color: var(--primary-color); color: var(--text-inverted); border-color: var(--primary-color);
-            &:hover { background-color: var(--primary-dark); border-color: var(--primary-dark); }
+            background-color: var(--primary); color: var(--text-inverted); border-color: var(--primary); // Use CSS vars
+            &:hover { background-color: var(--primary-dark); border-color: var(--primary-dark); } // Use CSS vars
           }
         }
       }
@@ -62,15 +63,15 @@
 
   // --- Message for No Tickets Found ---
   .no-tickets {
-    background-color: var(--surface-bg); border: 1px solid var(--border-color);
+    background-color: var(--surface-bg); border: 1px solid var(--border-color); // Use CSS vars
     padding: $spacing-8; border-radius: $border-radius-lg; box-shadow: $shadow;
     text-align: center; transition: background-color $transition-medium, border-color $transition-medium;
-    p { color: var(--text-muted); margin-bottom: $spacing-4; }
+    p { color: var(--text-muted); margin-bottom: $spacing-4; } // Use CSS var
   }
 
   // --- Tickets Table Container ---
   .tickets-table-container {
-    background-color: var(--surface-bg); border: 1px solid var(--border-color);
+    background-color: var(--surface-bg); border: 1px solid var(--border-color); // Use CSS vars
     border-radius: $border-radius-lg; box-shadow: $shadow;
     overflow: hidden; overflow-x: auto; // Allow horizontal scroll
     transition: background-color $transition-medium, border-color $transition-medium;
@@ -78,21 +79,21 @@
 
   // --- Tickets Table ---
   .tickets-table {
-    // Uses global table styles
+    // Uses global table styles (which use CSS vars)
     th { padding: $spacing-3 $spacing-4; white-space: nowrap; }
     td { padding: $spacing-3 $spacing-4;
       // Subject cell truncation and link style
       &.subject-cell {
         max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        a { color: var(--text-link); text-decoration: none; &:hover { text-decoration: underline; color: var(--text-link-hover); } }
+        a { color: var(--text-link); text-decoration: none; &:hover { text-decoration: underline; color: var(--text-link-hover); } } // Use CSS vars
       }
       // Tags cell styling
       &.tags-cell {
         min-width: 150px;
         .table-tags { display: flex; flex-wrap: wrap; gap: $spacing-1;
-          .table-tag { background-color: var(--surface-alt-bg); color: var(--text-secondary); padding: 2px $spacing-2; border-radius: $border-radius-full; font-size: $font-size-xs; white-space: nowrap; transition: background-color $transition-medium, color $transition-medium; }
+          .table-tag { background-color: var(--surface-alt-bg); color: var(--text-secondary); padding: 2px $spacing-2; border-radius: $border-radius-full; font-size: $font-size-xs; white-space: nowrap; transition: background-color $transition-medium, color $transition-medium; } // Use CSS vars
         }
-        .no-tags { color: var(--text-muted); }
+        .no-tags { color: var(--text-muted); } // Use CSS var
       }
     }
     // Make table rows clickable (if desired)
@@ -100,6 +101,7 @@
   }
 
   // --- Badge Styles ---
+  // Mixin applies CSS variables for colors.
   .status-badge, .urgency-badge {
     @include mixins.badge-base;
     @include mixins.badge-alpha-variants; // Apply all color variants

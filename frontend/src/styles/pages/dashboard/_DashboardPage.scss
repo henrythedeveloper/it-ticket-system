@@ -1,6 +1,7 @@
 // src/styles/pages/dashboard/_DashboardPage.scss
 // ==========================================================================
 // Styles specific to the main Dashboard page.
+// **REVISED: Ensured all colors use CSS variables.**
 // ==========================================================================
 
 @use '../../variables' as *;
@@ -13,8 +14,8 @@
   // Page Header section
   .page-header {
     // Uses global styles, add specific overrides if needed
-    h1 { color: var(--text-primary); }
-    p { color: var(--text-muted); margin-top: $spacing-2; }
+    h1 { color: var(--text-primary); } // Use CSS var
+    p { color: var(--text-muted); margin-top: $spacing-2; } // Use CSS var
   }
 
   // Statistics Cards section
@@ -25,8 +26,8 @@
     margin-bottom: $spacing-8;
 
     .stats-card {
-      background-color: var(--surface-bg);
-      border: 1px solid var(--border-color);
+      background-color: var(--surface-bg); // Use CSS var
+      border: 1px solid var(--border-color); // Use CSS var
       border-radius: $border-radius-lg;
       box-shadow: $shadow;
       display: flex;
@@ -41,7 +42,7 @@
         h3 { // Card title (e.g., "Unassigned")
           font-size: $font-size-lg;
           font-weight: $font-weight-medium;
-          color: var(--text-secondary);
+          color: var(--text-secondary); // Use CSS var
           margin-bottom: $spacing-2;
           transition: color $transition-medium;
         }
@@ -49,7 +50,7 @@
         .count { // The large number
           font-size: $font-size-3xl;
           font-weight: $font-weight-bold;
-          color: var(--primary-color); // Default color, overridden below
+          color: var(--primary); // Default color (CSS var)
           margin: 0;
           transition: color $transition-medium;
         }
@@ -59,9 +60,9 @@
       .card-action {
         padding: $spacing-3;
         text-align: center;
-        background-color: var(--surface-alt-bg);
-        color: var(--primary-color);
-        border-top: 1px solid var(--border-color);
+        background-color: var(--surface-alt-bg); // Use CSS var
+        color: var(--primary); // Use CSS var
+        border-top: 1px solid var(--border-color); // Use CSS var
         text-decoration: none;
         font-size: $font-size-sm;
         font-weight: $font-weight-medium;
@@ -69,14 +70,15 @@
         transition: background-color $transition-fast, color $transition-fast, border-color $transition-medium;
 
         &:hover {
-          background-color: rgba(var(--primary-color), 0.1); // Use alpha background on hover
+          background-color: rgba(var(--primary-rgb), 0.1); // Use primary RGB var
         }
       }
 
       // Specific count colors (using CSS variables for theme adaptability)
-      &:first-child .card-content .count { color: var(--status-unassigned-color); }
-      &:nth-child(2) .card-content .count { color: var(--status-assigned-color); }
-      &:nth-child(3) .card-content .count { color: var(--status-progress-color); }
+      // Assuming these status color vars are defined in _variables.scss
+      &:first-child .card-content .count { color: var(--status-unassigned-color, var(--warning)); } // Fallback to warning
+      &:nth-child(2) .card-content .count { color: var(--status-assigned-color, var(--info)); } // Fallback to info
+      &:nth-child(3) .card-content .count { color: var(--status-progress-color, var(--secondary)); } // Fallback to secondary
       &:last-child .card-content .count { color: var(--text-primary); } // Total open count
     }
   }
@@ -93,7 +95,7 @@
 
     // Individual card within the grid
     .dashboard-card {
-      @include mixins.card-base; // Use card mixin
+      @include mixins.card-base; // Use card mixin (uses CSS vars)
       padding: 0; // Override padding from mixin, apply to header/body
       display: flex; // Ensure card takes full height if needed
       flex-direction: column;
@@ -103,22 +105,22 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color); // Use CSS var
         transition: border-color $transition-medium;
 
         h2 { // Card title (e.g., "Recent Tickets")
           font-size: $font-size-xl;
           font-weight: $font-weight-semibold;
-          color: var(--text-primary);
+          color: var(--text-primary); // Use CSS var
           margin: 0;
         }
 
         .view-all { // "View All" link
-          color: var(--text-link);
+          color: var(--text-link); // Use CSS var
           text-decoration: none;
           font-size: $font-size-sm;
           font-weight: $font-weight-medium;
-          &:hover { text-decoration: underline; color: var(--text-link-hover); }
+          &:hover { text-decoration: underline; color: var(--text-link-hover); } // Use CSS var
         }
       }
 
@@ -127,7 +129,7 @@
         flex-grow: 1; // Allow body to fill space
 
         .no-data { // Message when list is empty
-          color: var(--text-muted);
+          color: var(--text-muted); // Use CSS var
           text-align: center;
           padding: $spacing-6;
           font-style: italic;
@@ -138,14 +140,15 @@
 
   // Table styles within dashboard cards
   .dashboard-table {
-    // Uses global table styles defined in global.scss
+    // Uses global table styles defined in global.scss (which use CSS vars)
     th { padding: $spacing-2 $spacing-3; font-size: $font-size-sm; font-weight: $font-weight-semibold; white-space: nowrap; }
     td { padding: $spacing-2 $spacing-3; font-size: $font-size-sm;
-      a { color: var(--text-link); text-decoration: none; &:hover { text-decoration: underline; color: var(--text-link-hover); } }
+      a { color: var(--text-link); text-decoration: none; &:hover { text-decoration: underline; color: var(--text-link-hover); } } // Use CSS vars
     }
   }
 
   // Badge styles (reusing status/urgency badges)
+  // Mixin applies CSS variables for colors.
   .status-badge, .urgency-badge {
     @include mixins.badge-base;
     @include mixins.badge-alpha-variants; // Apply all color variants
@@ -156,25 +159,23 @@
   .task-list {
     list-style: none; padding: 0; margin: 0;
     .task-item {
-      border-bottom: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color); // Use CSS var
       transition: border-color $transition-medium;
       &:last-child { border-bottom: none; }
 
       .task-link {
         display: flex; justify-content: space-between; align-items: center;
-        padding: $spacing-3; text-decoration: none; color: var(--text-secondary);
+        padding: $spacing-3; text-decoration: none; color: var(--text-secondary); // Use CSS var
         transition: background-color $transition-fast, color $transition-medium;
-        &:hover { background-color: var(--surface-alt-bg); }
+        &:hover { background-color: var(--surface-alt-bg); } // Use CSS var
 
-        .task-title { font-weight: $font-weight-medium; color: var(--text-primary); flex-grow: 1; }
-        .task-due { font-size: $font-size-sm; color: var(--text-muted); margin: 0 $spacing-3; }
+        .task-title { font-weight: $font-weight-medium; color: var(--text-primary); flex-grow: 1; } // Use CSS var
+        .task-due { font-size: $font-size-sm; color: var(--text-muted); margin: 0 $spacing-3; } // Use CSS var
         .task-status { // Task-specific status badges
           @include mixins.badge-base;
           min-width: 80px;
           // Apply task status colors (could be part of badge-alpha-variants if vars are named consistently)
-          &.status-open { background-color: rgba(var(--warning-color), 0.15); color: var(--warning-color); }
-          &.status-in-progress { background-color: rgba(var(--info-color), 0.15); color: var(--info-color); }
-          &.status-completed { background-color: rgba(var(--success-color), 0.15); color: var(--success-color); }
+          // Mixin handles this now if variables are defined
         }
       }
     }
@@ -188,16 +189,16 @@
 
     .action-button {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background-color: var(--surface-alt-bg); border: 1px solid var(--border-color);
+      background-color: var(--surface-alt-bg); border: 1px solid var(--border-color); // Use CSS vars
       border-radius: $border-radius; padding: $spacing-4; text-decoration: none;
-      color: var(--text-secondary); transition: all $transition-fast; text-align: center;
+      color: var(--text-secondary); transition: all $transition-fast; text-align: center; // Use CSS var
 
-      .icon { font-size: $font-size-2xl; margin-bottom: $spacing-2; color: var(--text-primary); }
+      .icon { font-size: $font-size-2xl; margin-bottom: $spacing-2; color: var(--text-primary); } // Use CSS var
       span { font-size: $font-size-sm; font-weight: $font-weight-medium; }
 
       &:hover {
-        background-color: var(--surface-bg); border-color: var(--border-color-strong);
-        color: var(--text-primary); transform: translateY(-2px);
+        background-color: var(--surface-bg); border-color: var(--border-color-strong); // Use CSS vars
+        color: var(--text-primary); transform: translateY(-2px); // Use CSS var
       }
     }
   }

@@ -1,164 +1,164 @@
-    // src/styles/components/tickets/_TicketCard.scss
-    // ==========================================================================
-    // Styles for the Ticket Card component displayed in lists.
-    // ==========================================================================
+// src/styles/components/tickets/_TicketCard.scss
+// ==========================================================================
+// Styles for the Ticket Card component displayed in lists.
+// **REVISED: Ensured all colors use CSS variables.**
+// ==========================================================================
 
-    @use '../../variables' as *; // Import variables for spacing, radii, fonts etc.
-    @use '../../mixins'; // Use the mixins file
+@use '../../variables' as *; // Import variables for spacing, radii, fonts etc.
+@use '../../mixins'; // Use the mixins file
 
-    .ticket-card {
-      // Apply base card styles using the mixin
-      @include mixins.card-base;
+.ticket-card {
+  // Apply base card styles using the mixin (mixin uses CSS vars)
+  @include mixins.card-base;
 
-      // Override padding from the mixin if needed (mixin uses $spacing-6)
-      padding: $spacing-4;
-      // Add specific margin for ticket cards
-      margin-bottom: $spacing-4;
-      // Keep specific transitions or let the mixin handle it (mixin has bg/border)
-      transition: transform $transition-fast, box-shadow $transition-fast, background-color $transition-medium, border-color $transition-medium;
+  // Override padding from the mixin if needed (mixin uses $spacing-6)
+  padding: $spacing-4;
+  // Add specific margin for ticket cards
+  margin-bottom: $spacing-4;
+  // Keep specific transitions or let the mixin handle it (mixin has bg/border)
+  transition: transform $transition-fast, box-shadow $transition-fast, background-color $transition-medium, border-color $transition-medium;
 
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: $shadow-md;
-        border-color: var(--border-color-strong);
-      }
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+    border-color: var(--border-color-strong); // Use CSS var
+  }
 
-      // Header section within the card
-      .ticket-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: $spacing-3;
+  // Header section within the card
+  .ticket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-3;
 
-        .ticket-badges {
-          display: flex;
-          gap: $spacing-2;
-          // Badge styles are handled globally/via mixin below
-        }
-
-        .ticket-id {
-          font-size: $font-size-sm;
-          color: var(--text-muted);
-          font-family: $font-family-mono;
-          transition: color $transition-medium;
-        }
-      }
-
-      // Ticket title link
-      .ticket-title {
-        display: block;
-        font-size: $font-size-lg;
-        font-weight: $font-weight-semibold;
-        color: var(--text-primary);
-        margin-bottom: $spacing-3;
-        text-decoration: none;
-        transition: color $transition-fast;
-
-        &:hover {
-          color: var(--text-link);
-        }
-      }
-
-      // Metadata section (submitter, date)
-      .ticket-meta {
-        display: flex;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: $spacing-2;
-        margin-bottom: $spacing-2;
-        font-size: $font-size-sm;
-
-        .meta-label {
-          color: var(--text-muted);
-          margin-right: $spacing-1;
-          transition: color $transition-medium;
-        }
-
-        .meta-value {
-          color: var(--text-secondary);
-          transition: color $transition-medium;
-        }
-      }
-
-      // Assignment section
-      .ticket-assignment {
-        margin-bottom: $spacing-3;
-        font-size: $font-size-sm;
-
-        .meta-label {
-          color: var(--text-muted);
-          margin-right: $spacing-1;
-          transition: color $transition-medium;
-        }
-
-        .meta-value {
-          color: var(--text-primary);
-          font-weight: $font-weight-medium;
-          transition: color $transition-medium;
-        }
-      }
-
-      // Body excerpt
-      .ticket-excerpt {
-        color: var(--text-secondary);
-        font-size: $font-size-sm;
-        margin-bottom: $spacing-3;
-        line-height: 1.5;
-        transition: color $transition-medium;
-        // Simple truncation (can be improved with JS or line-clamp)
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-line-clamp: 3; // Show 3 lines max
-        -webkit-box-orient: vertical;
-      }
-
-      // Tags section
-      .ticket-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: $spacing-2;
-        margin-bottom: $spacing-3;
-
-        .tag {
-          background-color: var(--surface-alt-bg);
-          color: var(--text-secondary);
-          padding: $spacing-1 $spacing-2;
-          border-radius: $border-radius-full;
-          font-size: $font-size-xs;
-          transition: background-color $transition-medium, color $transition-medium;
-        }
-      }
-
-      // View Ticket Button
-      .view-ticket-btn {
-        // Apply specific overrides for this button's appearance
-        background-color: var(--surface-alt-bg);
-        color: var(--text-secondary);
-        border: 1px solid var(--border-color);
-        padding: $spacing-2 $spacing-4; // Specific padding
-        font-size: $font-size-sm; // Specific font size
-
-        &:hover {
-            background-color: var(--primary-color);
-            color: var(--text-inverted);
-            border-color: var(--primary-color);
-        }
-      }
+    .ticket-badges {
+      display: flex;
+      gap: $spacing-2;
+      // Badge styles are handled globally/via mixin using CSS vars
     }
 
-    // Status & Urgency badges (Base styles)
-    // Specific colors applied via classes like .badge-unassigned, .badge-low etc.
-    .status-badge, .urgency-badge {
-      @include mixins.badge-base; // Use base badge mixin
-      // Apply color variants using the alpha mixin logic
-      @include mixins.badge-alpha-variants;
+    .ticket-id {
+      font-size: $font-size-sm;
+      color: var(--text-muted); // Use CSS var
+      font-family: $font-family-mono;
+      transition: color $transition-medium;
+    }
+  }
+
+  // Ticket title link
+  .ticket-title {
+    display: block;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: var(--text-primary); // Use CSS var
+    margin-bottom: $spacing-3;
+    text-decoration: none;
+    transition: color $transition-fast;
+
+    &:hover {
+      color: var(--text-link); // Use CSS var
+    }
+  }
+
+  // Metadata section (submitter, date)
+  .ticket-meta {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    margin-bottom: $spacing-2;
+    font-size: $font-size-sm;
+
+    .meta-label {
+      color: var(--text-muted); // Use CSS var
+      margin-right: $spacing-1;
+      transition: color $transition-medium;
     }
 
-    // Responsive adjustments
-    @media (max-width: $breakpoint-md) {
-      .ticket-card .ticket-meta {
-        flex-direction: column;
-        gap: $spacing-1;
-      }
+    .meta-value {
+      color: var(--text-secondary); // Use CSS var
+      transition: color $transition-medium;
     }
-    
+  }
+
+  // Assignment section
+  .ticket-assignment {
+    margin-bottom: $spacing-3;
+    font-size: $font-size-sm;
+
+    .meta-label {
+      color: var(--text-muted); // Use CSS var
+      margin-right: $spacing-1;
+      transition: color $transition-medium;
+    }
+
+    .meta-value {
+      color: var(--text-primary); // Use CSS var
+      font-weight: $font-weight-medium;
+      transition: color $transition-medium;
+    }
+  }
+
+  // Body excerpt
+  .ticket-excerpt {
+    color: var(--text-secondary); // Use CSS var
+    font-size: $font-size-sm;
+    margin-bottom: $spacing-3;
+    line-height: 1.5;
+    transition: color $transition-medium;
+    // Simple truncation (can be improved with JS or line-clamp)
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3; // Show 3 lines max
+    -webkit-box-orient: vertical;
+  }
+
+  // Tags section
+  .ticket-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    margin-bottom: $spacing-3;
+
+    .tag {
+      background-color: var(--surface-alt-bg); // Use CSS var
+      color: var(--text-secondary); // Use CSS var
+      padding: $spacing-1 $spacing-2;
+      border-radius: $border-radius-full;
+      font-size: $font-size-xs;
+      transition: background-color $transition-medium, color $transition-medium;
+    }
+  }
+
+  // View Ticket Button
+  .view-ticket-btn {
+    // Apply specific overrides for this button's appearance
+    background-color: var(--surface-alt-bg); // Use CSS var
+    color: var(--text-secondary); // Use CSS var
+    border: 1px solid var(--border-color); // Use CSS var
+    padding: $spacing-2 $spacing-4; // Specific padding
+    font-size: $font-size-sm; // Specific font size
+
+    &:hover {
+        background-color: var(--primary); // Use CSS var
+        color: var(--text-inverted); // Use CSS var
+        border-color: var(--primary); // Use CSS var
+    }
+  }
+}
+
+// Status & Urgency badges (Base styles)
+// Specific colors applied via classes like .badge-unassigned, .badge-low etc.
+// Mixin applies CSS variables for colors.
+.status-badge, .urgency-badge {
+  @include mixins.badge-base; // Use base badge mixin
+  @include mixins.badge-alpha-variants; // Use variant mixin (uses CSS vars)
+}
+
+// Responsive adjustments
+@media (max-width: $breakpoint-md) {
+  .ticket-card .ticket-meta {
+    flex-direction: column;
+    gap: $spacing-1;
+  }
+}

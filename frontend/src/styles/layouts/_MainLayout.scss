@@ -2,6 +2,7 @@
 // ==========================================================================
 // Styles for the main application layout (header, sidebar, content area)
 // used for authenticated users.
+// **REVISED: Ensured all colors use CSS variables.**
 // ==========================================================================
 
 @use '../variables' as *;
@@ -47,8 +48,8 @@
 
 // --- Header Styles ---
 .header {
-  background-color: var(--header-bg);
-  color: var(--header-text);
+  background-color: var(--header-bg); // Use CSS var
+  color: var(--header-text, var(--text-primary)); // Use CSS var (fallback to primary text)
   box-shadow: $shadow; // Subtle shadow
   height: $header-height;
   display: flex;
@@ -60,7 +61,7 @@
   left: 0;
   right: 0;
   z-index: $z-index-fixed; // Ensure header stays on top
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color); // Use CSS var
   transition: background-color $transition-medium, color $transition-medium, border-color $transition-medium;
 
   // Left side of the header (toggle, logo)
@@ -74,15 +75,15 @@
       display: flex; flex-direction: column; justify-content: center; align-items: center;
       padding: $spacing-2; margin-right: $spacing-4;
       span { // Hamburger lines
-        background-color: var(--text-secondary); display: block;
+        background-color: var(--text-secondary); display: block; // Use CSS var
         height: 2px; width: 22px; margin: 2px 0;
         transition: all $transition-fast;
       }
-      &:hover span { background-color: var(--primary-color); }
+      &:hover span { background-color: var(--primary); } // Use CSS var
     }
     // Logo text
     .logo {
-      color: var(--primary-color); font-size: $font-size-xl;
+      color: var(--primary); font-size: $font-size-xl; // Use CSS var
       font-weight: $font-weight-bold; margin: 0;
     }
   }
@@ -95,17 +96,17 @@
     .user-info {
       display: flex; flex-direction: column; align-items: flex-end;
       margin-right: $spacing-3;
-      .user-name { font-weight: $font-weight-medium; color: var(--text-primary); }
-      .user-role { color: var(--text-muted); font-size: $font-size-xs; }
+      .user-name { font-weight: $font-weight-medium; color: var(--text-primary); } // Use CSS var
+      .user-role { color: var(--text-muted); font-size: $font-size-xs; } // Use CSS var
     }
 
     // Theme toggle button
     .theme-toggle-header {
-        background: none; border: none; color: var(--text-secondary);
+        background: none; border: none; color: var(--text-secondary); // Use CSS var
         cursor: pointer; font-size: $font-size-xl; padding: $spacing-2;
         margin-right: $spacing-2; transition: color $transition-fast;
-        &:hover { color: var(--text-primary); }
-        &:focus { outline: none; box-shadow: 0 0 0 2px rgba(var(--primary-color), 0.4); }
+        &:hover { color: var(--text-primary); } // Use CSS var
+        &:focus { outline: none; box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.4); } // Use primary RGB var
     }
 
     // User dropdown menu
@@ -114,25 +115,25 @@
       // Dropdown toggle button (can be an icon)
       .dropdown-toggle {
           background: none; border: none; cursor: pointer;
-          padding: $spacing-2; color: var(--text-secondary);
+          padding: $spacing-2; color: var(--text-secondary); // Use CSS var
           font-size: $font-size-lg;
-          &:hover { color: var(--text-primary); }
+          &:hover { color: var(--text-primary); } // Use CSS var
       }
       // Dropdown menu content
       .dropdown-menu {
         position: absolute; top: calc(100% + #{$spacing-1}); right: 0;
-        background-color: var(--surface-bg); border-radius: $border-radius;
+        background-color: var(--surface-bg); border-radius: $border-radius; // Use CSS var
         box-shadow: $shadow-lg; min-width: 180px; padding: $spacing-2 0;
         display: none; // Hidden by default, shown on hover/click
         flex-direction: column; z-index: $z-index-dropdown;
-        border: 1px solid var(--border-color);
+        border: 1px solid var(--border-color); // Use CSS var
         // Menu items (links or buttons)
         a, button {
           display: block; padding: $spacing-2 $spacing-4; text-decoration: none;
-          color: var(--text-secondary); text-align: left; background: none;
+          color: var(--text-secondary); text-align: left; background: none; // Use CSS var
           border: none; cursor: pointer; width: 100%; font-size: $font-size-sm;
           transition: background-color $transition-fast, color $transition-fast;
-          &:hover { background-color: var(--surface-alt-bg); color: var(--primary-color); }
+          &:hover { background-color: var(--surface-alt-bg); color: var(--primary); } // Use CSS vars
         }
       }
       // Show menu on hover (simple CSS approach)
@@ -143,7 +144,7 @@
 
 // --- Sidebar Styles ---
 .sidebar {
-  background-color: var(--sidebar-bg); // Dark background
+  background-color: var(--sidebar-bg); // Use CSS var
   width: $sidebar-width; height: 100vh; position: fixed;
   top: 0; left: 0; z-index: $z-index-fixed - 1; // Below header
   padding-top: $header-height; // Account for fixed header
@@ -159,16 +160,17 @@
         // Navigation links
         a {
           display: flex; align-items: center; padding: $spacing-3 $spacing-4;
-          color: var(--sidebar-text); text-decoration: none;
+          color: var(--sidebar-text, var(--text-muted)); // Use CSS var (fallback to muted)
+          text-decoration: none;
           transition: background-color $transition-fast, color $transition-fast, border-color $transition-fast;
           border-left: 3px solid transparent; // For active state indicator
           .icon { margin-right: $spacing-3; font-size: $font-size-lg; transition: margin $transition-medium; }
           span { transition: opacity $transition-fast; opacity: 1; } // Text label
           // Active/hover state
           &:hover, &.active {
-            background-color: var(--sidebar-active-bg);
-            color: var(--sidebar-text-hover);
-            border-left-color: var(--sidebar-active-border);
+            background-color: var(--sidebar-active-bg, var(--surface-alt-bg)); // Use CSS var (fallback)
+            color: var(--sidebar-text-hover, var(--primary)); // Use CSS var (fallback)
+            border-left-color: var(--sidebar-active-border, var(--primary)); // Use CSS var (fallback)
           }
         }
       }
@@ -181,7 +183,7 @@
   margin-top: $header-height; // Avoid content going under fixed header
   min-height: calc(100vh - #{$header-height}); // Ensure footer is pushed down
   padding: $spacing-6;
-  background-color: var(--body-bg);
+  background-color: var(--body-bg); // Use CSS var
   // Transitions handled by sidebar state classes
   transition: margin-left $transition-medium, width $transition-medium, background-color $transition-medium;
 }

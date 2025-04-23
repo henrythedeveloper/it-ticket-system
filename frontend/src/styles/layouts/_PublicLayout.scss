@@ -2,7 +2,7 @@
 // ==========================================================================
 // Styles for the public-facing layout (Homepage, FAQ, Create Ticket).
 // Includes side navigation and footer.
-// **FIXED: Removed hardcoded fallback colors, now using only CSS variables.**
+// **REVISED: Added mobile navigation styles.**
 // ==========================================================================
 
 @use '../variables' as *;
@@ -14,12 +14,12 @@
   position: fixed;
   top: $spacing-4;
   right: $spacing-4;
-  z-index: $z-index-sticky + 10; // Ensure above other elements
+  z-index: $z-index-fixed + 10; // Ensure above mobile nav toggle
   background-color: var(--surface-bg);
   color: var(--text-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 50%; // Circular
-  width: 40px; height: 40px; // Fixed size
+  border-radius: 50%;
+  width: 40px; height: 40px;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   box-shadow: $shadow-md;
@@ -33,13 +33,58 @@
   }
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(var(--primary), 0.4); // Use primary color alpha
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.4);
   }
 }
 
+// --- Mobile Nav Toggle Button ---
+.mobile-nav-toggle {
+  display: none; // Hidden by default
+  position: fixed;
+  top: $spacing-3;
+  left: $spacing-3;
+  z-index: $z-index-fixed + 10; // High z-index
+  background-color: var(--surface-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: $border-radius;
+  padding: $spacing-2;
+  cursor: pointer;
+  box-shadow: $shadow;
+  transition: background-color $transition-medium, color $transition-medium, border-color $transition-medium;
+
+  @media (max-width: $breakpoint-md) {
+    display: block; // Show on mobile
+  }
+}
+
+// --- Mobile Nav Overlay ---
+.mobile-nav-overlay {
+  display: none; // Hidden by default
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5); // Semi-transparent black
+  z-index: $z-index-fixed + 4; // Below nav, above content
+
+  @media (max-width: $breakpoint-md) {
+    // Only needed for mobile
+    display: block;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity $transition-medium, visibility $transition-medium;
+
+    // Show overlay when nav is open
+    .public-layout .side-nav.mobile-open + & { // Select overlay when nav has mobile-open class
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+}
+
+
 // --- Main Layout Container ---
 .public-layout {
-  display: flex; // Use flex for sidebar + content layout
+  display: flex;
   flex-direction: row;
   min-height: 100vh;
   background-color: var(--body-bg);
@@ -50,15 +95,15 @@
     background-color: var(--surface-bg);
     box-shadow: $shadow;
     padding: $spacing-4;
-    position: fixed; // Fixed position
+    position: fixed;
     left: 0;
     top: 0;
     height: 100vh;
     display: flex;
     flex-direction: column;
     border-right: 1px solid var(--border-color);
-    transition: background-color $transition-medium, border-color $transition-medium;
-    z-index: $z-index-fixed; // Ensure sidebar is on top
+    transition: background-color $transition-medium, border-color $transition-medium, transform $transition-medium; // Add transform transition
+    z-index: $z-index-fixed + 5; // Ensure above overlay
 
     // Logo container
     .logo-container {
@@ -67,17 +112,17 @@
       transition: border-color $transition-medium;
       .logo {
         font-size: $font-size-xl; font-weight: $font-weight-bold;
-        color: var(--primary); // Use theme variable
+        color: var(--primary);
         text-decoration: none;
         transition: color $transition-fast;
-        &:hover { color: var(--primary-dark); } // Use theme variable
+        &:hover { color: var(--primary-dark); }
       }
     }
 
     // Navigation links list
     .nav-links {
       list-style: none; padding: 0; margin: 0;
-      flex-grow: 1; // Take remaining space
+      flex-grow: 1;
       li { margin-bottom: $spacing-2;
         a {
           display: flex; align-items: center; padding: $spacing-3 $spacing-4;
@@ -85,55 +130,74 @@
           font-weight: $font-weight-medium; border-radius: $border-radius;
           transition: all $transition-fast;
           .icon { margin-right: $spacing-3; font-size: $font-size-xl; }
-          &:hover, &.active { // Style for hover and active NavLink
+          &:hover, &.active {
             color: var(--primary);
-            background-color: rgba(var(--primary), 0.1); // Use theme variable alpha
+            background-color: rgba(var(--primary-rgb), 0.1);
           }
         }
       }
     }
 
-    // Authentication buttons (Login/Dashboard)
+    // Authentication buttons
     .auth-buttons {
       padding-top: $spacing-4; border-top: 1px solid var(--border-color);
       transition: border-color $transition-medium;
       .login-btn, .dashboard-btn {
-        // Use global button base styles
-        width: 100%; padding: $spacing-3; // Adjust padding
+        width: 100%; padding: $spacing-3;
         display: flex; align-items: center; justify-content: center;
         .icon { margin-right: $spacing-2; }
       }
     }
+
+    // Mobile specific styles
+    @media (max-width: $breakpoint-md) {
+      transform: translateX(-100%); // Hide off-screen by default on mobile
+      width: 280px; // Fixed width for mobile overlay menu
+      box-shadow: $shadow-lg; // Stronger shadow for overlay
+
+      &.mobile-open {
+        transform: translateX(0); // Slide in when open
+      }
+    }
+
   } // End .side-nav
 
   // --- Container for Content + Footer ---
   .content-footer-wrapper {
     display: flex;
-    flex-direction: column; // Stack content on top of footer
-    min-height: 100vh;     // Ensure wrapper takes full viewport height
-    flex-grow: 1;          // Allow wrapper to take remaining space
-    margin-left: $sidebar-width; // Offset by sidebar width
-    width: calc(100% - #{$sidebar-width}); // Calculate remaining width
+    flex-direction: column;
+    min-height: 100vh;
+    flex-grow: 1;
+    margin-left: $sidebar-width; // Offset by sidebar width (desktop)
+    width: calc(100% - #{$sidebar-width});
     transition: margin-left $transition-medium, width $transition-medium;
+
+    @media (max-width: $breakpoint-md) {
+      margin-left: 0; // No margin on mobile
+      width: 100%;
+    }
   }
 
   // --- Main Content Area ---
   main.public-content {
-    flex-grow: 1; // Allow content to push footer down
-    padding: $spacing-8; // Add padding around content
+    flex-grow: 1;
+    padding: $spacing-8;
+
+    @media (max-width: $breakpoint-md) {
+      padding: $spacing-6 $spacing-4; // Adjust padding
+    }
   }
 
   // --- Footer ---
   .public-footer {
-    // **FIX:** Use CSS variables directly without fallbacks
-    background-color: var(--footer-bg);
-    color: var(--footer-text);
-    padding: $spacing-8 $spacing-6;
+    background-color: var(--surface-bg);
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border-color);
+    padding: $spacing-6 $spacing-6; // Adjusted padding
     font-size: $font-size-sm;
-    transition: background-color $transition-medium, color $transition-medium;
-    flex-shrink: 0; // Prevent footer from shrinking
+    transition: background-color $transition-medium, color $transition-medium, border-color $transition-medium;
+    flex-shrink: 0;
 
-    // Footer content grid
     .footer-content {
       display: flex; justify-content: space-around; flex-wrap: wrap;
       gap: $spacing-8; max-width: $max-content-width;
@@ -141,57 +205,30 @@
 
       .footer-section {
         flex: 1; min-width: 200px;
-        h3 { color: var(--text-inverted); font-size: $font-size-lg; margin-bottom: $spacing-4; font-weight: $font-weight-semibold; }
-        // **FIX:** Use CSS variable directly without fallback
-        p { color: var(--footer-text); font-size: $font-size-sm; margin-bottom: $spacing-2; line-height: 1.6; }
+        h3 { color: var(--text-primary); font-size: $font-size-lg; margin-bottom: $spacing-4; font-weight: $font-weight-semibold; }
+        p { color: var(--text-secondary); font-size: $font-size-sm; margin-bottom: $spacing-2; line-height: 1.6; }
         ul { list-style: none; padding: 0; margin: 0;
           li { margin-bottom: $spacing-2;
-            // **FIX:** Use CSS variables directly without fallbacks
-            a { color: var(--footer-link); text-decoration: none; transition: color $transition-fast;
-              &:hover { color: var(--footer-link-hover); text-decoration: underline; }
+            a { color: var(--text-link); text-decoration: none; transition: color $transition-fast;
+              &:hover { color: var(--text-link-hover); text-decoration: underline; }
             }
           }
         }
       }
     }
 
-    // Bottom copyright line
     .footer-bottom {
-      border-top: 1px solid var(--border-color-strong); // Use stronger border on dark bg
+      border-top: 1px solid var(--border-color);
       padding-top: $spacing-4; margin-top: $spacing-6; text-align: center;
       transition: border-color $transition-medium;
       p { color: var(--text-muted); font-size: $font-size-xs; margin: 0; }
     }
-  } // End .public-footer
-} // End .public-layout
 
-// --- Responsive Adjustments ---
-@media (max-width: $breakpoint-md) {
-  .public-layout {
-    // No change needed for main layout direction
-
-    .side-nav {
-        display: none; // Hide sidebar on smaller screens
-    }
-
-    .content-footer-wrapper {
-        margin-left: 0; // Remove margin
-        width: 100%; // Full width
-    }
-
-    main.public-content {
-      padding: $spacing-6 $spacing-4; // Adjust padding
-    }
-
-    .public-footer {
+    @media (max-width: $breakpoint-md) {
       padding: $spacing-6 $spacing-4; // Adjust padding
       .footer-content { text-align: center; }
     }
+  } // End .public-footer
+} // End .public-layout
 
-    // Make sticky theme toggle more accessible if sidebar is hidden
-    .theme-toggle-sticky {
-        top: $spacing-2;
-        right: $spacing-2;
-    }
-  }
-}
+// --- Responsive Adjustments (Simplified - handled within selectors now) ---

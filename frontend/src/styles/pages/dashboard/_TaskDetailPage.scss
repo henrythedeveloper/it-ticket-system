@@ -1,6 +1,7 @@
 // src/styles/pages/dashboard/_TaskDetailPage.scss
 // ==========================================================================
 // Styles specific to the Task Detail page (viewing/editing/creating tasks).
+// **REVISED: Ensured all colors use CSS variables.**
 // ==========================================================================
 
 @use '../../variables' as *;
@@ -17,26 +18,26 @@
       display: flex; flex-direction: column; align-items: flex-start;
       // Back button style
       .back-button {
-        background: none; border: none; color: var(--text-link);
+        background: none; border: none; color: var(--text-link); // Use CSS var
         font-weight: $font-weight-medium; cursor: pointer; padding: 0;
         margin-bottom: $spacing-2; font-size: $font-size-sm;
         display: inline-flex; align-items: center; transition: color $transition-fast;
-        &:hover { color: var(--text-link-hover); text-decoration: underline; }
+        &:hover { color: var(--text-link-hover); text-decoration: underline; } // Use CSS var
       }
-      h1 { margin-bottom: 0; color: var(--text-primary); transition: color $transition-medium; }
+      h1 { margin-bottom: 0; color: var(--text-primary); transition: color $transition-medium; } // Use CSS var
     }
   }
 
   // --- Main Task Container (Card) ---
   .task-container {
-    @include mixins.card-base; // Use card mixin
+    @include mixins.card-base; // Use card mixin (uses CSS vars)
     padding: $spacing-6; margin-bottom: $spacing-6;
 
     // --- Edit/Create Form Container ---
     .task-form-container {
       max-width: 800px; margin: 0 auto; // Center form
       .task-form { display: flex; flex-direction: column; gap: $spacing-4; }
-      // Form group, actions styles inherited from _forms.scss
+      // Form group, actions styles inherited from _forms.scss (which use CSS vars)
     }
 
     // --- Task Details Display Mode ---
@@ -45,14 +46,14 @@
       .status-bar {
         display: flex; justify-content: space-between; align-items: center;
         margin-bottom: $spacing-4; padding-bottom: $spacing-4;
-        border-bottom: 1px solid var(--border-color); transition: border-color $transition-medium;
+        border-bottom: 1px solid var(--border-color); transition: border-color $transition-medium; // Use CSS var
 
         .status-badge { // Task status badge
-          @include mixins.badge-base;
-          // Apply specific task status colors
-          &.status-open { background-color: rgba(var(--warning-color), 0.15); color: var(--warning-color); }
-          &.status-in-progress { background-color: rgba(var(--info-color), 0.15); color: var(--info-color); }
-          &.status-completed { background-color: rgba(var(--success-color), 0.15); color: var(--success-color); }
+          @include mixins.badge-base; // Mixin uses CSS vars
+          // Apply specific task status colors (using CSS vars defined in _variables.scss or global.scss)
+          &.status-open { background-color: rgba(var(--warning-rgb), 0.15); color: var(--warning); }
+          &.status-in-progress { background-color: rgba(var(--info-rgb), 0.15); color: var(--info); }
+          &.status-completed { background-color: rgba(var(--success-rgb), 0.15); color: var(--success); }
         }
         // Action buttons within status bar
         .status-actions {
@@ -65,12 +66,20 @@
         }
       }
 
+      // Task Title
+      .task-title-detail {
+          font-size: $font-size-2xl; // Larger title on detail page
+          color: var(--text-primary); // Use CSS var
+          margin-bottom: $spacing-5; // More space below title
+          transition: color $transition-medium;
+      }
+
       // Description section
       .detail-section {
         margin-bottom: $spacing-6;
-        h3 { font-size: $font-size-xl; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; }
-        .description { color: var(--text-secondary); line-height: 1.6; white-space: pre-line; transition: color $transition-medium;
-          .no-description { color: var(--text-muted); font-style: italic; }
+        h3 { font-size: $font-size-xl; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; } // Use CSS var
+        .description { color: var(--text-secondary); line-height: 1.6; white-space: pre-line; transition: color $transition-medium; // Use CSS var
+          .no-description { color: var(--text-muted); font-style: italic; } // Use CSS var
         }
       }
 
@@ -78,9 +87,9 @@
       .meta-section {
         display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: $spacing-4;
         .meta-item {
-          .meta-label { display: block; font-size: $font-size-sm; color: var(--text-muted); margin-bottom: $spacing-1; transition: color $transition-medium; }
-          .meta-value { font-weight: $font-weight-medium; color: var(--text-secondary); transition: color $transition-medium;
-            &.overdue { color: var(--error-color); } // Style for overdue dates
+          .meta-label { display: block; font-size: $font-size-sm; color: var(--text-muted); margin-bottom: $spacing-1; transition: color $transition-medium; } // Use CSS var
+          .meta-value { font-weight: $font-weight-medium; color: var(--text-secondary); transition: color $transition-medium; // Use CSS var
+            &.overdue { color: var(--error); } // Style for overdue dates (Use CSS var)
           }
         }
       }
@@ -89,15 +98,15 @@
     // --- Task Actions Section (Assign, Delete) ---
     .task-actions {
       display: flex; gap: $spacing-3; margin-top: $spacing-6; padding-top: $spacing-6;
-      border-top: 1px solid var(--border-color); transition: border-color $transition-medium;
-      // Button base styles applied via .btn class in JSX
-    } // <-- Added missing closing brace here
+      border-top: 1px solid var(--border-color); transition: border-color $transition-medium; // Use CSS var
+      // Button base styles applied via .btn class in JSX (which use CSS vars)
+    }
 
-  } // <-- Added missing closing brace here for .task-container
+  } // End .task-container
 
   // --- Task Updates/Comments Section ---
   .task-updates {
-    @include mixins.card-base; // Use card mixin
+    @include mixins.card-base; // Use card mixin (uses CSS vars)
     padding: $spacing-6; margin-top: $spacing-6; // Adjust margin if needed
     max-height: 50vh; // Limit height and allow scroll
     overflow-y: auto;
@@ -107,23 +116,23 @@
     .updates-header {
       display: flex; justify-content: space-between; align-items: center;
       margin-bottom: $spacing-4; padding-bottom: $spacing-3;
-      border-bottom: 1px solid var(--border-color); transition: border-color $transition-medium;
+      border-bottom: 1px solid var(--border-color); transition: border-color $transition-medium; // Use CSS var
       flex-shrink: 0; // Prevent header from shrinking
 
-      h3 { font-size: $font-size-lg; color: var(--text-primary); margin: 0; transition: color $transition-medium; }
+      h3 { font-size: $font-size-lg; color: var(--text-primary); margin: 0; transition: color $transition-medium; } // Use CSS var
       .add-comment-btn { padding: $spacing-2 $spacing-3; font-size: $font-size-sm; } // Smaller add button
     }
 
     // Add Update/Comment Form
     .comment-form-container {
-      background-color: var(--surface-alt-bg); border-radius: $border-radius;
+      background-color: var(--surface-alt-bg); border-radius: $border-radius; // Use CSS var
       padding: $spacing-4; margin-bottom: $spacing-4;
-      border: 1px solid var(--border-color-strong);
+      border: 1px solid var(--border-color-strong); // Use CSS var
       transition: background-color $transition-medium, border-color $transition-medium;
       flex-shrink: 0; // Prevent form from shrinking
 
-      h4 { font-size: $font-size-base; color: var(--text-primary); margin-bottom: $spacing-3; font-weight: $font-weight-semibold; transition: color $transition-medium; }
-      .comment-form {
+      h4 { font-size: $font-size-base; color: var(--text-primary); margin-bottom: $spacing-3; font-weight: $font-weight-semibold; transition: color $transition-medium; } // Use CSS var
+      .comment-form { // Form styles inherited (use CSS vars)
         .form-group { margin-bottom: $spacing-3; textarea { min-height: 100px; } }
         .form-actions { // Inherited styles, adjust if needed
           margin-top: $spacing-3;
@@ -138,7 +147,7 @@
 
       .update-item { // Individual update/comment item
         padding: $spacing-4 0 $spacing-4 $spacing-5; // Padding left for line/dot
-        border-left: 3px solid var(--border-color);
+        border-left: 3px solid var(--border-color); // Use CSS var
         margin-left: $spacing-2; margin-bottom: $spacing-4;
         position: relative; transition: border-color $transition-medium;
 
@@ -147,38 +156,37 @@
         // Timeline dot
         &:before {
           content: ''; position: absolute; width: 12px; height: 12px;
-          background-color: var(--border-color-strong); border-radius: 50%;
+          background-color: var(--border-color-strong); border-radius: 50%; // Use CSS var
           left: -7.5px; top: $spacing-4; // Position dot over the line
-          border: 2px solid var(--surface-bg); // Creates cutout effect
+          border: 2px solid var(--surface-bg); // Creates cutout effect (Use CSS var)
           transition: background-color $transition-medium, border-color $transition-medium;
         }
 
         // Style for system-generated updates
         &.system-update {
-          background-color: rgba(var(--text-muted), 0.03); border-left-color: var(--border-color-strong);
-          &:before { background-color: var(--text-muted); }
+          background-color: rgba(var(--text-muted-rgb, 107, 114, 128), 0.03); border-left-color: var(--border-color-strong); // Use RGB var if defined, else fallback
+          &:before { background-color: var(--text-muted); } // Use CSS var
           .update-author span { font-style: italic; }
         }
         // Style for internal notes (if implemented)
         &.internal-note {
-            border-left-color: var(--accent-color); background-color: rgba(var(--accent-color), 0.05);
-            &:before { background-color: var(--accent-color); }
+            border-left-color: var(--accent); background-color: rgba(var(--accent-rgb), 0.05); // Use CSS vars
+            &:before { background-color: var(--accent); } // Use CSS var
         }
 
         // Header of the update item (author, time)
         .update-header {
           display: flex; justify-content: space-between; align-items: center;
           margin-bottom: $spacing-2;
-          .update-author { font-weight: $font-weight-semibold; color: var(--text-primary); display: flex; align-items: center; transition: color $transition-medium;
-          }
-          .update-time { font-size: $font-size-sm; color: var(--text-muted); transition: color $transition-medium; }
+          .update-author { font-weight: $font-weight-semibold; color: var(--text-primary); display: flex; align-items: center; transition: color $transition-medium; } // Use CSS var
+          .update-time { font-size: $font-size-sm; color: var(--text-muted); transition: color $transition-medium; } // Use CSS var
         }
         // Content of the update/comment
-        .update-content { color: var(--text-secondary); line-height: 1.5; white-space: pre-line; padding-top: $spacing-1; transition: color $transition-medium; }
+        .update-content { color: var(--text-secondary); line-height: 1.5; white-space: pre-line; padding-top: $spacing-1; transition: color $transition-medium; } // Use CSS var
       }
 
       .no-updates { // Message when no updates exist
-        color: var(--text-muted); text-align: center; padding: $spacing-6; font-style: italic;
+        color: var(--text-muted); text-align: center; padding: $spacing-6; font-style: italic; // Use CSS var
       }
     }
   } // End .task-updates
@@ -194,7 +202,7 @@
       }
       .task-actions { flex-direction: column; button { width: 100%; } }
     }
-    .form-actions { flex-direction: column; button { width: 100%; } }
+    .form-actions { flex-direction: column; button { width: 100%; } } // Styles from _forms.scss
     .task-updates { padding: $spacing-4;
       .updates-timeline .update-item { padding: $spacing-3 0 $spacing-3 $spacing-4; margin-left: $spacing-1;
           &:before { left: -6.5px; top: $spacing-3; } // Adjust dot position
@@ -203,4 +211,4 @@
       .comment-form-container { padding: $spacing-3; }
     }
   } // End @media
-} 
+}

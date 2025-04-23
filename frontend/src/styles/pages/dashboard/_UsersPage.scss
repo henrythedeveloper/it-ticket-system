@@ -1,6 +1,7 @@
 // src/styles/pages/dashboard/_UsersPage.scss
 // ==========================================================================
 // Styles specific to the Manage Users page (Admin only).
+// **REVISED: Ensured all colors use CSS variables.**
 // ==========================================================================
 
 @use '../../variables' as *;
@@ -22,31 +23,31 @@
 
   // --- Search Filter ---
   .search-filter {
-    background-color: var(--surface-bg);
+    background-color: var(--surface-bg); // Use CSS var
     padding: $spacing-4;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-color); // Use CSS var
     border-radius: $border-radius-lg;
     box-shadow: $shadow;
     margin-bottom: $spacing-6;
     transition: background-color $transition-medium, border-color $transition-medium;
 
     .search-input { // Search input field
-      @include mixins.form-element-base; // Use input mixin
+      @include mixins.form-element-base; // Use input mixin (uses CSS vars)
       width: 100%;
     }
   }
 
   // --- Message for No Users Found ---
   .no-users {
-    background-color: var(--surface-bg); border: 1px solid var(--border-color);
+    background-color: var(--surface-bg); border: 1px solid var(--border-color); // Use CSS vars
     padding: $spacing-8; border-radius: $border-radius-lg; box-shadow: $shadow;
     text-align: center; transition: background-color $transition-medium, border-color $transition-medium;
-    p { color: var(--text-muted); margin-bottom: $spacing-4; }
+    p { color: var(--text-muted); margin-bottom: $spacing-4; } // Use CSS var
   }
 
   // --- Users Table Container ---
   .users-table-container {
-    background-color: var(--surface-bg); border: 1px solid var(--border-color);
+    background-color: var(--surface-bg); border: 1px solid var(--border-color); // Use CSS vars
     border-radius: $border-radius-lg; box-shadow: $shadow;
     overflow: hidden; // Clip radius/shadow
     transition: background-color $transition-medium, border-color $transition-medium;
@@ -54,13 +55,13 @@
 
   // --- Users Table ---
   .users-table {
-    // Uses global table styles
+    // Uses global table styles (which use CSS vars)
     th { padding: $spacing-3 $spacing-4; white-space: nowrap; }
     td { padding: $spacing-3 $spacing-4;
       // Actions cell (Edit/Delete buttons)
       &.actions-cell {
         white-space: nowrap; display: flex; gap: $spacing-2;
-        .edit-btn, .delete-btn {
+        .edit-btn, .delete-btn { // Uses global .btn styles
           padding: $spacing-1 $spacing-3; font-size: $font-size-sm; // Smaller buttons
         }
       }
@@ -68,6 +69,7 @@
   }
 
   // --- Role Badge Styles ---
+  // Mixin applies CSS variables for colors.
   .role-badge {
     @include mixins.badge-base;
     @include mixins.badge-alpha-variants; // Apply role colors via classes

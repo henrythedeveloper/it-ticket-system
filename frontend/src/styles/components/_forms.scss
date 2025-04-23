@@ -1,9 +1,10 @@
 // src/styles/components/_forms.scss
 // ==========================================================================
 // Styles for forms and form elements, utilizing variables and mixins.
+// **REVISED: Ensured all colors use CSS variables.**
 // ==========================================================================
 
-@use '../variables' as *; // Still needed for non-color vars like spacing, breakpoints
+@use '../variables' as *; // Needed for non-color vars like spacing, breakpoints
 @use '../mixins'; // Use the new mixins file
 
 // Form container
@@ -23,7 +24,7 @@
     display: block;
     font-weight: $font-weight-medium;
     margin-bottom: $spacing-2;
-    color: var(--text-primary);
+    color: var(--text-primary); // Use CSS var
     transition: color $transition-medium;
   }
 
@@ -37,7 +38,7 @@
   input[type="url"],
   select,
   textarea {
-    @include mixins.form-element-base;
+    @include mixins.form-element-base; // Mixin uses CSS vars internally
   }
 
   textarea { // Specific textarea styles
@@ -46,12 +47,12 @@
   }
 
   select { // Specific select styles
-    @include mixins.select-arrow;
+    @include mixins.select-arrow; // Mixin handles theme-aware arrow
   }
 
   // Error message styling
   .error {
-    color: var(--error-color);
+    color: var(--error); // Use CSS var
     font-size: $font-size-sm;
     margin-top: $spacing-1;
   }
@@ -68,8 +69,7 @@
       input[type="checkbox"] {
         margin-right: $spacing-2;
         cursor: pointer;
-        // Simple accent color for the checkbox itself
-        accent-color: var(--primary-color);
+        accent-color: var(--primary); // Use CSS var for accent
       }
     }
   }
@@ -88,7 +88,7 @@
   // Field description/note styling
   .field-description, .field-info {
       font-size: $font-size-sm;
-      color: var(--text-muted);
+      color: var(--text-muted); // Use CSS var
       margin-top: $spacing-1;
       transition: color $transition-medium;
   }
@@ -96,10 +96,10 @@
   // Static field display (read-only look)
   .static-field {
       padding: $spacing-3;
-      background-color: var(--surface-alt-bg);
-      border: 1px solid var(--border-color-strong);
+      background-color: var(--surface-alt-bg); // Use CSS var
+      border: 1px solid var(--border-color-strong); // Use CSS var
       border-radius: $border-radius;
-      color: var(--text-secondary);
+      color: var(--text-secondary); // Use CSS var
       transition: background-color $transition-medium, border-color $transition-medium, color $transition-medium;
   }
 
@@ -138,13 +138,13 @@
 
   // Specific button styles within actions if needed
   .cancel-btn { // Example cancel button style
-      border-color: var(--border-color-strong); // Use stronger border for contrast
-      color: var(--text-secondary);
+      border-color: var(--border-color-strong); // Use CSS var
+      color: var(--text-secondary); // Use CSS var
 
       &:hover {
-        background-color: var(--surface-alt-bg);
-        border-color: var(--border-color-strong);
-        color: var(--text-primary);
+        background-color: var(--surface-alt-bg); // Use CSS var
+        border-color: var(--border-color-strong); // Use CSS var
+        color: var(--text-primary); // Use CSS var
       }
   }
 }

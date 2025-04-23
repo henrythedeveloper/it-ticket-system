@@ -1,6 +1,7 @@
 // src/styles/pages/public/_FAQPage.scss
 // ==========================================================================
 // Styles specific to the public FAQ page.
+// **REVISED: Adjusted FAQ item/question styling and interaction.**
 // ==========================================================================
 
 @use '../../variables' as *;
@@ -14,23 +15,23 @@
   // --- Page Header ---
   .faq-header {
     text-align: center; margin-bottom: $spacing-10;
-    h1 { font-size: $font-size-3xl; margin-bottom: $spacing-4; color: var(--text-primary); transition: color $transition-medium; }
-    p { font-size: $font-size-lg; color: var(--text-secondary); max-width: 600px; margin: 0 auto $spacing-6; transition: color $transition-medium; }
+    h1 { font-size: $font-size-3xl; margin-bottom: $spacing-4; color: var(--text-primary); transition: color $transition-medium; } // Use CSS var
+    p { font-size: $font-size-lg; color: var(--text-secondary); max-width: 600px; margin: 0 auto $spacing-6; transition: color $transition-medium; } // Use CSS var
     // Search form
     .search-form {
       max-width: 600px; margin: 0 auto; display: flex;
-      .search-input { @include mixins.form-element-base; flex: 1; border-radius: $border-radius 0 0 $border-radius; }
-      .search-button { padding: $spacing-3 $spacing-5; border-radius: 0 $border-radius $border-radius 0; }
+      .search-input { @include mixins.form-element-base; flex: 1; border-radius: $border-radius 0 0 $border-radius; } // Mixin uses CSS vars
+      .search-button { padding: $spacing-3 $spacing-5; border-radius: 0 $border-radius $border-radius 0; } // Uses global .btn styles
     }
   }
 
   // --- Loading/Error States ---
   .loading { // Uses global .loading styles
-    p { color: var(--text-muted); }
+    p { color: var(--text-muted); } // Use CSS var
   }
   .error-message { // Uses global .error-message styles
     text-align: center; padding: $spacing-10;
-    p { color: var(--error-color); margin-bottom: $spacing-4; }
+    p { color: var(--error); margin-bottom: $spacing-4; } // Use CSS var
     .btn { padding: $spacing-2 $spacing-4; } // Style link as button
   }
 
@@ -50,65 +51,86 @@
         flex-direction: column; margin-bottom: 0; // Stack vertically in sidebar
       }
       button { // Filter button style
-        padding: $spacing-2 $spacing-4; background-color: var(--surface-alt-bg);
-        border: 1px solid var(--border-color); border-radius: $border-radius;
-        cursor: pointer; font-size: $font-size-sm; color: var(--text-secondary);
+        padding: $spacing-2 $spacing-4; background-color: var(--surface-alt-bg); // Use CSS var
+        border: 1px solid var(--border-color); border-radius: $border-radius; // Use CSS var
+        cursor: pointer; font-size: $font-size-sm; color: var(--text-secondary); // Use CSS var
         transition: all $transition-fast; text-align: left; // Align text left for vertical layout
         width: 100%; // Full width in vertical layout
-        &:hover { background-color: var(--surface-bg); border-color: var(--border-color-strong); color: var(--text-primary); }
+        &:hover { background-color: var(--surface-bg); border-color: var(--border-color-strong); color: var(--text-primary); } // Use CSS vars
         &.active { // Active filter button style
-          background-color: var(--primary-color); color: var(--text-inverted); border-color: var(--primary-color);
+          background-color: var(--primary); color: var(--text-inverted); border-color: var(--primary); // Use CSS vars
         }
       }
     }
 
     // List of FAQ items
     .faq-list {
-      .faq-item { // Individual FAQ item container (Accordion style)
-        margin-bottom: $spacing-4; border: 1px solid var(--border-color);
-        border-radius: $border-radius; overflow: hidden; // Clip background/border
-        background-color: var(--surface-bg);
+      .faq-item { // Individual FAQ item container
+        margin-bottom: $spacing-4;
+        border: 1px solid var(--border-color); // Use CSS var
+        border-radius: $border-radius;
+        background-color: var(--surface-bg); // Use CSS var
         transition: background-color $transition-medium, border-color $transition-medium;
+        overflow: hidden; // Ensure answer stays within rounded corners
 
-        .faq-question { // Clickable question header
+        .faq-question { // Clickable question header (button)
           display: flex; justify-content: space-between; align-items: center;
-          padding: $spacing-4 $spacing-5; cursor: pointer;
-          transition: background-color $transition-fast;
-          h3 { margin: 0; font-size: $font-size-lg; font-weight: $font-weight-medium; color: var(--text-primary); transition: color $transition-medium; }
-          .expand-icon { font-size: $font-size-xl; color: var(--text-muted); transition: transform $transition-fast, color $transition-medium; }
-          &:hover { background-color: var(--surface-alt-bg); }
+          width: 100%; // Make button take full width
+          padding: $spacing-4 $spacing-5;
+          cursor: pointer;
+          background-color: transparent; // No background on the button itself initially
+          border: none; // Remove button border
+          border-bottom: 1px solid transparent; // Add border space for expanded state
+          text-align: left; // Align text left
+          transition: background-color $transition-fast, border-color $transition-fast;
+
+          h3 { margin: 0; font-size: $font-size-lg; font-weight: $font-weight-medium; color: var(--text-primary); transition: color $transition-medium; } // Use CSS var
+          .expand-icon { font-size: $font-size-xl; color: var(--text-muted); transition: transform $transition-fast, color $transition-medium; } // Use CSS var
+
+          &:hover {
+            background-color: var(--surface-alt-bg); // Add hover background to button
+          }
+
           // Styles when expanded
           &.expanded {
-            background-color: var(--surface-alt-bg); border-bottom: 1px solid var(--border-color);
-            .expand-icon { color: var(--primary-color); /* transform: rotate(45deg); Optional: rotate icon */ }
+            // Remove hover effect when expanded
+            &:hover {
+                background-color: transparent;
+            }
+            // Add border below question when expanded for separation
+            border-bottom-color: var(--border-color);
+            .expand-icon {
+                color: var(--primary); // Use CSS var
+                // transform: rotate(180deg); // Keep rotation if desired
+            }
           }
-        }
+        } // End .faq-question
 
         .faq-answer { // Answer content (conditionally displayed)
           padding: $spacing-4 $spacing-5;
-          p { margin: 0; color: var(--text-secondary); line-height: 1.6; transition: color $transition-medium; }
+          p { margin: 0; color: var(--text-secondary); line-height: 1.6; transition: color $transition-medium; } // Use CSS var
         }
-      }
+      } // End .faq-item
 
       // Message when no results match filters/search
       .no-results {
-        text-align: center; padding: $spacing-8; color: var(--text-muted);
+        text-align: center; padding: $spacing-8; color: var(--text-muted); // Use CSS var
         p { margin-bottom: $spacing-4; }
-        .clear-search { // Button to clear search query
+        .clear-search { // Button to clear search query (uses global .btn)
           padding: $spacing-2 $spacing-4;
         }
       }
-    }
-  }
+    } // End .faq-list
+  } // End .faq-content
 
   // --- Footer CTA Section ---
   .faq-footer {
     margin-top: $spacing-16; text-align: center; padding: $spacing-8;
-    background-color: var(--surface-alt-bg); border: 1px solid var(--border-color);
+    background-color: var(--surface-alt-bg); border: 1px solid var(--border-color); // Use CSS vars
     border-radius: $border-radius-lg;
     transition: background-color $transition-medium, border-color $transition-medium;
-    h2 { font-size: $font-size-2xl; margin-bottom: $spacing-4; color: var(--text-primary); transition: color $transition-medium; }
-    p { color: var(--text-secondary); margin-bottom: $spacing-6; max-width: 600px; margin-left: auto; margin-right: auto; transition: color $transition-medium; }
-    .cta-button { padding: $spacing-3 $spacing-6; } // Link styled as button
+    h2 { font-size: $font-size-2xl; margin-bottom: $spacing-4; color: var(--text-primary); transition: color $transition-medium; } // Use CSS var
+    p { color: var(--text-secondary); margin-bottom: $spacing-6; max-width: 600px; margin-left: auto; margin-right: auto; transition: color $transition-medium; } // Use CSS var
+    .cta-button { padding: $spacing-3 $spacing-6; } // Link styled as button (uses global .btn)
   }
 }

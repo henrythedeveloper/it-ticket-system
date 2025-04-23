@@ -1,137 +1,159 @@
 // src/styles/_variables.scss
 // ==========================================================================
 // Defines the core design tokens for the application, including:
-// 1. Base color palette (raw color values).
-// 2. Theme map for light and dark modes.
-// 3. CSS custom properties (:root) derived from the theme map.
-// 4. Non-color SCSS variables (typography, spacing, layout, etc.).
+// 1. Theme map for light and dark modes.
+// 2. CSS custom properties (:root) derived from the theme map.
+// 3. Non-color SCSS variables (typography, spacing, layout, etc.).
+// **REVISED: Updated theme colors again based on user request.**
 // ==========================================================================
+@use 'sass:map'; // Use sass:map for map functions
+@use 'sass:color'; // Use sass:color for color functions
 
 // --------------------------------------------------------------------------
-// Base Color Definitions (Optional, can be directly in themes)
+// Theme Map (Updated with user's provided colors)
 // --------------------------------------------------------------------------
-// You can keep raw color definitions here if you reuse them outside themes,
-// or define them directly within the $themes map below.
-
-// --------------------------------------------------------------------------
-// Theme Map
-// --------------------------------------------------------------------------
-// Defines light and dark theme palettes using semantic names.
 $themes: (
   light: (
-    // Text Colors
-    text-primary: #080c09,      // Primary text (dark)
-    text-secondary: #4b5563,    // Secondary text (slightly lighter gray)
-    text-muted: #6b7280,        // Muted text (gray)
-    text-inverted: #f3f7f4,     // Text on dark backgrounds (light)
-    text-link: #6f9f76,         // Link color (primary)
-    text-link-hover: #609067,   // Link hover color (darker primary)
+    // Base Colors from User
+    text:           #0f1014, // Dark blue/black
+    background:     #f0f1f4, // Light gray/blue
+    primary:        #3c4353, // Dark grayish blue
+    secondary:      #b6aa9a, // Muted beige/brown
+    accent:         #667958, // Muted olive green
 
-    // Background Colors
-    body-bg: #f3f7f4,           // Main background (light)
-    surface-bg: #ffffff,        // Card/surface background (white)
-    surface-alt-bg: #e5e7eb,    // Alternate surface (light gray)
+    // Semantic Names (Mapping user's terms + defining others)
+    text-primary:    #0f1014, // from text
+    text-secondary:  color.adjust(#0f1014, $lightness: 30%), // Lighter primary text
+    text-muted:      color.adjust(#0f1014, $lightness: 50%), // Even lighter
+    text-inverted:   #f0f1f4, // from background
+    text-link:       #3c4353, // from primary
+    text-link-hover: color.adjust(#3c4353, $blackness: 10%), // Darken primary
 
-    // Border Colors
-    border-color: #d1d5db,      // Default border (gray)
-    border-color-strong: #9ca3af, // Stronger border (darker gray)
+    body-bg:         #f0f1f4, // from background
+    surface-bg:      #ffffff, // Keep white for cards/modals
+    surface-alt-bg:  color.adjust(#f0f1f4, $blackness: 2%), // Slightly darker background
 
-    // Theme Accent Colors (Using provided palette)
-    primary: #6f9f76,           // Primary action color
-    primary-light: #88b78e,     // Lighter primary (derived or specified)
-    primary-dark: #609067,      // Darker primary
-    secondary: #a6c1c4,         // Secondary action color
-    secondary-light: #c1d7d9,   // Lighter secondary (derived or specified)
-    secondary-dark: #8faab0,    // Darker secondary
-    accent: #889eaf,            // Accent color
-    accent-light: #a3b8c4,      // Lighter accent (derived or specified)
-    accent-dark: #6d849a,       // Darker accent
+    border-color:       color.adjust(#f0f1f4, $blackness: 10%), // Border derived from background
+    border-color-strong: color.adjust(#f0f1f4, $blackness: 20%), // Stronger border
 
-    // State Colors (Derive or specify based on theme)
-    success: #10b981,           // Example success color (green)
-    error: #ef4444,             // Example error color (red)
-    warning: #f59e0b,           // Example warning color (amber)
-    info: #3b82f6,              // Example info color (blue)
+    primary-light:     color.adjust(#3c4353, $lightness: 15%),
+    primary-dark:      color.adjust(#3c4353, $blackness: 10%),
+    secondary-light:   color.adjust(#b6aa9a, $lightness: 10%),
+    secondary-dark:    color.adjust(#b6aa9a, $blackness: 10%),
+    accent-light:      color.adjust(#667958, $lightness: 10%),
+    accent-dark:       color.adjust(#667958, $blackness: 10%),
 
-    // Component Specific (Examples)
-    header-bg: var(--surface-bg),
-    sidebar-bg: #1f2937,        // Example dark sidebar
-    footer-bg: #374151,         // Example dark footer
+    // Define standard state colors (using common defaults, adjust if needed)
+    success:         #10b981,
+    error:           #ef4444,
+    warning:         #f59e0b,
+    info:            #3b82f6,
+
+    // Component Specific (Adjust based on new palette)
+    header-bg:       var(--surface-bg),
+    sidebar-bg:      #2d323d, // Darker version of primary for sidebar
+    footer-bg:       var(--surface-alt-bg), // Use alt surface for footer now
+    // Footer text/links for light footer background
+    footer-text:     var(--text-secondary),
+    footer-link:     var(--text-link),
+    footer-link-hover: var(--text-link-hover),
   ),
   dark: (
-    // Text Colors
-    text-primary: #f3f7f4,      // Primary text (light)
-    text-secondary: #d1d5db,    // Secondary text (lighter gray)
-    text-muted: #9ca3af,        // Muted text (gray)
-    text-inverted: #080c09,     // Text on light backgrounds (dark)
-    text-link: #6f9f76,         // Link color (primary - same as light?)
-    text-link-hover: #88b78e,   // Link hover color (lighter primary)
+    // Base Colors from User
+    text:           #ebecf0, // Light gray/blue text
+    background:     #0b0c0f, // Very dark blue/black
+    primary:        #acb3c3, // Light grayish blue
+    secondary:      #655949, // Muted dark brown
+    accent:         #94a786, // Muted light olive green
 
-    // Background Colors
-    body-bg: #080c09,           // Main background (dark)
-    surface-bg: #1f2937,        // Card/surface background (dark gray)
-    surface-alt-bg: #374151,    // Alternate surface (lighter dark gray)
+    // Semantic Names (Mapping user's terms + defining others)
+    text-primary:    #ebecf0, // from text
+    text-secondary:  color.adjust(#ebecf0, $blackness: 25%), // Darker version of primary text
+    text-muted:      color.adjust(#ebecf0, $blackness: 40%), // Even darker version
+    text-inverted:   #0b0c0f, // from background
+    text-link:       #acb3c3, // from primary
+    text-link-hover: color.adjust(#acb3c3, $lightness: 10%), // Lighten primary for hover
 
-    // Border Colors
-    border-color: #4b5563,      // Default border (dark gray)
-    border-color-strong: #6b7280, // Stronger border (lighter dark gray)
+    body-bg:         #0b0c0f, // from background
+    surface-bg:      #1a1d24, // Slightly lighter dark blue/black
+    surface-alt-bg:  #292e38, // Lighter still
 
-    // Theme Accent Colors (Using provided palette)
-    primary: #609067,           // Primary action color (darker variant)
-    primary-light: #6f9f76,     // Lighter primary (original light primary)
-    primary-dark: #517a57,      // Darker primary (derived or specified)
-    secondary: #3b5659,         // Secondary action color (darker variant)
-    secondary-light: #507579,   // Lighter secondary (derived or specified)
-    secondary-dark: #2c4144,    // Darker secondary
-    accent: #506677,            // Accent color (darker variant)
-    accent-light: #6d849a,      // Lighter accent (derived or specified)
-    accent-dark: #3a4c5a,       // Darker accent
+    border-color:       #3a404d, // Border derived from surfaces
+    border-color-strong: #4b5563, // Stronger border
 
-    // State Colors (Adjust for dark mode contrast)
-    success: #34d399,           // Example success color (lighter green)
-    error: #f87171,             // Example error color (lighter red)
-    warning: #fbbf24,           // Example warning color (lighter amber)
-    info: #60a5fa,              // Example info color (lighter blue)
+    primary-light:     color.adjust(#acb3c3, $lightness: 10%),
+    primary-dark:      color.adjust(#acb3c3, $blackness: 10%),
+    secondary-light:   color.adjust(#655949, $lightness: 10%),
+    secondary-dark:    color.adjust(#655949, $blackness: 10%),
+    accent-light:      color.adjust(#94a786, $lightness: 10%),
+    accent-dark:       color.adjust(#94a786, $blackness: 10%),
 
-    // Component Specific (Examples)
-    header-bg: var(--surface-bg),
-    sidebar-bg: #111827,        // Example dark sidebar
-    footer-bg: #1f2937,         // Example dark footer
+    // Define standard state colors (adjust brightness/saturation for dark mode)
+    success:         #34d399,
+    error:           #f87171,
+    warning:         #fbbf24,
+    info:            #60a5fa,
+
+    // Component Specific (Adjust based on new palette)
+    header-bg:       var(--surface-bg),
+    sidebar-bg:      #1f232b,       // Darker sidebar
+    footer-bg:       var(--surface-alt-bg), // Use alt surface for footer
+    // Footer text/links for dark footer background
+    footer-text:     var(--text-secondary),
+    footer-link:     var(--text-link),
+    footer-link-hover: var(--text-link-hover),
   )
 );
-
-// --------------------------------------------------------------------------
-// Function to Get Theme Variable
-// --------------------------------------------------------------------------
-// Helper function to access theme variables easily.
-@function theme-var($key) {
-  // This function is primarily useful if you need SCSS logic based on theme vars.
-  // For direct CSS output, using CSS variables is preferred.
-  // Example usage: color: theme-var(text-primary);
-  // This requires more setup to dynamically switch themes with SCSS alone.
-  // It's generally better to output CSS variables as shown below.
-  @return var(--#{$key}); // Returns the CSS variable reference
-}
 
 // --------------------------------------------------------------------------
 // Generate CSS Custom Properties from Theme Map
 // --------------------------------------------------------------------------
 // Creates the :root variables based on the light theme map.
 :root {
-  @each $key, $value in map-get($themes, light) {
-    --#{$key}: #{$value};
-  }
-  // Add derived alpha colors if needed (example)
-  --primary-alpha-10: rgba(var(--primary), 0.1);
+    // Generate CSS variables from the 'light' theme map
+    @each $key, $value in map.get($themes, light) {
+      --#{$key}: #{$value};
+    }
+
+    // --- Add derived/alpha colors manually or via loop if needed ---
+    // Define RGB versions for use in rgba()
+    --primary-rgb: #{color.red(map.get(map.get($themes, light), primary))}, #{color.green(map.get(map.get($themes, light), primary))}, #{color.blue(map.get(map.get($themes, light), primary))};
+    --success-rgb: #{color.red(map.get(map.get($themes, light), success))}, #{color.green(map.get(map.get($themes, light), success))}, #{color.blue(map.get(map.get($themes, light), success))};
+    --error-rgb: #{color.red(map.get(map.get($themes, light), error))}, #{color.green(map.get(map.get($themes, light), error))}, #{color.blue(map.get(map.get($themes, light), error))};
+    --warning-rgb: #{color.red(map.get(map.get($themes, light), warning))}, #{color.green(map.get(map.get($themes, light), warning))}, #{color.blue(map.get(map.get($themes, light), warning))};
+    --info-rgb: #{color.red(map.get(map.get($themes, light), info))}, #{color.green(map.get(map.get($themes, light), info))}, #{color.blue(map.get(map.get($themes, light), info))};
+    --accent-rgb: #{color.red(map.get(map.get($themes, light), accent))}, #{color.green(map.get(map.get($themes, light), accent))}, #{color.blue(map.get(map.get($themes, light), accent))};
+    --text-muted-rgb: #{color.red(map.get(map.get($themes, light), text-muted))}, #{color.green(map.get(map.get($themes, light), text-muted))}, #{color.blue(map.get(map.get($themes, light), text-muted))};
+    --secondary-rgb: #{color.red(map.get(map.get($themes, light), secondary))}, #{color.green(map.get(map.get($themes, light), secondary))}, #{color.blue(map.get(map.get($themes, light), secondary))};
+
+
+    --primary-alpha-10: rgba(var(--primary-rgb), 0.1);
+
+    // Add Alpha Badge Backgrounds based on state colors
+    --badge-info-bg-alpha: rgba(var(--info-rgb), 0.15);
+    --badge-success-bg-alpha: rgba(var(--success-rgb), 0.15);
+    --badge-warning-bg-alpha: rgba(var(--warning-rgb), 0.15);
+    --badge-error-bg-alpha: rgba(var(--error-rgb), 0.15);
+
+    // Define status/urgency colors (can map to state colors or be unique)
+    --status-unassigned-color: var(--warning);
+    --status-assigned-color: var(--info);
+    --status-progress-color: var(--secondary); // Using secondary color now
+    --status-closed-color: var(--text-muted);
+
+    --urgency-low-color: var(--info);
+    --urgency-medium-color: var(--success);
+    --urgency-high-color: var(--warning);
+    --urgency-critical-color: var(--error);
+
+    // Define hover/darker versions if needed by mixins
+    --error-dark: #{color.adjust(map.get(map.get($themes, light), error), $blackness: 10%)};
 }
 
-// Dark mode overrides are generated in global.scss using `body.dark-mode` selector
 
 // --------------------------------------------------------------------------
-// Non-Color Variables
+// Non-Color Variables (Keep existing definitions)
 // --------------------------------------------------------------------------
-// Define spacing, typography, layout, transitions, etc.
-
 // Typography
 $font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 $font-family-mono: 'Fira Code', 'Source Code Pro', Menlo, Monaco, Consolas, 'Courier New', monospace;
