@@ -1,203 +1,241 @@
-// backend/internal/api/middleware/auth/jwt.go
+// backend/internal/api/server.go
 // ==========================================================================
-// Echo middleware functions for handling JWT authentication and authorization.
-// Includes middleware for validating tokens and checking for Admin role.
-// Also provides helper functions to extract user information from the context.
+// Configures and manages the main Echo web server instance.
+// Initializes middleware, creates handlers, registers routes, and manages
+// server lifecycle (start, shutdown).
 // ==========================================================================
 
-package auth
+package api
 
 import (
-	"fmt"
+	"context"
+	"errors"   // Import errors package
+	"fmt"      // Import fmt package
 	"log/slog"
-	"net/http"
-	"strings"
+	"net/http" // Import for http.ErrServerClosed
 
-	"github.com/henrythedeveloper/it-ticket-system/internal/auth"   // Authentication service (for validation)
-	"github.com/henrythedeveloper/it-ticket-system/internal/models" // Data models (for UserRole)
+	"github.com/henrythedeveloper/it-ticket-system/internal/api/handlers/faq"
+	"github.com/henrythedeveloper/it-ticket-system/internal/api/handlers/tag"
+	"github.com/henrythedeveloper/it-ticket-system/internal/api/handlers/task"
+	"github.com/henrythedeveloper/it-ticket-system/internal/api/handlers/ticket"
+	"github.com/henrythedeveloper/it-ticket-system/internal/api/handlers/user"
+	authmw "github.com/henrythedeveloper/it-ticket-system/internal/api/middleware/auth" // Auth middleware
+
+	// Import core services and config
+	"github.com/henrythedeveloper/it-ticket-system/internal/auth"   // Auth service
+	"github.com/henrythedeveloper/it-ticket-system/internal/config" // App configuration
+	"github.com/henrythedeveloper/it-ticket-system/internal/db"     // Database access
+	"github.com/henrythedeveloper/it-ticket-system/internal/email"  // Email service
+	"github.com/henrythedeveloper/it-ticket-system/internal/file"   // File storage service
+
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware" // Echo middleware package
 )
 
-const (
-	// contextKeyUserID is the key used to store the user ID in the Echo context.
-	contextKeyUserID = "user_id"
-	// contextKeyEmail is the key used to store the user email in the Echo context.
-	contextKeyEmail = "email"
-	// contextKeyRole is the key used to store the user role in the Echo context.
-	contextKeyRole = "role"
-)
+// --- Server Struct ---
 
-// --- Middleware ---
+// Server represents the API server application.
+// It holds the Echo instance and other core components like configuration
+// and the authentication service.
+type Server struct {
+	echo        *echo.Echo     // The Echo web server instance
+	config      *config.Config // Application configuration
+	authService auth.Service   // Authentication service (used for middleware)
+	// Add other global services if needed
+}
 
-// JWTMiddleware creates an Echo middleware function that validates incoming JWT tokens.
-// It extracts the token from the "Authorization: Bearer <token>" header, validates it
-// using the provided auth.Service, and stores the user's claims (ID, email, role)
-// in the Echo context for subsequent handlers to use.
+// --- Constructor ---
+
+// NewServer creates, configures, and returns a new Server instance.
+// It initializes the Echo framework, sets up middleware, creates handlers for
+// different resource types, and registers all API routes.
 //
 // Parameters:
-//   - authService: An implementation of the auth.Service interface used for token validation.
+//   - db: Database connection pool (*db.DB).
+//   - emailService: Email sending service (email.Service).
+//   - fileService: File storage service (file.Service).
+//   - cfg: Application configuration (*config.Config).
 //
 // Returns:
-//   - echo.MiddlewareFunc: The middleware function.
-func JWTMiddleware(authService auth.Service) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			ctx := c.Request().Context()
-			// Use a logger specific to this middleware instance
-			logger := slog.With("middleware", "JWTMiddleware")
+//   - *Server: A pointer to the newly configured Server instance.
+func NewServer(db *db.DB, emailService email.Service, fileService file.Service, cfg *config.Config) *Server {
+	slog.Info("Initializing API server...")
 
-			// 1. Get Authorization Header
-			authHeader := c.Request().Header.Get(echo.HeaderAuthorization)
-			if authHeader == "" {
-				logger.WarnContext(ctx, "Missing Authorization header")
-				return echo.NewHTTPError(http.StatusUnauthorized, "Missing or empty Authorization header.")
+	// --- Initialize Echo ---
+	e := echo.New()
+	e.HideBanner = true // Hide the default Echo banner on startup
+
+	// --- Initialize Core Services ---
+	// Auth service needed for middleware setup
+	authService := auth.NewService(cfg.Auth)
+	slog.Info("Authentication service initialized")
+
+	// --- Setup Middleware ---
+	// Request Logger: Logs details about each incoming request.
+	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+		LogStatus:   true,
+		LogURI:      true,
+		LogMethod:   true,
+		LogLatency:  true,
+		LogError:    true,
+		LogRemoteIP: true,
+		LogUserAgent: true,
+		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+			// Determine log level based on status code
+			level := slog.LevelInfo
+			var errMsg string // Store error message separately
+			if v.Error != nil {
+				errMsg = v.Error.Error()
+			}
+			if v.Status >= 500 {
+				level = slog.LevelError
+			} else if v.Status >= 400 {
+				level = slog.LevelWarn
 			}
 
-			// 2. Validate Format (Bearer <token>)
-			parts := strings.Split(authHeader, " ")
-			if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") { // Case-insensitive check for "Bearer"
-				logger.WarnContext(ctx, "Invalid Authorization header format")
-				return echo.NewHTTPError(http.StatusUnauthorized, "Invalid Authorization header format. Expected 'Bearer <token>'.")
+			// Log structured request details
+			attrs := []slog.Attr{
+				slog.String("ip", v.RemoteIP),
+				slog.String("method", v.Method),
+				slog.String("uri", v.URI),
+				slog.Int("status", v.Status),
+				slog.Duration("latency", v.Latency),
+				slog.String("user_agent", v.UserAgent),
 			}
-			tokenString := parts[1]
-
-			// 3. Validate Token using AuthService
-			claims, err := authService.ValidateToken(tokenString)
-			if err != nil {
-				logger.WarnContext(ctx, "Token validation failed", "error", err)
-				// Provide a slightly more specific error message based on common JWT errors
-				errMsg := "Invalid or expired token."
-				if strings.Contains(err.Error(), "expired") {
-					errMsg = "Token has expired."
-				} else if strings.Contains(err.Error(), "invalid") {
-					errMsg = "Invalid token signature or format."
-				}
-				return echo.NewHTTPError(http.StatusUnauthorized, errMsg)
+			// Only add error attribute if an error exists
+			if errMsg != "" {
+				attrs = append(attrs, slog.String("error", errMsg))
 			}
 
-			// 4. Store Claims in Context
-			// Use constants for context keys for consistency
-			c.Set(contextKeyUserID, claims.UserID)
-			c.Set(contextKeyEmail, claims.Email)
-			c.Set(contextKeyRole, claims.Role)
+			slog.LogAttrs(context.Background(), level, "HTTP Request", attrs...)
+			return nil
+		},
+	}))
 
-			logger.DebugContext(ctx, "JWT validated successfully", "userID", claims.UserID, "role", claims.Role)
+	// Recover: Recovers from panics anywhere in the chain and handles them gracefully.
+	e.Use(middleware.Recover())
 
-			// 5. Proceed to the next handler
-			return next(c)
-		}
+	// CORS: Allows cross-origin requests (configure origins appropriately for production).
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		// TODO: Restrict AllowOrigins in production!
+		AllowOrigins: []string{"*"}, // Allow all for development, CHANGE THIS FOR PRODUCTION
+		AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete, http.MethodOptions},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
+	}))
+	slog.Info("Standard middleware (Logger, Recover, CORS) configured")
+
+	// --- Initialize Handlers ---
+	// Create instances of handlers, injecting dependencies
+	faqHandler := faq.NewHandler(db)
+	// Use the correct package identifier 'tag'
+	tagHandler := tag.NewHandler(db)
+	userHandler := user.NewHandler(db, authService) // User handler needs authService
+	ticketHandler := ticket.NewHandler(db, emailService, fileService)
+	taskHandler := task.NewHandler(db, emailService)
+	slog.Info("API handlers initialized")
+
+	// --- Setup Authentication Middleware ---
+	jwtMiddleware := authmw.JWTMiddleware(authService) // Middleware to validate JWT tokens
+	adminMiddleware := authmw.AdminMiddleware()       // Middleware to check for Admin role
+	slog.Info("Authentication middleware configured")
+
+	// --- Define API Route Groups ---
+	apiGroup := e.Group("/api") // Base group for all API v1 routes
+
+	// --- Public Routes (No Authentication Required) ---
+	slog.Debug("Registering public routes...")
+	// Authentication endpoint
+	apiGroup.POST("/auth/login", userHandler.Login) // Moved from user.RegisterRoutes for clarity
+	// Public ticket submission
+	apiGroup.POST("/tickets", ticketHandler.CreateTicket) // Moved from ticket.RegisterRoutes for clarity
+	// Public read-only endpoints
+	faqGroupPublic := apiGroup.Group("/faq")
+	faqGroupPublic.GET("", faqHandler.GetAllFAQs)
+	faqGroupPublic.GET("/:id", faqHandler.GetFAQByID)
+	tagGroupPublic := apiGroup.Group("/tags")
+	tagGroupPublic.GET("", tagHandler.GetAllTags) // Use correct handler variable
+	// Public attachment download (assuming separate route)
+	// apiGroup.GET("/attachments/download/:attachmentId", ticketHandler.DownloadAttachment) // Register download route if needed
+
+	// --- Protected Routes (Require JWT Authentication) ---
+	slog.Debug("Registering protected routes...")
+	authGroup := apiGroup.Group("", jwtMiddleware) // Apply JWT validation to this group
+
+	// Register routes for each resource type within the authenticated group
+	ticket.RegisterRoutes(authGroup.Group("/tickets"), ticketHandler)
+	task.RegisterRoutes(authGroup.Group("/tasks"), taskHandler)
+	// User routes require admin middleware for certain operations
+	user.RegisterRoutes(authGroup.Group("/users"), userHandler, adminMiddleware)
+	// FAQ and Tag management routes (assuming they require admin)
+	faq.RegisterRoutes(authGroup.Group("/faq"), faqHandler, adminMiddleware)
+	// Use the correct package identifier 'tag'
+	tag.RegisterRoutes(authGroup.Group("/tags"), tagHandler, adminMiddleware)
+
+	// --- Log All Registered Routes (Optional Debugging) ---
+	logRegisteredRoutes(e)
+
+	slog.Info("API server setup complete")
+	return &Server{
+		echo:        e,
+		config:      cfg,
+		authService: authService,
 	}
 }
 
-// AdminMiddleware creates an Echo middleware function that checks if the user
-// authenticated by the preceding JWTMiddleware has the 'Admin' role.
-// It should be placed *after* JWTMiddleware in the middleware chain.
-//
-// Returns:
-//   - echo.MiddlewareFunc: The middleware function.
-func AdminMiddleware() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			ctx := c.Request().Context()
-			logger := slog.With("middleware", "AdminMiddleware")
+// --- Server Lifecycle Methods ---
 
-			// 1. Get Role from Context (set by JWTMiddleware)
-			roleValue := c.Get(contextKeyRole)
-			if roleValue == nil {
-				// This indicates JWTMiddleware might not have run or failed to set the role
-				logger.ErrorContext(ctx, "Role not found in context. Ensure JWTMiddleware runs first.")
-				return echo.NewHTTPError(http.StatusInternalServerError, "Authentication context missing.")
-			}
-
-			// 2. Assert Role Type
-			role, ok := roleValue.(models.UserRole)
-			if !ok {
-				// This indicates an unexpected type was stored in the context
-				logger.ErrorContext(ctx, "Invalid role type found in context", "type", fmt.Sprintf("%T", roleValue))
-				return echo.NewHTTPError(http.StatusInternalServerError, "Invalid authentication context.")
-			}
-
-			// 3. Check if Role is Admin
-			if role != models.RoleAdmin {
-				userID := c.Get(contextKeyUserID) // Get user ID for logging context
-				logger.WarnContext(ctx, "Admin access denied", "userID", userID, "userRole", role)
-				return echo.NewHTTPError(http.StatusForbidden, "Access denied: Administrator role required.")
-			}
-
-			// 4. Proceed if Admin
-			logger.DebugContext(ctx, "Admin access granted", "userID", c.Get(contextKeyUserID))
-			return next(c)
-		}
-	}
+// EchoInstance returns the underlying Echo instance.
+// Useful for testing or accessing Echo-specific features directly.
+func (s *Server) EchoInstance() *echo.Echo {
+	return s.echo
 }
 
-// --- Context Helper Functions ---
-
-// GetUserIDFromContext safely extracts the user ID (string) stored in the Echo context
-// by the JWTMiddleware.
+// Start begins listening for HTTP requests on the specified address.
 //
 // Parameters:
-//   - c: The echo context.
+//   - address: The network address to listen on (e.g., ":8080").
 //
 // Returns:
-//   - string: The user ID if found and valid.
-//   - error: An HTTP error (typically 401 Unauthorized) if the ID is missing or invalid.
-func GetUserIDFromContext(c echo.Context) (string, error) {
-	userIDValue := c.Get(contextKeyUserID)
-	if userIDValue == nil {
-		slog.Warn("User ID not found in context during GetUserIDFromContext call")
-		return "", echo.NewHTTPError(http.StatusUnauthorized, "Authentication context error: User ID missing.")
+//   - error: An error if the server fails to start, excluding http.ErrServerClosed.
+func (s *Server) Start(address string) error {
+	slog.Info("Starting server", "address", address)
+	// Start the server
+	err := s.echo.Start(address)
+	// http.ErrServerClosed is expected on graceful shutdown, so don't treat it as a startup error.
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		slog.Error("Server failed to start", "error", err)
+		return fmt.Errorf("server startup failed: %w", err)
 	}
-
-	userID, ok := userIDValue.(string)
-	if !ok || userID == "" {
-		slog.Error("Invalid user ID type or empty value in context", "type", fmt.Sprintf("%T", userIDValue))
-		return "", echo.NewHTTPError(http.StatusUnauthorized, "Authentication context error: Invalid User ID.")
-	}
-
-	return userID, nil
+	return nil // Return nil if shutdown was graceful (ErrServerClosed)
 }
 
-// GetUserRoleFromContext safely extracts the user role (models.UserRole) stored in the Echo context
-// by the JWTMiddleware.
+// Shutdown gracefully shuts down the Echo server with a timeout.
 //
 // Parameters:
-//   - c: The echo context.
+//   - ctx: A context used to set a deadline for the shutdown process.
 //
 // Returns:
-//   - models.UserRole: The user role if found and valid.
-//   - error: An HTTP error (typically 401 Unauthorized) if the role is missing or invalid.
-func GetUserRoleFromContext(c echo.Context) (models.UserRole, error) {
-	roleValue := c.Get(contextKeyRole)
-	if roleValue == nil {
-		slog.Warn("User role not found in context during GetUserRoleFromContext call")
-		return "", echo.NewHTTPError(http.StatusUnauthorized, "Authentication context error: User role missing.")
+//   - error: An error if the shutdown process fails or times out.
+func (s *Server) Shutdown(ctx context.Context) error {
+	slog.Info("Initiating graceful server shutdown...")
+	err := s.echo.Shutdown(ctx)
+	if err != nil {
+		slog.Error("Server shutdown failed", "error", err)
+		return fmt.Errorf("server shutdown failed: %w", err)
 	}
-
-	role, ok := roleValue.(models.UserRole)
-	if !ok {
-		slog.Error("Invalid user role type in context", "type", fmt.Sprintf("%T", roleValue))
-		return "", echo.NewHTTPError(http.StatusUnauthorized, "Authentication context error: Invalid User Role.")
-	}
-
-	// Optional: Validate if the role is one of the expected values (Admin, Staff, etc.)
-	// switch role {
-	// case models.RoleAdmin, models.RoleStaff, models.RoleUser:
-	//     return role, nil
-	// default:
-	//     slog.Error("Unknown user role value found in context", "role", role)
-	//     return "", echo.NewHTTPError(http.StatusUnauthorized, "Authentication context error: Unknown User Role.")
-	// }
-
-	return role, nil
+	slog.Info("Server shutdown completed successfully.")
+	return nil
 }
 
-// LogoutUser is a placeholder/example helper to potentially clear auth context if needed,
-// although usually logout is handled by clearing client-side tokens and maybe backend session state.
-func LogoutUser(c echo.Context) {
-	// In a stateless JWT setup, there's usually nothing server-side to clear in the context itself.
-	// The client is responsible for discarding the token.
-	// If using server-side sessions alongside JWT, you'd clear the session here.
-	slog.Debug("LogoutUser helper called (typically no server-side context action for stateless JWT)")
-	// Example: c.Set(contextKeyUserID, nil), etc. - but usually not necessary.
+// --- Helper Functions ---
+
+// logRegisteredRoutes iterates through all registered routes in the Echo instance
+// and logs them at the Debug level. Useful for verifying route setup.
+func logRegisteredRoutes(e *echo.Echo) {
+	slog.Debug("--- Registered Routes ---")
+	routes := e.Routes()
+	for _, r := range routes {
+		slog.Debug("Route:", "Method", r.Method, "Path", r.Path, "Name", r.Name)
+	}
+	slog.Debug("-------------------------")
 }

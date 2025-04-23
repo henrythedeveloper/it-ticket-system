@@ -1,13 +1,14 @@
-// backend/internal/api/handlers/faq/faq.go
+// backend/internal/api/handlers/tag/tag.go
 // ==========================================================================
-// Handler functions for managing Frequently Asked Questions (FAQ) entries.
-// Provides endpoints for CRUD operations on FAQs.
+// Handler functions for managing tags used for categorizing tickets.
+// Provides endpoints for listing, creating, and deleting tags.
 // ==========================================================================
 
-package faq
+package tag
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -20,14 +21,14 @@ import (
 
 // --- Handler Struct ---
 
-// Handler holds dependencies for FAQ-related request handlers.
+// Handler holds dependencies for tag-related request handlers.
 type Handler struct {
 	db *db.DB // Database connection pool
 }
 
 // --- Constructor ---
 
-// NewHandler creates a new instance of the FAQ Handler.
+// NewHandler creates a new instance of the tag Handler.
 //
 // Parameters:
 //   - db: The database connection pool (*db.DB).
@@ -42,284 +43,192 @@ func NewHandler(db *db.DB) *Handler {
 
 // --- Route Registration ---
 
-// RegisterRoutes defines and registers all API routes managed by this FAQ handler.
+// RegisterRoutes defines and registers all API routes managed by this tag handler.
 // It maps HTTP methods and paths to specific handler functions and applies admin middleware
-// for protected operations (Create, Update, Delete).
+// for protected operations (Create, Delete).
 //
 // Parameters:
-//   - g: The echo group (e.g., /api/faq) to register routes onto (*echo.Group).
-//   - h: The FAQ Handler instance (*Handler).
+//   - g: The echo group (e.g., /api/tags) to register routes onto (*echo.Group).
+//   - h: The tag Handler instance (*Handler).
 //   - adminMiddleware: The middleware function to restrict access to Admins only.
 func RegisterRoutes(g *echo.Group, h *Handler, adminMiddleware echo.MiddlewareFunc) {
-	slog.Debug("Registering FAQ routes")
+	slog.Debug("Registering tag routes")
 
-	// Public routes (Read operations)
-	g.GET("", h.GetAllFAQs)     // GET /api/faq
-	g.GET("/:id", h.GetFAQByID) // GET /api/faq/{id}
+	// Public route (Read operation)
+	g.GET("", h.GetAllTags) // GET /api/tags
 
 	// Admin-protected routes (Write operations)
-	g.POST("", h.CreateFAQ, adminMiddleware)       // POST /api/faq
-	g.PUT("/:id", h.UpdateFAQ, adminMiddleware)    // PUT /api/faq/{id}
-	g.DELETE("/:id", h.DeleteFAQ, adminMiddleware) // DELETE /api/faq/{id}
+	g.POST("", h.CreateTag, adminMiddleware)   // POST /api/tags
+	g.DELETE("/:id", h.DeleteTag, adminMiddleware) // DELETE /api/tags/{id}
 
-	slog.Debug("Finished registering FAQ routes")
+	slog.Debug("Finished registering tag routes")
 }
 
 // --- Handler Functions ---
 
-// GetAllFAQs retrieves all FAQ entries, optionally filtered by category.
-//
-// Query Parameters:
-//   - category (optional): Filters FAQs by the specified category name.
+// GetAllTags retrieves all available tags, ordered alphabetically.
 //
 // Returns:
-//   - JSON response containing an array of FAQEntry objects or an error response.
-func (h *Handler) GetAllFAQs(c echo.Context) error {
+//   - JSON response containing an array of Tag objects or an error response.
+func (h *Handler) GetAllTags(c echo.Context) error {
 	ctx := c.Request().Context()
-	category := c.QueryParam("category")
-	logger := slog.With("handler", "GetAllFAQs", "categoryFilter", category)
-
-	// --- Build Query ---
-	query := `
-        SELECT id, question, answer, category, created_at, updated_at
-        FROM faq_entries
-    `
-	args := []interface{}{}
-	if category != "" {
-		query += " WHERE category = $1"
-		args = append(args, category)
-	}
-	query += " ORDER BY category, created_at" // Order for consistent results
-
-	logger.DebugContext(ctx, "Executing GetAllFAQs query", "query", query, "args", args)
+	logger := slog.With("handler", "GetAllTags")
 
 	// --- Execute Query ---
-	rows, err := h.db.Pool.Query(ctx, query, args...)
+	rows, err := h.db.Pool.Query(ctx, `
+        SELECT id, name, created_at FROM tags ORDER BY name ASC
+    `)
 	if err != nil {
 		logger.ErrorContext(ctx, "Database query failed", "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve FAQs.")
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve tags.")
 	}
 	defer rows.Close()
 
 	// --- Scan Results ---
-	faqs := make([]models.FAQEntry, 0)
+	tags := make([]models.Tag, 0)
 	for rows.Next() {
-		var faq models.FAQEntry
-		if err := rows.Scan(
-			&faq.ID, &faq.Question, &faq.Answer, &faq.Category,
-			&faq.CreatedAt, &faq.UpdatedAt,
-		); err != nil {
-			logger.ErrorContext(ctx, "Failed to scan FAQ row", "error", err)
-			// Return error immediately if scanning fails for one row
-			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to process FAQ data.")
+		var tag models.Tag
+		if err := rows.Scan(&tag.ID, &tag.Name, &tag.CreatedAt); err != nil {
+			logger.ErrorContext(ctx, "Failed to scan tag row", "error", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to process tag data.")
 		}
-		faqs = append(faqs, faq)
+		tags = append(tags, tag)
 	}
 
 	if err = rows.Err(); err != nil {
-		logger.ErrorContext(ctx, "Error iterating FAQ rows", "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to process FAQ results.")
+		logger.ErrorContext(ctx, "Error iterating tag rows", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to process tag results.")
 	}
 
 	// --- Return Response ---
-	logger.InfoContext(ctx, "Retrieved FAQs successfully", "count", len(faqs))
+	logger.InfoContext(ctx, "Retrieved tags successfully", "count", len(tags))
 	return c.JSON(http.StatusOK, models.APIResponse{
 		Success: true,
-		Data:    faqs,
+		Data:    tags,
 	})
 }
 
-// GetFAQByID retrieves a single FAQ entry by its ID.
-//
-// Path Parameters:
-//   - id: The UUID of the FAQ entry to retrieve.
-//
-// Returns:
-//   - JSON response containing the FAQEntry object or an error response (404 if not found).
-func (h *Handler) GetFAQByID(c echo.Context) error {
-	ctx := c.Request().Context()
-	faqID := c.Param("id")
-	logger := slog.With("handler", "GetFAQByID", "faqID", faqID)
-
-	if faqID == "" {
-		logger.WarnContext(ctx, "Missing FAQ ID in request path")
-		return echo.NewHTTPError(http.StatusBadRequest, "Missing FAQ ID.")
-	}
-
-	// --- Fetch FAQ from Database ---
-	var faq models.FAQEntry
-	err := h.db.Pool.QueryRow(ctx, `
-        SELECT id, question, answer, category, created_at, updated_at
-        FROM faq_entries
-        WHERE id = $1
-    `, faqID).Scan(
-		&faq.ID, &faq.Question, &faq.Answer, &faq.Category,
-		&faq.CreatedAt, &faq.UpdatedAt,
-	)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			logger.WarnContext(ctx, "FAQ not found")
-			return echo.NewHTTPError(http.StatusNotFound, "FAQ entry not found.")
-		}
-		logger.ErrorContext(ctx, "Database query failed", "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve FAQ entry.")
-	}
-
-	// --- Return Response ---
-	logger.InfoContext(ctx, "Retrieved FAQ by ID successfully")
-	return c.JSON(http.StatusOK, models.APIResponse{
-		Success: true,
-		Data:    faq,
-	})
-}
-
-// CreateFAQ creates a new FAQ entry. (Admin Only)
+// CreateTag creates a new tag. (Admin Only)
+// It checks if a tag with the same name already exists before insertion.
 //
 // Request Body:
-//   - Expects JSON matching models.FAQCreate (question, answer, category).
+//   - Expects JSON with a "name" field (string).
 //
 // Returns:
-//   - JSON response containing the newly created FAQEntry object or an error response.
-func (h *Handler) CreateFAQ(c echo.Context) error {
+//   - JSON response containing the newly created Tag object or an error response (409 if conflict).
+func (h *Handler) CreateTag(c echo.Context) error {
 	ctx := c.Request().Context()
-	logger := slog.With("handler", "CreateFAQ")
+	logger := slog.With("handler", "CreateTag")
 
 	// --- Bind and Validate Request Body ---
-	var faqCreate models.FAQCreate
-	if err := c.Bind(&faqCreate); err != nil {
+	var tagCreate struct {
+		Name string `json:"name" validate:"required,min=1,max=50"` // Add validation tags
+	}
+	if err := c.Bind(&tagCreate); err != nil {
 		logger.WarnContext(ctx, "Failed to bind request body", "error", err)
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body: "+err.Error())
 	}
-	// TODO: Add validation for FAQCreate fields (e.g., non-empty)
+	// TODO: Add explicit validation if not handled by middleware
+	if tagCreate.Name == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Tag name cannot be empty.")
+	}
 
-	logger.DebugContext(ctx, "Create FAQ request received", "category", faqCreate.Category)
+	logger.DebugContext(ctx, "Create tag request received", "tagName", tagCreate.Name)
 
-	// --- Insert FAQ into Database ---
-	var createdFAQ models.FAQEntry
-	err := h.db.Pool.QueryRow(ctx, `
-        INSERT INTO faq_entries (question, answer, category, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, question, answer, category, created_at, updated_at
-    `,
-		faqCreate.Question, faqCreate.Answer, faqCreate.Category,
-		time.Now(), time.Now(), // Set created_at and updated_at
-	).Scan(
-		&createdFAQ.ID, &createdFAQ.Question, &createdFAQ.Answer, &createdFAQ.Category,
-		&createdFAQ.CreatedAt, &createdFAQ.UpdatedAt,
-	)
+	// --- Check for Existing Tag ---
+	var exists bool
+	err := h.db.Pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM tags WHERE name = $1)`, tagCreate.Name).Scan(&exists)
 	if err != nil {
-		logger.ErrorContext(ctx, "Failed to insert FAQ into database", "error", err)
-		// TODO: Check for specific DB errors (e.g., constraints)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to create FAQ entry.")
+		logger.ErrorContext(ctx, "Failed to check for existing tag", "tagName", tagCreate.Name, "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Database error checking tag.")
+	}
+	if exists {
+		logger.WarnContext(ctx, "Attempted to create duplicate tag", "tagName", tagCreate.Name)
+		return echo.NewHTTPError(http.StatusConflict, fmt.Sprintf("Tag '%s' already exists.", tagCreate.Name))
+	}
+
+	// --- Insert Tag into Database ---
+	var newTag models.Tag
+	err = h.db.Pool.QueryRow(ctx, `
+        INSERT INTO tags (name, created_at) VALUES ($1, $2)
+        RETURNING id, name, created_at
+    `, tagCreate.Name, time.Now()).Scan(&newTag.ID, &newTag.Name, &newTag.CreatedAt)
+	if err != nil {
+		logger.ErrorContext(ctx, "Failed to insert tag into database", "tagName", tagCreate.Name, "error", err)
+		// TODO: Check for specific DB errors (e.g., unique constraint race condition)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to create tag.")
 	}
 
 	// --- Return Response ---
-	logger.InfoContext(ctx, "FAQ entry created successfully", "faqID", createdFAQ.ID)
+	logger.InfoContext(ctx, "Tag created successfully", "tagID", newTag.ID, "tagName", newTag.Name)
 	return c.JSON(http.StatusCreated, models.APIResponse{
 		Success: true,
-		Message: "FAQ entry created successfully.",
-		Data:    createdFAQ,
+		Message: "Tag created successfully.",
+		Data:    newTag,
 	})
 }
 
-// UpdateFAQ updates an existing FAQ entry. (Admin Only)
+// DeleteTag deletes a tag by its ID. (Admin Only)
+// It checks if the tag is currently associated with any tickets before deleting.
 //
 // Path Parameters:
-//   - id: The UUID of the FAQ entry to update.
-//
-// Request Body:
-//   - Expects JSON matching models.FAQCreate (question, answer, category).
+//   - id: The UUID of the tag to delete.
 //
 // Returns:
-//   - JSON response containing the updated FAQEntry object or an error response.
-func (h *Handler) UpdateFAQ(c echo.Context) error {
+//   - JSON success message or an error response (400 if tag is in use, 404 if not found).
+func (h *Handler) DeleteTag(c echo.Context) error {
 	ctx := c.Request().Context()
-	faqID := c.Param("id")
-	logger := slog.With("handler", "UpdateFAQ", "faqID", faqID)
-
-	// --- Input Validation & Binding ---
-	if faqID == "" {
-		logger.WarnContext(ctx, "Missing FAQ ID in request path")
-		return echo.NewHTTPError(http.StatusBadRequest, "Missing FAQ ID.")
-	}
-
-	var faqUpdate models.FAQCreate
-	if err := c.Bind(&faqUpdate); err != nil {
-		logger.WarnContext(ctx, "Failed to bind request body", "error", err)
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body: "+err.Error())
-	}
-	// TODO: Add validation for faqUpdate fields
-
-	logger.DebugContext(ctx, "Update FAQ request received", "category", faqUpdate.Category)
-
-	// --- Update FAQ in Database ---
-	var updatedFAQ models.FAQEntry
-	err := h.db.Pool.QueryRow(ctx, `
-        UPDATE faq_entries
-        SET question = $1, answer = $2, category = $3, updated_at = $4
-        WHERE id = $5
-        RETURNING id, question, answer, category, created_at, updated_at
-    `,
-		faqUpdate.Question, faqUpdate.Answer, faqUpdate.Category,
-		time.Now(), // Update updated_at timestamp
-		faqID,
-	).Scan(
-		&updatedFAQ.ID, &updatedFAQ.Question, &updatedFAQ.Answer, &updatedFAQ.Category,
-		&updatedFAQ.CreatedAt, &updatedFAQ.UpdatedAt,
-	)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			logger.WarnContext(ctx, "FAQ not found for update")
-			return echo.NewHTTPError(http.StatusNotFound, "FAQ entry not found.")
-		}
-		logger.ErrorContext(ctx, "Failed to execute FAQ update query", "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to update FAQ entry.")
-	}
-
-	// --- Return Response ---
-	logger.InfoContext(ctx, "FAQ entry updated successfully")
-	return c.JSON(http.StatusOK, models.APIResponse{
-		Success: true,
-		Message: "FAQ entry updated successfully.",
-		Data:    updatedFAQ,
-	})
-}
-
-// DeleteFAQ deletes an FAQ entry by its ID. (Admin Only)
-//
-// Path Parameters:
-//   - id: The UUID of the FAQ entry to delete.
-//
-// Returns:
-//   - JSON success message or an error response.
-func (h *Handler) DeleteFAQ(c echo.Context) error {
-	ctx := c.Request().Context()
-	faqID := c.Param("id")
-	logger := slog.With("handler", "DeleteFAQ", "faqID", faqID)
+	tagID := c.Param("id")
+	logger := slog.With("handler", "DeleteTag", "tagID", tagID)
 
 	// --- Input Validation ---
-	if faqID == "" {
-		logger.WarnContext(ctx, "Missing FAQ ID in request path")
-		return echo.NewHTTPError(http.StatusBadRequest, "Missing FAQ ID.")
+	if tagID == "" {
+		logger.WarnContext(ctx, "Missing tag ID in request path")
+		return echo.NewHTTPError(http.StatusBadRequest, "Missing tag ID.")
+	}
+
+	// --- Check if Tag is in Use ---
+	var inUse bool
+	// Check the ticket_tags join table
+	err := h.db.Pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM ticket_tags WHERE tag_id = $1)`, tagID).Scan(&inUse)
+	if err != nil {
+		// Handle case where tag doesn't exist at all during this check
+		if errors.Is(err, pgx.ErrNoRows) {
+			// This might indicate the tag was already deleted or never existed, but the check itself didn't fail
+			logger.WarnContext(ctx, "Tag not found during usage check, proceeding with delete attempt")
+			// Continue to the delete step, which will handle the 404 if needed
+		} else {
+			logger.ErrorContext(ctx, "Failed to check tag usage", "error", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Database error checking tag usage.")
+		}
+	}
+
+	if inUse {
+		logger.WarnContext(ctx, "Attempted to delete tag that is currently in use")
+		return echo.NewHTTPError(http.StatusBadRequest, "Cannot delete tag: it is currently assigned to one or more tickets.")
 	}
 
 	// --- Execute Delete Query ---
-	commandTag, err := h.db.Pool.Exec(ctx, `DELETE FROM faq_entries WHERE id = $1`, faqID)
+	// Deleting from `tags` might fail if FK constraints exist elsewhere, but
+	// the primary check is `ticket_tags`. If `ticket_tags` has ON DELETE CASCADE,
+	// deleting from `tags` will automatically remove the links.
+	commandTag, err := h.db.Pool.Exec(ctx, `DELETE FROM tags WHERE id = $1`, tagID)
 	if err != nil {
-		logger.ErrorContext(ctx, "Failed to execute FAQ deletion query", "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to delete FAQ entry.")
+		logger.ErrorContext(ctx, "Failed to execute tag deletion query", "error", err)
+		// TODO: Handle specific DB errors (e.g., foreign key constraints if not ON DELETE CASCADE)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to delete tag.")
 	}
 
 	// Check if any row was actually deleted
 	if commandTag.RowsAffected() == 0 {
-		logger.WarnContext(ctx, "FAQ deletion affected 0 rows, entry likely not found")
-		return echo.NewHTTPError(http.StatusNotFound, "FAQ entry not found.")
+		logger.WarnContext(ctx, "Tag deletion affected 0 rows, tag likely not found")
+		return echo.NewHTTPError(http.StatusNotFound, "Tag not found.")
 	}
 
 	// --- Return Response ---
-	logger.InfoContext(ctx, "FAQ entry deleted successfully")
+	logger.InfoContext(ctx, "Tag deleted successfully")
 	return c.JSON(http.StatusOK, models.APIResponse{
 		Success: true,
-		Message: "FAQ entry deleted successfully.",
+		Message: "Tag deleted successfully.",
 	})
 }
