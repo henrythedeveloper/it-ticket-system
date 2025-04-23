@@ -10,7 +10,7 @@ import { useAuthStore } from '../store/authStore'; // Zustand store for auth sta
 // --- Constants ---
 // Determine API base URL from environment variables (Vite specific)
 // Fallback to a default development URL if not set.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:8080/api';
 
 // --- Create Axios Instance ---
 /**

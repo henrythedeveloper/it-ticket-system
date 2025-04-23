@@ -1,0 +1,7 @@
+// frontend/.eslintrc.json
+{
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  }
