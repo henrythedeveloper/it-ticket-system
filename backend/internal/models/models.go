@@ -1,278 +1,310 @@
+// backend/internal/models/models.go
+// ==========================================================================
+// Defines the core data structures (structs) and enumerated types used
+// throughout the backend application. These models represent database entities,
+// API request/response payloads, and other shared data shapes.
+// ==========================================================================
+
 package models
 
 import (
 	"time"
 )
 
-// User represents a user of the system
-type User struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"` // Never expose password hash in JSON responses
-	Role         UserRole  `json:"role"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
-}
+// ==========================================================================
+// User & Authentication Models
+// ==========================================================================
 
-// UserRole represents the role of a user
+// UserRole defines the possible roles a user can have within the system.
 type UserRole string
 
+// Constants for the defined user roles.
 const (
-	// RoleStaff represents a regular IT staff member
-	RoleStaff UserRole = "Staff"
-	// RoleAdmin represents an admin user with more privileges
-	RoleAdmin UserRole = "Admin"
+	RoleStaff UserRole = "Staff" // Regular IT staff member, can work on tickets/tasks.
+	RoleAdmin UserRole = "Admin" // Administrator with full system privileges.
+	RoleUser  UserRole = "User"  // Represents an end-user (submitter), potentially for future features.
 )
 
-// UserCreate represents data needed to create a new user
+// User represents a user account in the system.
+type User struct {
+	ID           string    `json:"id"`                      // Unique identifier (UUID)
+	Name         string    `json:"name"`                    // User's full name
+	Email        string    `json:"email"`                   // User's email address (unique)
+	PasswordHash string    `json:"-"`                       // Hashed password (never exposed in API responses)
+	Role         UserRole  `json:"role"`                    // User's role (Admin, Staff, User)
+	CreatedAt    time.Time `json:"created_at"`              // Timestamp when the user was created
+	UpdatedAt    time.Time `json:"updated_at"`              // Timestamp when the user was last updated
+}
+
+// UserCreate represents the data required to create a new user account.
+// Used for binding request bodies, typically in admin-only endpoints.
 type UserCreate struct {
-	Name     string   `json:"name" validate:"required"`
-	Email    string   `json:"email" validate:"required,email"`
-	Password string   `json:"password" validate:"required,min=8"`
-	Role     UserRole `json:"role" validate:"required,oneof=Staff Admin"`
+	Name     string   `json:"name" validate:"required,min=2,max=100"`        // User's full name
+	Email    string   `json:"email" validate:"required,email"`               // User's email address
+	Password string   `json:"password" validate:"required,min=8"`            // Plaintext password (will be hashed)
+	Role     UserRole `json:"role" validate:"required,oneof=Staff Admin"` // User's role (restricted options)
 }
 
-// UserLogin represents login credentials
+// UserLogin represents the credentials provided during a login attempt.
 type UserLogin struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required"`
+	Email    string `json:"email" validate:"required,email"` // User's email
+	Password string `json:"password" validate:"required"`    // User's plaintext password
 }
 
-// Ticket represents a support ticket
-type Ticket struct {
-	ID               string         `json:"id"`
-	TicketNumber     int32          `json:"ticket_number"` // User-facing number
-	EndUserEmail     string         `json:"end_user_email"`
-	IssueType        string         `json:"issue_type"`
-	Urgency          TicketUrgency  `json:"urgency"`
-	Subject          string         `json:"subject"`
-	Body             string         `json:"body"`
-	Status           TicketStatus   `json:"status"`
-	AssignedToUserID *string        `json:"assigned_to_user_id,omitempty"`
-	AssignedToUser   *User          `json:"assigned_to_user,omitempty"`
-	CreatedAt        time.Time      `json:"created_at"`
-	UpdatedAt        time.Time      `json:"updated_at"`
-	ClosedAt         *time.Time     `json:"closed_at,omitempty"`
-	ResolutionNotes  *string        `json:"resolution_notes,omitempty"`
-	Tags             []Tag          `json:"tags,omitempty"`
-	Updates          []TicketUpdate `json:"updates,omitempty"` // Existing updates for tickets
-	Attachments      []Attachment   `json:"attachments,omitempty"`
+// Token represents the JWT authentication token returned upon successful login.
+type Token struct {
+	AccessToken string    `json:"access_token"` // The JWT token string
+	TokenType   string    `json:"token_type"`   // Typically "Bearer"
+	ExpiresAt   time.Time `json:"expires_at"`   // Timestamp when the token expires
 }
 
-// TicketStatus represents the status of a ticket
+// ==========================================================================
+// Ticket Models
+// ==========================================================================
+
+// TicketStatus defines the possible lifecycle states of a support ticket.
 type TicketStatus string
 
+// Constants for the defined ticket statuses.
 const (
-	StatusUnassigned TicketStatus = "Unassigned"
-	StatusAssigned   TicketStatus = "Assigned"
-	StatusInProgress TicketStatus = "In Progress"
-	StatusClosed     TicketStatus = "Closed"
+	StatusUnassigned TicketStatus = "Unassigned" // Ticket is new and not yet assigned.
+	StatusAssigned   TicketStatus = "Assigned"   // Ticket is assigned to a staff member.
+	StatusInProgress TicketStatus = "In Progress" // Ticket is actively being worked on.
+	StatusClosed     TicketStatus = "Closed"     // Ticket has been resolved and closed.
 )
 
-// TicketUrgency represents the urgency level of a ticket
+// TicketUrgency defines the priority level of a support ticket.
 type TicketUrgency string
 
+// Constants for the defined ticket urgency levels.
 const (
-	UrgencyLow      TicketUrgency = "Low"
-	UrgencyMedium   TicketUrgency = "Medium"
-	UrgencyHigh     TicketUrgency = "High"
-	UrgencyCritical TicketUrgency = "Critical"
+	UrgencyLow      TicketUrgency = "Low"      // Non-critical issue.
+	UrgencyMedium   TicketUrgency = "Medium"   // Standard priority.
+	UrgencyHigh     TicketUrgency = "High"     // Requires prompt attention.
+	UrgencyCritical TicketUrgency = "Critical" // Requires immediate attention.
 )
 
-// TicketCreate represents data needed to create a new ticket
+// Ticket represents a support ticket submitted by an end-user.
+type Ticket struct {
+	ID               string         `json:"id"`                            // Unique identifier (UUID)
+	TicketNumber     int32          `json:"ticket_number"`                 // User-facing sequential number
+	EndUserEmail     string         `json:"end_user_email"`                // Email of the person who submitted the ticket
+	IssueType        string         `json:"issue_type,omitempty"`          // Category or type of issue (e.g., "Hardware", "Software")
+	Urgency          TicketUrgency  `json:"urgency"`                       // Urgency level (Low, Medium, High, Critical)
+	Subject          string         `json:"subject"`                       // Brief summary of the issue
+	Body             string         `json:"body"`                          // Detailed description of the issue
+	Status           TicketStatus   `json:"status"`                        // Current status (Unassigned, Assigned, etc.)
+	AssignedToUserID *string        `json:"assigned_to_user_id,omitempty"` // UUID of the assigned staff member (nullable)
+	AssignedToUser   *User          `json:"assigned_to_user,omitempty"`    // Populated details of the assigned staff member (nested)
+	CreatedAt        time.Time      `json:"created_at"`                    // Timestamp when the ticket was created
+	UpdatedAt        time.Time      `json:"updated_at"`                    // Timestamp when the ticket was last updated
+	ClosedAt         *time.Time     `json:"closed_at,omitempty"`           // Timestamp when the ticket was closed (nullable)
+	ResolutionNotes  *string        `json:"resolution_notes,omitempty"`    // Notes added upon closing the ticket (nullable)
+	Tags             []Tag          `json:"tags,omitempty"`                // List of associated tags (nested)
+	Updates          []TicketUpdate `json:"updates,omitempty"`             // History of comments and updates (nested)
+	Attachments      []Attachment   `json:"attachments,omitempty"`         // List of file attachments (nested)
+}
+
+// TicketCreate represents the data required to create a new support ticket.
+// Used for binding request bodies, typically from public or internal forms.
 type TicketCreate struct {
-	EndUserEmail string        `json:"end_user_email" validate:"required,email"`
-	IssueType    string        `json:"issue_type" validate:"required"`
-	Urgency      TicketUrgency `json:"urgency" validate:"required,oneof=Low Medium High Critical"`
-	Subject      string        `json:"subject" validate:"required,min=5,max=200"`
-	Body         string        `json:"body" validate:"required"`
-	Tags         []string      `json:"tags,omitempty"` // Tag names are passed initially
+	EndUserEmail string        `json:"end_user_email" validate:"required,email"`               // Submitter's email
+	IssueType    string        `json:"issue_type" validate:"required"`                         // Issue category
+	Urgency      TicketUrgency `json:"urgency" validate:"required,oneof=Low Medium High Critical"` // Urgency level
+	Subject      string        `json:"subject" validate:"required,min=5,max=200"`              // Ticket subject
+	Body         string        `json:"body" validate:"required"`                               // Ticket description
+	Tags         []string      `json:"tags,omitempty"`                                         // Optional list of tag names to associate
 }
 
-// TicketUpdate represents an update or comment on a ticket (REUSED FOR TASKS)
+// TicketUpdate represents a comment or a system-generated update on a ticket.
 type TicketUpdate struct {
-	ID             string    `json:"id"`
-	TicketID       string    `json:"ticket_id,omitempty"` // Keep for tickets
-	TaskID         string    `json:"task_id,omitempty"`   // Add for tasks
-	UserID         *string   `json:"user_id,omitempty"`
-	User           *User     `json:"user,omitempty"`
-	Comment        string    `json:"comment"`
-	IsInternalNote bool      `json:"is_internal_note"` // You might want this for tasks too
-	CreatedAt      time.Time `json:"created_at"`
+	ID             string    `json:"id"`                      // Unique identifier (UUID) for the update
+	TicketID       string    `json:"ticket_id"`               // ID of the associated ticket
+	UserID         *string   `json:"user_id,omitempty"`       // ID of the user who made the update (nullable for system updates)
+	User           *User     `json:"user,omitempty"`          // Populated details of the author (nested)
+	Comment        string    `json:"comment"`                 // The content of the comment or update description
+	IsInternalNote bool      `json:"is_internal_note"`        // Flag indicating if the note is visible only to staff/admins
+	CreatedAt      time.Time `json:"created_at"`              // Timestamp when the update was created
 }
 
-// TicketUpdateCreate represents data needed to add a comment or update (REUSED FOR TASKS)
-// Note: We might need a separate TaskUpdateCreate if fields differ significantly
+// TicketUpdateCreate represents the data required to add a new comment or update to a ticket.
 type TicketUpdateCreate struct {
-	Comment        string `json:"comment" validate:"required"`
-	IsInternalNote bool   `json:"is_internal_note"` // Add if implementing internal notes for tasks
+	Comment        string `json:"comment" validate:"required"` // The comment content
+	IsInternalNote bool   `json:"is_internal_note"`        // Flag if it's an internal note (defaults to false if omitted)
 }
 
-// TicketStatusUpdate represents data needed to update a ticket's status
+// TicketStatusUpdate represents the data required to change a ticket's status and/or assignee.
 type TicketStatusUpdate struct {
-	Status           TicketStatus `json:"status" validate:"required,oneof=Unassigned Assigned In Progress Closed"`
-	AssignedToUserID *string      `json:"assigned_to_user_id,omitempty"`
-	ResolutionNotes  *string      `json:"resolution_notes,omitempty"`
+	Status           TicketStatus `json:"status" validate:"required,oneof=Unassigned Assigned In Progress Closed"` // The new status
+	AssignedToUserID *string      `json:"assigned_to_user_id,omitempty"`                                        // Optional: New assignee's UUID (or null/empty to unassign)
+	ResolutionNotes  *string      `json:"resolution_notes,omitempty"`                                           // Optional: Required only if setting status to Closed
 }
 
-// Attachment represents a file attached to a ticket
+// Attachment represents metadata about a file attached to a ticket.
 type Attachment struct {
-	ID          string    `json:"id"`
-	TicketID    string    `json:"ticket_id"`
-	Filename    string    `json:"filename"`
-	StoragePath string    `json:"storage_path"`
-	MimeType    string    `json:"mime_type"`
-	Size        int       `json:"size"`
-	UploadedAt  time.Time `json:"uploaded_at"`
-	URL         string    `json:"url,omitempty"`
+	ID          string    `json:"id"`           // Unique identifier (UUID) for the attachment
+	TicketID    string    `json:"ticket_id"`    // ID of the associated ticket
+	Filename    string    `json:"filename"`     // Original filename of the uploaded file
+	StoragePath string    `json:"storage_path"` // Path/key where the file is stored (e.g., in S3/MinIO)
+	MimeType    string    `json:"mime_type"`    // MIME type of the file (e.g., "image/png")
+	Size        int64     `json:"size"`         // File size in bytes (use int64 for potentially large files)
+	UploadedAt  time.Time `json:"uploaded_at"`  // Timestamp when the file was uploaded
+	URL         string    `json:"url,omitempty"` // Download URL (often generated on retrieval)
 }
 
-// --- Task Related Structs ---
+// ==========================================================================
+// Task Models
+// ==========================================================================
 
+// TaskStatus defines the possible states of an internal task.
 type TaskStatus string
 
+// Constants for the defined task statuses.
 const (
-	TaskStatusOpen       TaskStatus = "Open"
-	TaskStatusInProgress TaskStatus = "In Progress"
-	TaskStatusCompleted  TaskStatus = "Completed"
+	TaskStatusOpen       TaskStatus = "Open"       // Task is created but not started.
+	TaskStatusInProgress TaskStatus = "In Progress" // Task is actively being worked on.
+	TaskStatusCompleted  TaskStatus = "Completed"  // Task is finished.
 )
 
-// --- NEW: TaskUpdate Struct ---
-type TaskUpdate struct {
-	ID        string    `json:"id"`
-	TaskID    string    `json:"task_id"`           // Specific to tasks
-	UserID    *string   `json:"user_id,omitempty"` // User who made the update
-	User      *User     `json:"user,omitempty"`    // Populated user details
-	Comment   string    `json:"comment"`           // The comment text
-	CreatedAt time.Time `json:"created_at"`        // When the comment was made
-	// Add IsInternalNote bool `json:"is_internal_note"` if needed
-}
-
-// --- NEW: TaskUpdateCreate Struct ---
-// Data needed to create a new task update/comment
-type TaskUpdateCreate struct {
-	Comment string `json:"comment" validate:"required"`
-	// Add IsInternalNote bool `json:"is_internal_note"` if needed
-}
-
+// Task represents an internal task, potentially linked to a ticket or standalone.
 type Task struct {
-	ID               string     `json:"id"`
-	TaskNumber       int32      `json:"task_number"`
-	Title            string     `json:"title"`
-	Description      *string    `json:"description,omitempty"`
-	Status           TaskStatus `json:"status"`
-	AssignedToUserID *string    `json:"assigned_to_user_id,omitempty"`
-	AssignedToUser   *User      `json:"assigned_to_user,omitempty"`
-	CreatedByUserID  string     `json:"created_by_user_id"`
-	CreatedByUser    *User      `json:"created_by_user,omitempty"`
-	DueDate          *time.Time `json:"due_date,omitempty"`
-	IsRecurring      bool       `json:"is_recurring"`
-	RecurrenceRule   *string    `json:"recurrence_rule,omitempty"`
-	CreatedAt        time.Time  `json:"created_at"`
-	UpdatedAt        time.Time  `json:"updated_at"`
-	CompletedAt      *time.Time `json:"completed_at,omitempty"`
-	// --- UPDATED: Use TaskUpdate type ---
-	Updates []TaskUpdate `json:"updates,omitempty"`
+	ID               string     `json:"id"`                            // Unique identifier (UUID)
+	TaskNumber       int32      `json:"task_number"`                   // User-facing sequential number
+	Title            string     `json:"title"`                         // Title or brief description of the task
+	Description      *string    `json:"description,omitempty"`         // Optional detailed description (nullable)
+	Status           TaskStatus `json:"status"`                        // Current status (Open, In Progress, Completed)
+	AssignedToUserID *string    `json:"assigned_to_user_id,omitempty"` // UUID of the assigned staff member (nullable)
+	AssignedToUser   *User      `json:"assigned_to_user,omitempty"`    // Populated details of the assigned staff member (nested)
+	CreatedByUserID  string     `json:"created_by_user_id"`            // UUID of the user who created the task
+	CreatedByUser    *User      `json:"created_by_user,omitempty"`     // Populated details of the creator (nested)
+	DueDate          *time.Time `json:"due_date,omitempty"`            // Optional due date (nullable)
+	IsRecurring      bool       `json:"is_recurring"`                  // Flag indicating if the task recurs
+	RecurrenceRule   *string    `json:"recurrence_rule,omitempty"`     // Rule defining recurrence (e.g., cron string, RRULE) (nullable)
+	CreatedAt        time.Time  `json:"created_at"`                    // Timestamp when the task was created
+	UpdatedAt        time.Time  `json:"updated_at"`                    // Timestamp when the task was last updated
+	CompletedAt      *time.Time `json:"completed_at,omitempty"`        // Timestamp when the task was completed (nullable)
+	Updates          []TaskUpdate `json:"updates,omitempty"`             // History of comments/updates specific to this task (nested)
 }
 
+// TaskCreate represents the data required to create a new task.
 type TaskCreate struct {
-	Title          string     `json:"title" validate:"required"`
-	Description    *string    `json:"description,omitempty"`
-	AssignedToID   *string    `json:"assigned_to_user_id,omitempty"`
-	DueDate        *time.Time `json:"due_date,omitempty"`
-	IsRecurring    bool       `json:"is_recurring"`
-	RecurrenceRule *string    `json:"recurrence_rule,omitempty"`
+	Title          string     `json:"title" validate:"required,min=3,max=200"` // Task title
+	Description    *string    `json:"description,omitempty"`                   // Optional description
+	AssignedToID   *string    `json:"assigned_to_user_id,omitempty"`           // Optional assignee UUID
+	DueDate        *time.Time `json:"due_date,omitempty"`                      // Optional due date
+	IsRecurring    bool       `json:"is_recurring"`                            // Recurring flag
+	RecurrenceRule *string    `json:"recurrence_rule,omitempty"`               // Optional recurrence rule (required if IsRecurring is true?)
 }
 
+// TaskUpdate represents a comment or update added to a task.
+type TaskUpdate struct {
+	ID        string    `json:"id"`                      // Unique identifier (UUID) for the update
+	TaskID    string    `json:"task_id"`                 // ID of the associated task
+	UserID    *string   `json:"user_id,omitempty"`       // ID of the user who made the update (nullable?)
+	User      *User     `json:"user,omitempty"`          // Populated details of the author (nested)
+	Comment   string    `json:"comment"`                 // The content of the comment or update description
+	CreatedAt time.Time `json:"created_at"`              // Timestamp when the update was created
+	// Add IsInternalNote bool `json:"is_internal_note"` if needed for tasks
+}
+
+// TaskUpdateCreate represents the data required to add a new comment/update to a task.
+type TaskUpdateCreate struct {
+	Comment string `json:"comment" validate:"required"` // The comment content
+	// Add IsInternalNote bool `json:"is_internal_note"` if needed
+}
+
+// TaskStatusUpdate represents the data required to change a task's status.
 type TaskStatusUpdate struct {
-	Status TaskStatus `json:"status" validate:"required,oneof=Open In Progress Completed"`
+	Status TaskStatus `json:"status" validate:"required,oneof=Open In Progress Completed"` // The new status
 }
 
-// FAQEntry represents a frequently asked question entry
+// ==========================================================================
+// FAQ Models
+// ==========================================================================
+
+// FAQEntry represents a single entry in the Frequently Asked Questions list.
 type FAQEntry struct {
-	ID        string    `json:"id"`
-	Question  string    `json:"question"`
-	Answer    string    `json:"answer"`
-	Category  string    `json:"category"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        string    `json:"id"`        // Unique identifier (UUID)
+	Question  string    `json:"question"`  // The question text
+	Answer    string    `json:"answer"`    // The answer text
+	Category  string    `json:"category"`  // Category for grouping FAQs
+	CreatedAt time.Time `json:"created_at"` // Timestamp when created
+	UpdatedAt time.Time `json:"updated_at"` // Timestamp when last updated
 }
 
-// FAQCreate represents data needed to create a new FAQ entry
+// FAQCreate represents the data required to create a new FAQ entry.
 type FAQCreate struct {
-	Question string `json:"question" validate:"required,min=10"`
-	Answer   string `json:"answer" validate:"required"`
-	Category string `json:"category" validate:"required"`
+	Question string `json:"question" validate:"required,min=10"` // The question
+	Answer   string `json:"answer" validate:"required"`          // The answer
+	Category string `json:"category" validate:"required"`        // The category
 }
 
-// Tag represents a tag that can be attached to tickets
+// ==========================================================================
+// Tag Models
+// ==========================================================================
+
+// Tag represents a keyword or label that can be associated with tickets.
 type Tag struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        string    `json:"id"`        // Unique identifier (UUID)
+	Name      string    `json:"name"`      // The tag name (unique)
+	CreatedAt time.Time `json:"created_at"` // Timestamp when created
 }
 
-// APIResponse is a standard API response format
+// ==========================================================================
+// API & Common Models
+// ==========================================================================
+
+// APIResponse defines a standard structure for API responses.
+// It indicates success/failure and includes optional data, message, or error details.
 type APIResponse struct {
-	Success bool        `json:"success"`
-	Message string      `json:"message,omitempty"`
-	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
+	Success bool        `json:"success"`             // True if the request was successful, false otherwise
+	Message string      `json:"message,omitempty"`   // Optional message (e.g., "User created successfully")
+	Data    interface{} `json:"data,omitempty"`      // Optional data payload (can be any type)
+	Error   string      `json:"error,omitempty"`     // Optional error message if Success is false
 }
 
-// Token represents an authentication token
-type Token struct {
-	AccessToken string    `json:"access_token"`
-	TokenType   string    `json:"token_type"`
-	ExpiresAt   time.Time `json:"expires_at"`
-}
-
-// SearchQuery represents a search request
-type SearchQuery struct {
-	Query  string `json:"query" validate:"required"`
-	Limit  int    `json:"limit,omitempty"`
-	Offset int    `json:"offset,omitempty"`
-}
-
-// SearchResult represents a generic search result
-type SearchResult struct {
-	Total   int           `json:"total"`
-	Results []interface{} `json:"results"`
-}
-
-// PaginatedResponse represents a paginated response
+// PaginatedResponse defines a standard structure for responses containing lists of items
+// that are broken down into pages.
 type PaginatedResponse struct {
-	Total   int         `json:"total"`
-	Page    int         `json:"page"`
-	Limit   int         `json:"limit"`
-	Data    interface{} `json:"data"`
-	HasMore bool        `json:"has_more"`
+	Success    bool        `json:"success"`             // Always true if data is returned (even if empty)
+	Message    string      `json:"message,omitempty"`   // Optional message
+	Data       interface{} `json:"data"`                // The slice of items for the current page
+	Total      int         `json:"total"`               // Total number of items across all pages
+	Page       int         `json:"page"`                // The current page number (1-based)
+	Limit      int         `json:"limit"`               // The maximum number of items per page
+	TotalPages int         `json:"total_pages"`         // The total number of pages
+	HasMore    bool        `json:"has_more"`            // True if there are more pages after the current one
 }
 
-// TicketFilter represents filters for ticket listing
+// TicketFilter represents potential query parameters for filtering the ticket list.
+// This struct is mainly for documentation or internal use in building queries,
+// not typically used for direct request binding unless the API expects a JSON filter object.
 type TicketFilter struct {
-	Status       *TicketStatus  `json:"status,omitempty"`
-	Urgency      *TicketUrgency `json:"urgency,omitempty"`
-	AssignedTo   *string        `json:"assigned_to,omitempty"` // Can be user ID (string UUID) or "me" / "unassigned"
-	EndUserEmail *string        `json:"end_user_email,omitempty"`
-	FromDate     *time.Time     `json:"from_date,omitempty"`
-	ToDate       *time.Time     `json:"to_date,omitempty"`
-	Tags         []string       `json:"tags,omitempty"` // Tag names
-	Search       string         `json:"search,omitempty"`
-	Page         int            `json:"page,omitempty"`
-	Limit        int            `json:"limit,omitempty"`
+	Status       *TicketStatus  `json:"status,omitempty"`       // Filter by status
+	Urgency      *TicketUrgency `json:"urgency,omitempty"`      // Filter by urgency
+	AssignedTo   *string        `json:"assigned_to,omitempty"`  // Filter by assignee ID, "me", or "unassigned"
+	EndUserEmail *string        `json:"end_user_email,omitempty"`// Filter by submitter email
+	FromDate     *time.Time     `json:"from_date,omitempty"`    // Filter by creation/update date start
+	ToDate       *time.Time     `json:"to_date,omitempty"`      // Filter by creation/update date end
+	Tags         []string       `json:"tags,omitempty"`         // Filter by tag names
+	Search       string         `json:"search,omitempty"`       // Search term
+	Page         int            `json:"page,omitempty"`         // Page number for pagination
+	Limit        int            `json:"limit,omitempty"`        // Items per page
+	// Add SortBy, SortOrder fields if needed
 }
 
-// TaskFilter represents filters for task listing
+// TaskFilter represents potential query parameters for filtering the task list.
+// Similar to TicketFilter, mainly for documentation or internal query building.
 type TaskFilter struct {
-	Status      *TaskStatus `json:"status,omitempty"`
-	AssignedTo  *string     `json:"assigned_to,omitempty"` // Can be user ID (string UUID) or "me" / "unassigned"
-	CreatedBy   *string     `json:"created_by,omitempty"`  // Can be user ID (string UUID) or "me"
-	DueFromDate *time.Time  `json:"due_from_date,omitempty"`
-	DueToDate   *time.Time  `json:"due_to_date,omitempty"`
-	IsRecurring *bool       `json:"is_recurring,omitempty"`
-	Search      string      `json:"search,omitempty"`
-	Page        int         `json:"page,omitempty"`
-	Limit       int         `json:"limit,omitempty"`
+	Status      *TaskStatus `json:"status,omitempty"`         // Filter by status
+	AssignedTo  *string     `json:"assigned_to,omitempty"`    // Filter by assignee ID, "me", or "unassigned"
+	CreatedBy   *string     `json:"created_by,omitempty"`     // Filter by creator ID or "me"
+	DueFromDate *time.Time  `json:"due_from_date,omitempty"`  // Filter by due date start
+	DueToDate   *time.Time  `json:"due_to_date,omitempty"`    // Filter by due date end
+	IsRecurring *bool       `json:"is_recurring,omitempty"`   // Filter by recurring status
+	Search      string      `json:"search,omitempty"`         // Search term
+	Page        int         `json:"page,omitempty"`           // Page number
+	Limit       int         `json:"limit,omitempty"`          // Items per page
+	// Add SortBy, SortOrder fields if needed
 }
+

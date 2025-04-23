@@ -1,175 +1,171 @@
+// backend/internal/api/handlers/task/create.go
+// ==========================================================================
+// Handler function for creating new tasks.
+// Handles request binding, validation, database insertion, and notifications.
+// ==========================================================================
+
 package task
 
 import (
-	"bytes" // Import bytes package
 	"context"
-	"io"       // Import io package
-	"log/slog" // Import slog
+	"log/slog"
 	"net/http"
 	"time"
 
-	"github.com/henrythedeveloper/bus-it-ticket/internal/api/middleware/auth"
-	"github.com/henrythedeveloper/bus-it-ticket/internal/models"
+	"github.com/henrythedeveloper/it-ticket-system/internal/api/middleware/auth" // Auth helpers
+	"github.com/henrythedeveloper/it-ticket-system/internal/models"              // Data models
 	"github.com/labstack/echo/v4"
 )
 
-// CreateTask creates a new task
+// --- Handler Function ---
+
+// CreateTask handles the HTTP request to create a new task.
+// It expects task details in the request body (JSON format).
+//
+// Parameters:
+//   - c: The echo context, providing access to request and response.
+//
+// Returns:
+//   - error: An error if processing fails (e.g., bad request, database error),
+//     otherwise nil. Returns a JSON response with the created task on success.
 func (h *Handler) CreateTask(c echo.Context) error {
-	ctx := c.Request().Context() // Get context first
+	ctx := c.Request().Context()
+	logger := slog.With("handler", "CreateTask")
 
-	// --- Start Debug Logging ---
-	// Read the raw request body without consuming it from the context
-	var requestBodyBytes []byte
-	if c.Request().Body != nil {
-		requestBodyBytes, _ = io.ReadAll(c.Request().Body)
-	}
-	// Restore the request body so it can be read again by c.Bind
-	c.Request().Body = io.NopCloser(bytes.NewBuffer(requestBodyBytes))
-
-	slog.DebugContext(ctx, "Received CreateTask request", "rawBody", string(requestBodyBytes))
-	// --- End Debug Logging ---
-
+	// --- 1. Bind and Validate Request Body ---
 	var taskCreate models.TaskCreate
-	// Attempt to bind the request body to the struct
 	if err := c.Bind(&taskCreate); err != nil {
-		// Log the binding error specifically
-		slog.ErrorContext(ctx, "Failed to bind request body for CreateTask", "error", err, "rawBody", string(requestBodyBytes))
-		// Return the 400 error immediately if binding fails
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body: "+err.Error())
+		logger.WarnContext(ctx, "Failed to bind request body", "error", err)
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body: "+err.Error())
 	}
+	// TODO: Add validation for TaskCreate struct fields (e.g., title length)
+	// Example using a validation library:
+	// if err := validate.Struct(taskCreate); err != nil {
+	//     logger.WarnContext(ctx, "Request body validation failed", "error", err)
+	//     return echo.NewHTTPError(http.StatusBadRequest, "Validation errors: "+err.Error())
+	// }
 
-	// --- Start Debug Logging ---
-	// Log the struct *after* successful binding
-	slog.DebugContext(ctx, "Successfully bound request body to TaskCreate struct", "boundData", taskCreate)
-	// --- End Debug Logging ---
+	logger.DebugContext(ctx, "Task creation request received", "title", taskCreate.Title, "assigneeID", taskCreate.AssignedToID)
 
-	// Get user ID from context (should happen *after* successful bind potentially)
-	userID, err := auth.GetUserIDFromContext(c)
+	// --- 2. Get Creator User Context ---
+	creatorUserID, err := auth.GetUserIDFromContext(c)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get user ID from context", "error", err)
-		return err // Return the specific error from GetUserIDFromContext (likely 401/500)
+		return err // Error logged in helper
 	}
-	slog.DebugContext(ctx, "Retrieved user ID from context", "userID", userID)
+	logger.DebugContext(ctx, "Creator identified", "creatorUserID", creatorUserID)
 
-	// Create task in database
-	var task models.Task
-	// Note: Using QueryRowContext which is preferred
+	// --- 3. Insert Task into Database ---
+	var createdTask models.Task
+	// Note: Status is set server-side to TaskStatusOpen initially.
+	// RecurrenceRule is directly taken from input. DueDate can be null. AssignedToID can be null.
 	err = h.db.Pool.QueryRow(ctx, `
-		INSERT INTO tasks (
-			title, description, status, assigned_to_user_id, created_by_user_id,
-			due_date, is_recurring, recurrence_rule, created_at, updated_at
-		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		RETURNING id, task_number, title, description, status, assigned_to_user_id, created_by_user_id,
-			due_date, is_recurring, recurrence_rule, created_at, updated_at, completed_at
-	`,
+        INSERT INTO tasks (
+            title, description, status, assigned_to_user_id, created_by_user_id,
+            due_date, is_recurring, recurrence_rule, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING id, task_number, title, description, status, assigned_to_user_id, created_by_user_id,
+                  due_date, is_recurring, recurrence_rule, created_at, updated_at, completed_at
+    `,
 		taskCreate.Title,          // $1
-		taskCreate.Description,    // $2
-		models.TaskStatusOpen,     // $3 (Status is set server-side)
-		taskCreate.AssignedToID,   // $4 (*string - should be null or UUID)
-		userID,                    // $5 (string - from JWT)
-		taskCreate.DueDate,        // $6 (*time.Time - should be null or valid date)
-		taskCreate.IsRecurring,    // $7 (bool)
-		taskCreate.RecurrenceRule, // $8 (*string - should be null or rule string)
-		time.Now(),                // $9
-		time.Now(),                // $10
+		taskCreate.Description,    // $2 (Nullable)
+		models.TaskStatusOpen,     // $3 (Initial status)
+		taskCreate.AssignedToID,   // $4 (Nullable UUID string)
+		creatorUserID,             // $5 (Creator's UUID string)
+		taskCreate.DueDate,        // $6 (Nullable timestamp)
+		taskCreate.IsRecurring,    // $7 (Boolean)
+		taskCreate.RecurrenceRule, // $8 (Nullable string)
+		time.Now(),                // $9 (created_at)
+		time.Now(),                // $10 (updated_at)
 	).Scan(
-		&task.ID,
-		&task.TaskNumber,
-		&task.Title,
-		&task.Description,
-		&task.Status,
-		&task.AssignedToUserID,
-		&task.CreatedByUserID,
-		&task.DueDate,
-		&task.IsRecurring,
-		&task.RecurrenceRule,
-		&task.CreatedAt,
-		&task.UpdatedAt,
-		&task.CompletedAt,
+		&createdTask.ID, &createdTask.TaskNumber, &createdTask.Title, &createdTask.Description,
+		&createdTask.Status, &createdTask.AssignedToUserID, &createdTask.CreatedByUserID,
+		&createdTask.DueDate, &createdTask.IsRecurring, &createdTask.RecurrenceRule,
+		&createdTask.CreatedAt, &createdTask.UpdatedAt, &createdTask.CompletedAt,
 	)
 	if err != nil {
-		// Log the detailed database error
-		slog.ErrorContext(ctx, "Failed to insert task into database", "error", err, "payload", taskCreate, "creatorUserID", userID)
-		// Return a 500 error for database issues
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to create task in database")
+		logger.ErrorContext(ctx, "Failed to insert task into database", "error", err, "payload", taskCreate)
+		// TODO: Check for specific DB errors like foreign key violations (e.g., invalid assigned_to_user_id)
+		// if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23503" { // Foreign key violation
+		//     return echo.NewHTTPError(http.StatusBadRequest, "Invalid assigned user ID.")
+		// }
+		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to create task.")
 	}
-	slog.InfoContext(ctx, "Successfully created task in database", "taskID", task.ID, "taskNumber", task.TaskNumber)
+	logger.InfoContext(ctx, "Task created successfully in database", "taskUUID", createdTask.ID, "taskNumber", createdTask.TaskNumber)
 
-	// --- Post-Creation Logic (Loading user info, sending email) ---
+	// --- 4. Populate User Details for Response & Notifications ---
+	// Fetch creator details (should always exist)
+	creator, err := h.getUserDetails(ctx, createdTask.CreatedByUserID)
+	if err != nil {
+		logger.WarnContext(ctx, "Failed to load creator details after task creation", "creatorUserID", createdTask.CreatedByUserID, "error", err)
+		// Continue without creator details in response, but log the issue
+	} else {
+		createdTask.CreatedByUser = creator // Assign creator details to response object
+		logger.DebugContext(ctx, "Loaded creator user details", "creatorUserName", creator.Name)
+	}
 
-	// If task is assigned to someone, load their info for the response and email
-	if task.AssignedToUserID != nil {
-		var assignedUser models.User
-		// Use QueryRowContext
-		err = h.db.Pool.QueryRow(ctx, `
-			SELECT id, name, email, role, created_at, updated_at
-			FROM users
-			WHERE id = $1
-		`, *task.AssignedToUserID).Scan(
-			&assignedUser.ID,
-			&assignedUser.Name,
-			&assignedUser.Email,
-			&assignedUser.Role,
-			&assignedUser.CreatedAt,
-			&assignedUser.UpdatedAt,
-		)
+	// Fetch assignee details if assigned
+	var assignedUser *models.User
+	if createdTask.AssignedToUserID != nil {
+		assignedUser, err = h.getUserDetails(ctx, *createdTask.AssignedToUserID)
 		if err != nil {
-			// Log failure to load user but don't fail the whole request
-			slog.WarnContext(ctx, "Failed to load assigned user details after task creation", "assignedUserID", *task.AssignedToUserID, "error", err)
+			logger.WarnContext(ctx, "Failed to load assigned user details after task creation", "assignedUserID", *createdTask.AssignedToUserID, "error", err)
+			// Continue without assignee details, but log the issue
 		} else {
-			task.AssignedToUser = &assignedUser // Add user details to the response object
-			slog.DebugContext(ctx, "Loaded assigned user details", "assignedUserName", assignedUser.Name)
+			createdTask.AssignedToUser = assignedUser // Assign assignee details to response object
+			logger.DebugContext(ctx, "Loaded assigned user details", "assignedUserName", assignedUser.Name)
 
-			// Send task assignment email in a separate goroutine
-			go func(assignedEmail, taskTitle string, dueDate *time.Time) {
-				dueDateStr := "No due date"
-				if dueDate != nil {
-					dueDateStr = dueDate.Format("Jan 02, 2006")
-				}
-				// Use background context for the goroutine
-				bgCtx := context.Background()
-				if emailErr := h.emailService.SendTaskAssignment(
-					assignedEmail,
-					taskTitle,
-					dueDateStr,
-				); emailErr != nil {
-					// Log email sending failure
-					slog.ErrorContext(bgCtx, "Failed to send task assignment email", "recipient", assignedEmail, "taskTitle", taskTitle, "error", emailErr)
-				} else {
-					slog.InfoContext(bgCtx, "Sent task assignment email", "recipient", assignedEmail, "taskTitle", taskTitle)
-				}
-			}(assignedUser.Email, task.Title, task.DueDate) // Pass necessary data
+			// --- 5. Trigger Assignment Notification (Asynchronously) ---
+			go h.sendTaskAssignmentNotification(assignedUser.Email, createdTask.Title, createdTask.DueDate)
 		}
 	}
 
-	// Load creator info for the response object
-	var createdByUser models.User
-	// Use QueryRowContext
-	err = h.db.Pool.QueryRow(ctx, `
-		SELECT id, name, email, role, created_at, updated_at
-		FROM users
-		WHERE id = $1
-	`, task.CreatedByUserID).Scan( // Use task.CreatedByUserID which comes from the DB insert
-		&createdByUser.ID,
-		&createdByUser.Name,
-		&createdByUser.Email,
-		&createdByUser.Role,
-		&createdByUser.CreatedAt,
-		&createdByUser.UpdatedAt,
-	)
-	if err != nil {
-		// Log failure but don't fail the request
-		slog.WarnContext(ctx, "Failed to load creator user details after task creation", "creatorUserID", task.CreatedByUserID, "error", err)
-	} else {
-		task.CreatedByUser = &createdByUser // Add creator details to response
-		slog.DebugContext(ctx, "Loaded creator user details", "creatorUserName", createdByUser.Name)
-	}
-
-	// Return successful response with the created task data
+	// --- 6. Return Success Response ---
 	return c.JSON(http.StatusCreated, models.APIResponse{
 		Success: true,
-		Message: "Task created successfully",
-		Data:    task,
+		Message: "Task created successfully.",
+		Data:    createdTask, // Return the created task with populated user details
 	})
 }
+
+// --- Helper Functions ---
+
+// getUserDetails fetches basic user information by ID.
+// Used to populate CreatedByUser and AssignedToUser in the response.
+func (h *Handler) getUserDetails(ctx context.Context, userID string) (*models.User, error) {
+	var user models.User
+	// Select only necessary fields
+	err := h.db.Pool.QueryRow(ctx, `
+        SELECT id, name, email, role, created_at, updated_at
+        FROM users WHERE id = $1
+    `, userID).Scan(
+		&user.ID, &user.Name, &user.Email, &user.Role, &user.CreatedAt, &user.UpdatedAt,
+	)
+	if err != nil {
+		// Let caller log context-specific messages
+		return nil, err
+	}
+	return &user, nil
+}
+
+// sendTaskAssignmentNotification sends the assignment email in a separate goroutine.
+func (h *Handler) sendTaskAssignmentNotification(recipientEmail, taskTitle string, dueDate *time.Time) {
+	// Use background context for the goroutine
+	bgCtx := context.Background()
+	emailLogger := slog.With("operation", "SendTaskAssignmentEmail", "recipient", recipientEmail, "taskTitle", taskTitle)
+
+	dueDateStr := formatDueDate(dueDate) // Use utility function
+
+	if emailErr := h.emailService.SendTaskAssignment(recipientEmail, taskTitle, dueDateStr); emailErr != nil {
+		emailLogger.ErrorContext(bgCtx, "Failed to send task assignment email", "error", emailErr)
+	} else {
+		emailLogger.InfoContext(bgCtx, "Sent task assignment email successfully")
+	}
+}
+
+// formatDueDate is a local helper (could be moved to utils if used elsewhere)
+// func formatDueDate(dueDate *time.Time) string {
+// 	if dueDate == nil {
+// 		return "Not set"
+// 	}
+// 	return dueDate.Format("Jan 02, 2006") // Example format
+// }

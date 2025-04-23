@@ -1,23 +1,41 @@
+// backend/internal/api/handlers/ticket/base.go
+// ==========================================================================
+// Base setup for the ticket handler package. Defines the Handler struct
+// and registers routes for ticket-related API endpoints.
+// ==========================================================================
+
 package ticket
 
 import (
-	"log/slog"
+	"log/slog" // Use structured logging
 
-	"github.com/henrythedeveloper/bus-it-ticket/internal/db"
-	"github.com/henrythedeveloper/bus-it-ticket/internal/email"
-	"github.com/henrythedeveloper/bus-it-ticket/internal/file"
+	"github.com/henrythedeveloper/it-ticket-system/internal/db"    // Corrected import path
+	"github.com/henrythedeveloper/it-ticket-system/internal/email" // Corrected import path
+	"github.com/henrythedeveloper/it-ticket-system/internal/file"  // Corrected import path
 	"github.com/labstack/echo/v4"
-
 )
 
-// Handler handles ticket-related requests
+// --- Handler Struct ---
+
+// Handler holds dependencies for ticket-related request handlers.
 type Handler struct {
-	db           *db.DB
-	emailService email.Service
-	fileService  file.Service
+	db           *db.DB        // Database connection pool
+	emailService email.Service // Service for sending emails
+	fileService  file.Service  // Service for file storage operations
 }
 
-// NewHandler creates a new ticket handler
+// --- Constructor ---
+
+// NewHandler creates a new instance of the ticket Handler.
+// It initializes the handler with necessary service dependencies.
+//
+// Parameters:
+//   - db: The database connection pool (*db.DB).
+//   - emailService: The email sending service (email.Service).
+//   - fileService: The file storage service (file.Service).
+//
+// Returns:
+//   - *Handler: A pointer to the newly created Handler.
 func NewHandler(db *db.DB, emailService email.Service, fileService file.Service) *Handler {
 	return &Handler{
 		db:           db,
@@ -26,44 +44,49 @@ func NewHandler(db *db.DB, emailService email.Service, fileService file.Service)
 	}
 }
 
-// RegisterRoutes registers the ticket handler routes
-func RegisterRoutes(g *echo.Group, h *Handler) {
-	// Use slog.Debug for route registration details
-	// Removed g.Prefix as it's not accessible
-	slog.Debug("Registering ticket routes group") // CHANGED: Removed prefix attribute
+// --- Route Registration ---
 
+// RegisterRoutes defines and registers all API routes managed by this ticket handler.
+// It maps HTTP methods and paths to specific handler functions.
+// Middleware (like authentication) is applied at the group level in server.go.
+//
+// Parameters:
+//   - g: The echo group to register routes onto (*echo.Group).
+//   - h: The ticket Handler instance containing the handler functions (*Handler).
+func RegisterRoutes(g *echo.Group, h *Handler) {
+	// Log route registration at Debug level for clarity
+	slog.Debug("Registering ticket routes")
+
+	// --- Route Definitions ---
+	// Define routes in a structured way for readability
 	routes := []struct {
 		Method string
 		Path   string
 		Func   echo.HandlerFunc
 	}{
-		{"POST", "", h.CreateTicket},
-		{"GET", "", h.GetAllTickets},
-		{"GET", "/:id", h.GetTicketByID},
-		{"PUT", "/:id", h.UpdateTicket},
-		{"POST", "/:id/comments", h.AddTicketComment},
-		{"POST", "/:id/attachments", h.UploadAttachment},
-		{"GET", "/:id/attachments/:attachmentId", h.GetAttachment},
-		// Note: "/attachments/download/:attachmentId" is relative to the PARENT group (/api),
-		// not the ticket group (/api/tickets). This route should likely be registered
-		// outside this specific ticket group registration if it doesn't depend on /tickets/:id.
-		// If it *should* be /api/tickets/attachments/download/:attachmentId, change path below.
-		// For now, assuming it's registered elsewhere or the path is correct as is relative to /api.
-		// If it belongs here, adjust path: {"GET", "/attachments/download/:attachmentId", h.DownloadAttachment},
-		{"GET", "/counts", h.GetTicketCounts},
-		{"GET", "/search", h.SearchTickets},
-		// Special case handled outside the loop for clarity if needed:
-		// g.GET("/attachments/download/:attachmentId", h.DownloadAttachment)
-		// slog.Debug("Registered ticket route", "method", "GET", "path", "/api/attachments/download/:attachmentId") // Manually log if outside group
+		// Public route for creating tickets (moved to server.go for clarity)
+		// {"POST", "", h.CreateTicket}, // POST /api/tickets
 
+		// Authenticated routes (JWT middleware applied by caller to group 'g')
+		{"GET", "", h.GetAllTickets},                                // GET /api/tickets
+		{"GET", "/counts", h.GetTicketCounts},                      // GET /api/tickets/counts
+		{"GET", "/search", h.SearchTickets},                        // GET /api/tickets/search
+		{"GET", "/:id", h.GetTicketByID},                           // GET /api/tickets/{id}
+		{"PUT", "/:id", h.UpdateTicket},                           // PUT /api/tickets/{id} (Handles status/assignee updates)
+		{"POST", "/:id/comments", h.AddTicketComment},             // POST /api/tickets/{id}/comments
+		{"POST", "/:id/attachments", h.UploadAttachment},          // POST /api/tickets/{id}/attachments
+		{"GET", "/:id/attachments/:attachmentId", h.GetAttachment}, // GET /api/tickets/{id}/attachments/{attachmentId} (Metadata)
+		// Note: Download route is often separate or handled differently, e.g., /api/attachments/download/:attachmentId
+		// Assuming download route is handled elsewhere or via GetAttachment providing a URL
+		// {"GET", "/attachments/download/:attachmentId", h.DownloadAttachment}, // Example if download is handled here
 	}
 
-	// Register general ticket routes
+	// --- Register Routes with Echo Group ---
 	for _, route := range routes {
-		// We will log the path relative to the group 'g'
-		registeredPath := route.Path
-		if registeredPath == "" {
-			registeredPath = "/" // Represent group root
+		// Log the path relative to the current group 'g'
+		relativePath := route.Path
+		if relativePath == "" {
+			relativePath = "/" // Represent group root clearly in logs
 		}
 
 		switch route.Method {
@@ -75,17 +98,11 @@ func RegisterRoutes(g *echo.Group, h *Handler) {
 			g.PUT(route.Path, route.Func)
 		case "DELETE":
 			g.DELETE(route.Path, route.Func)
-			// Add other methods if needed
+			// Add other HTTP methods if needed
 		}
-		// Log each route registration at Debug level with structured attributes
-		slog.Debug("Registered ticket route", "method", route.Method, "relativePath", registeredPath)
+		// Log each registered route using the relative path
+		slog.Debug("Registered ticket route", "method", route.Method, "relativePath", relativePath)
 	}
-
-	// Special handling for the download route if it doesn't fit the group pattern well
-	// This assumes it should be /api/attachments/download/:attachmentId, registered on the parent group usually
-	// If it *is* meant to be /api/tickets/attachments/download/:attachmentId, add it to the 'routes' slice above.
-	// Example if it's added to the slice above:
-	// { Method: "GET", Path: "/attachments/download/:attachmentId", Func: h.DownloadAttachment },
 
 	slog.Debug("Finished registering ticket routes")
 }

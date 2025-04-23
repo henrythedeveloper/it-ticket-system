@@ -1,4 +1,5 @@
-module github.com/henrythedeveloper/bus-it-ticket
+// Corrected module path to match the new repository name
+module github.com/henrythedeveloper/it-ticket-system
 
 go 1.24.2
 
@@ -7,13 +8,16 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.26.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.16.11
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.46.0
-	github.com/golang-jwt/jwt/v5 v5.2.0
+	// Updated jwt/v5 to patch vulnerability (#6)
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/golang-migrate/migrate/v4 v4.17.0
-	github.com/jackc/pgx/v5 v5.5.0
+	// Updated pgx/v5 to patch vulnerabilities (#1, #3)
+	github.com/jackc/pgx/v5 v5.5.4
 	github.com/labstack/echo/v4 v4.11.4
 	github.com/resend/resend-go/v2 v2.17.0
 	github.com/spf13/viper v1.18.1
-	golang.org/x/crypto v0.18.0
+	// Updated x/crypto to patch vulnerabilities (#4, #8)
+	golang.org/x/crypto v0.36.0
 )
 
 require (
@@ -32,7 +36,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.26.4 // indirect
 	github.com/aws/smithy-go v1.19.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
@@ -58,11 +61,11 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
-	golang.org/x/net v0.19.0 // indirect
-	golang.org/x/sync v0.5.0 // indirect
-	golang.org/x/sys v0.16.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/time v0.5.0 // indirect
+	// Updated x/net to patch vulnerabilities (#2, #5, #9)
+	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/sync v0.12.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect; indirect // Auto-updated by crypto/net usually
+	golang.org/x/text v0.23.0 // indirect; indirect // Auto-updated by crypto/net usually
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

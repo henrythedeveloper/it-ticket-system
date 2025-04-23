@@ -2,114 +2,125 @@ package main
 
 import (
 	"context"
+	"errors" // Import errors package
 	"fmt"
-	"log/slog" 
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/henrythedeveloper/bus-it-ticket/internal/api"
-	"github.com/henrythedeveloper/bus-it-ticket/internal/config"
-	"github.com/henrythedeveloper/bus-it-ticket/internal/db"
-	"github.com/henrythedeveloper/bus-it-ticket/internal/email"
-	"github.com/henrythedeveloper/bus-it-ticket/internal/file"
+	// Correctly import the api package (no alias needed or use 'api')
+	"github.com/henrythedeveloper/it-ticket-system/internal/api"
+	"github.com/henrythedeveloper/it-ticket-system/internal/config"
+	"github.com/henrythedeveloper/it-ticket-system/internal/db"
+	"github.com/henrythedeveloper/it-ticket-system/internal/email"
+	"github.com/henrythedeveloper/it-ticket-system/internal/file"
 )
 
 func main() {
 	// --- Setup slog Logger ---
-	// Use TextHandler for development, JSONHandler for production environments
 	logLevel := new(slog.LevelVar) // Defaults to Info
 	// TODO: Optionally set log level from config/env var later
-	// Example: logLevel.Set(slog.LevelDebug)
 	opts := slog.HandlerOptions{
-		Level: logLevel,
+		Level:     logLevel,
+		AddSource: true, // Add source file and line number
 	}
-	handler := slog.NewTextHandler(os.Stdout, &opts) // Or slog.NewJSONHandler
+	// Use TextHandler for development, JSONHandler for production
+	handler := slog.NewTextHandler(os.Stdout, &opts)
 	logger := slog.New(handler)
 	slog.SetDefault(logger)
 	// --- End Logger Setup ---
 
 	slog.Info("Application starting...")
 
-	// Load configuration
-	cfg, err := config.Load() // config.Load already logs errors using slog
+	// --- Load Configuration ---
+	cfg, err := config.Load() // config.Load already logs errors
 	if err != nil {
-		// config.Load already logged the specific error
-		os.Exit(1) // Exit after config load failure
+		slog.Error("Configuration loading failed. Exiting.", "error", err) // Add explicit exit log
+		os.Exit(1)
 	}
 
-	// Initialize database connection
+	// --- Initialize Database ---
 	database, err := db.Connect(cfg.Database)
 	if err != nil {
-		slog.Error("Failed to connect to database", "error", err)
+		slog.Error("Failed to connect to database. Exiting.", "error", err)
 		os.Exit(1)
 	}
-	defer database.Close()
+	defer database.Close() // Ensure DB pool is closed on exit
 	slog.Info("Database connection established")
 
-	// Run database migrations
+	// --- Run Database Migrations ---
+	// Migrations should run before the server starts accepting requests
 	err = db.RunMigrations(cfg.Database) // db.RunMigrations logs success/failure
 	if err != nil {
-		slog.Error("Failed to run database migrations", "error", err)
+		slog.Error("Failed to run database migrations. Exiting.", "error", err)
 		os.Exit(1)
 	}
 
-	// Initialize email service
+	// --- Initialize Email Service ---
 	emailService, err := email.NewService(cfg.Email, cfg.Server.PortalBaseURL)
 	if err != nil {
-		slog.Error("Failed to initialize email service", "error", err)
+		slog.Error("Failed to initialize email service. Exiting.", "error", err)
 		os.Exit(1)
 	}
 	slog.Info("Email service initialized", "provider", cfg.Email.Provider)
 
-	// Initialize file storage service
+	// --- Initialize File Storage Service ---
 	fileService, err := file.NewService(cfg.Storage)
 	if err != nil {
-		slog.Error("Failed to initialize file storage service", "error", err)
+		slog.Error("Failed to initialize file storage service. Exiting.", "error", err)
 		os.Exit(1)
 	}
-	slog.Info("File storage service initialized", "endpoint", cfg.Storage.Endpoint) // Be careful logging endpoints if sensitive
+	// Be cautious logging storage endpoint if it contains sensitive info
+	slog.Info("File storage service initialized", "endpoint", cfg.Storage.Endpoint)
 
-	// Setup API server
+	// --- Setup API Server ---
+	// Use the correct package identifier 'api'
 	server := api.NewServer(database, emailService, fileService, cfg)
 	slog.Info("API server setup complete")
 
 	// --- Log Registered Routes (Use Debug level) ---
-	slog.Debug("Registering routes...") 
+	slog.Debug("Registering routes...")
+	// Use the EchoInstance() method from the refactored api.Server
 	routes := server.EchoInstance().Routes()
 	for _, r := range routes {
-		slog.Debug("Route registered", "method", r.Method, "path", r.Path, "name", r.Name) // Structured logging
+		slog.Debug("Route registered", "method", r.Method, "path", r.Path, "name", r.Name)
 	}
-	slog.Debug("Route registration complete") 
+	slog.Debug("Route registration complete")
 	// --- End block ---
 
-	// Start the server in a goroutine
+	// --- Start Server ---
+	// Start the server in a goroutine so it doesn't block the shutdown handling
 	go func() {
 		address := fmt.Sprintf(":%d", cfg.Server.Port)
-		slog.Info("Starting server", "address", address)
-		if err := server.Start(address); err != nil && err != http.ErrServerClosed {
-			slog.Error("Server failed to start", "error", err)
-			os.Exit(1) // Exit if server can't start
+		if err := server.Start(address); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			// Log fatal error if server can't start (excluding ErrServerClosed)
+			slog.Error("Server failed to start", "address", address, "error", err)
+			os.Exit(1) // Exit if server fails to start
 		}
 	}()
 
-	// Wait for interrupt signal to gracefully shutdown the server
+	// --- Graceful Shutdown Handling ---
+	// Wait for interrupt signal (Ctrl+C) or termination signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	<-quit
-	slog.Info("Shutting down server...")
 
-	// Create a deadline to wait for
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// Block until a signal is received
+	recSignal := <-quit
+	slog.Info("Received signal, initiating shutdown...", "signal", recSignal.String())
+
+	// Create a context with a timeout for shutdown
+	// Gives active connections time to finish
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Doesn't block if no connections, but will otherwise wait until the timeout
-	if err := server.Shutdown(ctx); err != nil {
-		slog.Error("Server forced to shutdown", "error", err)
-		os.Exit(1)
+	// Attempt to gracefully shut down the server
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		slog.Error("Server forced to shutdown uncleanly", "error", err)
+		os.Exit(1) // Exit with error status if shutdown fails
 	}
 
-	slog.Info("Server exited properly")
+	slog.Info("Server exited gracefully")
 }

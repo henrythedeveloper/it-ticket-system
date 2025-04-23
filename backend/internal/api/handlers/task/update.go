@@ -1,434 +1,490 @@
+// backend/internal/api/handlers/task/update.go
+// ==========================================================================
+// Handler functions for modifying tasks (updating details, status, adding comments, deleting).
+// Includes authorization, transaction management, and notifications.
+// ==========================================================================
+
 package task
 
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
-	"github.com/henrythedeveloper/bus-it-ticket/internal/api/middleware/auth"
-	"github.com/henrythedeveloper/bus-it-ticket/internal/models" // Use models package
+	"github.com/henrythedeveloper/it-ticket-system/internal/api/middleware/auth" // Auth helpers
+	// No longer need db import here, use h.db "github.com/henrythedeveloper/it-ticket-system/internal/db"
+	"github.com/henrythedeveloper/it-ticket-system/internal/models" // Data models
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 )
 
-// --- UpdateTask, UpdateTaskStatus, DeleteTask functions remain the same as before ---
+// --- Handler Functions ---
 
-// UpdateTask updates a task's core details
-func (h *Handler) UpdateTask(c echo.Context) error {
-	// ... (Keep existing UpdateTask implementation) ...
-	taskID := c.Param("id")
-	if taskID == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "missing task ID")
-	}
-
-	var taskUpdate models.TaskCreate // Binding to TaskCreate for update payload
-	if err := c.Bind(&taskUpdate); err != nil {
-		slog.WarnContext(c.Request().Context(), "Failed to bind request body for UpdateTask", "taskID", taskID, "error", err)
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body: "+err.Error())
-	}
-
+// UpdateTask handles requests to modify core details of a task (title, description, assignee, due date, recurrence).
+// It performs authorization checks and updates the database within a transaction.
+//
+// Path Parameters:
+//   - id: The UUID of the task to update.
+//
+// Request Body:
+//   - Expects JSON matching models.TaskCreate (reused for update payload).
+//
+// Returns:
+//   - JSON response with the fully updated task details or an error response.
+func (h *Handler) UpdateTask(c echo.Context) (err error) { // Use named return for defer rollback check
 	ctx := c.Request().Context()
+	taskID := c.Param("id")
+	logger := slog.With("handler", "UpdateTask", "taskUUID", taskID)
 
-	// Get user ID and role from context for authorization
-	userID, err := auth.GetUserIDFromContext(c)
+	// --- 1. Input Validation & Binding ---
+	if taskID == "" {
+		logger.WarnContext(ctx, "Missing task ID in request path")
+		return echo.NewHTTPError(http.StatusBadRequest, "Missing task ID.")
+	}
+
+	var taskUpdate models.TaskCreate // Reuse TaskCreate struct for update payload
+	if err = c.Bind(&taskUpdate); err != nil {
+		logger.WarnContext(ctx, "Failed to bind request body", "error", err)
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body: "+err.Error())
+	}
+	// TODO: Add validation for taskUpdate fields if needed
+
+	// --- 2. Get User Context & Permissions ---
+	updaterUserID, err := auth.GetUserIDFromContext(c)
 	if err != nil {
 		return err
 	}
-	userRole, err := auth.GetUserRoleFromContext(c)
+	updaterRole, err := auth.GetUserRoleFromContext(c)
 	if err != nil {
 		return err
 	}
+	logger.DebugContext(ctx, "Update request initiated", "updaterUserID", updaterUserID, "updaterRole", updaterRole)
 
-	// --- Authorization Check: Verify task exists and user has permission ---
-	var task models.Task
-	var currentAssignedTo *string
-	err = h.db.Pool.QueryRow(ctx, `
-		SELECT id, title, description, status, assigned_to_user_id, created_by_user_id,
-			due_date, is_recurring, recurrence_rule, created_at, updated_at, completed_at
-		FROM tasks
-		WHERE id = $1
-	`, taskID).Scan(
-		&task.ID, &task.Title, &task.Description, &task.Status, &task.AssignedToUserID,
-		&task.CreatedByUserID, &task.DueDate, &task.IsRecurring, &task.RecurrenceRule,
-		&task.CreatedAt, &task.UpdatedAt, &task.CompletedAt,
-	)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			slog.WarnContext(ctx, "Task not found for update", "taskID", taskID)
-			return echo.NewHTTPError(http.StatusNotFound, "task not found")
+	// --- 3. Authorization Check & Fetch Current Assignee ---
+	// Verify user has permission to update this task
+	_, authErr := checkTaskAccess(ctx, h.db, taskID, updaterUserID, updaterRole)
+	if authErr != nil {
+		logger.WarnContext(ctx, "Authorization check failed", "error", authErr)
+		if authErr.Error() == "task not found" {
+			return echo.NewHTTPError(http.StatusNotFound, authErr.Error())
 		}
-		slog.ErrorContext(ctx, "Failed to query task for update check", "taskID", taskID, "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get task details")
+		if authErr.Error() == "not authorized to access this task" {
+			return echo.NewHTTPError(http.StatusForbidden, authErr.Error())
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to verify task access.")
 	}
 
-	// Authorization logic: Only admins, the creator, or the current assignee can update
-	isAssignee := task.AssignedToUserID != nil && *task.AssignedToUserID == userID
-	if userRole != models.RoleAdmin && task.CreatedByUserID != userID && !isAssignee {
-		slog.WarnContext(ctx, "Unauthorized attempt to update task", "taskID", taskID, "userID", userID)
-		return echo.NewHTTPError(http.StatusForbidden, "not authorized to update this task")
+	// Fetch current assignee ID *after* auth check, only if needed for notification logic
+	var currentAssignedToUserID *string
+	err = h.db.Pool.QueryRow(ctx, `SELECT assigned_to_user_id FROM tasks WHERE id = $1`, taskID).Scan(&currentAssignedToUserID)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) { // Ignore ErrNoRows as auth check passed
+		logger.ErrorContext(ctx, "Failed to fetch current assignee ID", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve current task details.")
 	}
-	// --- End Authorization Check ---
 
-	currentAssignedTo = task.AssignedToUserID // Store current assignee for email check
-
-	// Begin transaction
+	// --- 4. Database Transaction ---
 	tx, err := h.db.Pool.Begin(ctx)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to begin transaction for UpdateTask", "taskID", taskID, "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to begin transaction")
+		logger.ErrorContext(ctx, "Failed to begin database transaction", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to start transaction.")
 	}
-	defer tx.Rollback(ctx) // Rollback if not committed
+	defer func() {
+		if err != nil {
+			logger.WarnContext(ctx, "Rolling back transaction due to error", "error", err)
+			if rbErr := tx.Rollback(ctx); rbErr != nil {
+				logger.ErrorContext(ctx, "Failed to rollback transaction", "rollbackError", rbErr)
+			}
+		}
+	}()
 
-	// Update task in database
+	// --- 5. Execute Update Query ---
+	// Update core task fields. Status is NOT updated here (use UpdateTaskStatus).
 	_, err = tx.Exec(ctx, `
-		UPDATE tasks
-		SET title = $1, description = $2, assigned_to_user_id = $3,
-			due_date = $4, is_recurring = $5, recurrence_rule = $6, updated_at = $7
-		WHERE id = $8
-	`,
-		taskUpdate.Title,
-		taskUpdate.Description,
-		taskUpdate.AssignedToID,   // Use AssignedToID from TaskCreate struct
-		taskUpdate.DueDate,        // Use DueDate from TaskCreate struct
-		taskUpdate.IsRecurring,    // Use IsRecurring from TaskCreate struct
-		taskUpdate.RecurrenceRule, // Use RecurrenceRule from TaskCreate struct
-		time.Now(),                // Set updated_at
+        UPDATE tasks
+        SET title = $1, description = $2, assigned_to_user_id = $3, due_date = $4,
+            is_recurring = $5, recurrence_rule = $6, updated_at = $7
+        WHERE id = $8
+    `,
+		taskUpdate.Title, taskUpdate.Description, taskUpdate.AssignedToID, taskUpdate.DueDate,
+		taskUpdate.IsRecurring, taskUpdate.RecurrenceRule, time.Now(), // updated_at
 		taskID,
 	)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to execute task update query", "taskID", taskID, "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to update task")
+		logger.ErrorContext(ctx, "Failed to execute task update query", "error", err)
+		// TODO: Handle specific DB errors like invalid assigned_to_user_id if possible
+		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to update task.")
+	}
+	logger.DebugContext(ctx, "Task record updated successfully")
+
+	// --- 6. Commit Transaction ---
+	// Commit before sending notifications
+	err = tx.Commit(ctx)
+	if err != nil {
+		logger.ErrorContext(ctx, "Failed to commit transaction", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to save task update.")
 	}
 
-	// --- Email Notification Logic (if assignment changed) ---
-	newAssignedTo := taskUpdate.AssignedToID
-	assignmentChanged := (currentAssignedTo == nil && newAssignedTo != nil) || // Unassigned -> Assigned
-		(currentAssignedTo != nil && newAssignedTo == nil) || // Assigned -> Unassigned
-		(currentAssignedTo != nil && newAssignedTo != nil && *currentAssignedTo != *newAssignedTo) // Assigned -> Different User
+	// --- 7. Trigger Assignment Notification (If Changed) ---
+	newAssignedToUserID := taskUpdate.AssignedToID
+	assignmentChanged := (currentAssignedToUserID == nil && newAssignedToUserID != nil && *newAssignedToUserID != "") || // Unassigned -> Assigned
+		(currentAssignedToUserID != nil && (newAssignedToUserID == nil || *newAssignedToUserID == "")) || // Assigned -> Unassigned
+		(currentAssignedToUserID != nil && newAssignedToUserID != nil && *newAssignedToUserID != "" && *currentAssignedToUserID != *newAssignedToUserID) // Assigned -> Different User
 
-	if assignmentChanged && newAssignedTo != nil {
-		// Fetch new assignee details within the transaction
-		var assignedUser models.User
-		err = tx.QueryRow(ctx, `
-			SELECT id, name, email, role, created_at, updated_at
-			FROM users WHERE id = $1
-		`, *newAssignedTo).Scan(
-			&assignedUser.ID, &assignedUser.Name, &assignedUser.Email,
-			&assignedUser.Role, &assignedUser.CreatedAt, &assignedUser.UpdatedAt,
-		)
-		if err == nil {
-			// Send email in goroutine (non-blocking)
-			go func(email, title string, dueDate *time.Time) {
-				dueDateStr := "No due date"
-				if dueDate != nil {
-					dueDateStr = dueDate.Format("Jan 02, 2006")
-				}
-				bgCtx := context.Background() // Use background context for goroutine
-				if emailErr := h.emailService.SendTaskAssignment(email, title, dueDateStr); emailErr != nil {
-					slog.ErrorContext(bgCtx, "Failed to send task assignment email", "recipient", email, "error", emailErr)
-				} else {
-					slog.InfoContext(bgCtx, "Sent task assignment email", "recipient", email)
-				}
-			}(assignedUser.Email, taskUpdate.Title, taskUpdate.DueDate)
+	if assignmentChanged && newAssignedToUserID != nil && *newAssignedToUserID != "" {
+		// Fetch assignee email for notification (outside transaction now)
+		var assigneeEmail string
+		// Use a background context for potentially slow email operations
+		bgCtx := context.Background()
+		dbErr := h.db.Pool.QueryRow(bgCtx, `SELECT email FROM users WHERE id = $1`, *newAssignedToUserID).Scan(&assigneeEmail)
+		if dbErr == nil {
+			// Send notification asynchronously
+			// Call the method defined (presumably) in create.go
+			go h.sendTaskAssignmentNotification(assigneeEmail, taskUpdate.Title, taskUpdate.DueDate)
 		} else {
-			slog.ErrorContext(ctx, "Failed to fetch assignee details for email notification", "assigneeID", *newAssignedTo, "error", err)
+			logger.ErrorContext(ctx, "Failed to fetch assignee email for notification after update", "assigneeID", *newAssignedToUserID, "error", dbErr)
 		}
 	}
-	// --- End Email Notification Logic ---
 
-	// Commit transaction
-	if err := tx.Commit(ctx); err != nil {
-		slog.ErrorContext(ctx, "Failed to commit transaction for UpdateTask", "taskID", taskID, "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save task update")
-	}
-
-	slog.InfoContext(ctx, "Task updated successfully", "taskID", taskID)
-	// Return updated task details by calling GetTaskByID
-	return h.GetTaskByID(c)
+	// --- 8. Return Updated Task Details ---
+	logger.InfoContext(ctx, "Task updated successfully")
+	return h.GetTaskByID(c) // Reuse GetTaskByID handler to return the full updated task
 }
 
-// UpdateTaskStatus updates only the status and completed_at fields of a task
-func (h *Handler) UpdateTaskStatus(c echo.Context) error {
-	// ... (Keep existing UpdateTaskStatus implementation) ...
+// UpdateTaskStatus handles requests to specifically update a task's status.
+// It also updates the completed_at timestamp accordingly.
+//
+// Path Parameters:
+//   - id: The UUID of the task to update.
+//
+// Request Body:
+//   - Expects JSON matching models.TaskStatusUpdate.
+//
+// Returns:
+//   - JSON response with the fully updated task details or an error response.
+func (h *Handler) UpdateTaskStatus(c echo.Context) (err error) { // Use named return
+	ctx := c.Request().Context()
 	taskID := c.Param("id")
+	logger := slog.With("handler", "UpdateTaskStatus", "taskUUID", taskID)
+
+	// --- 1. Input Validation & Binding ---
 	if taskID == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "missing task ID")
+		logger.WarnContext(ctx, "Missing task ID in request path")
+		return echo.NewHTTPError(http.StatusBadRequest, "Missing task ID.")
 	}
 
 	var statusUpdate models.TaskStatusUpdate
-	if err := c.Bind(&statusUpdate); err != nil {
-		slog.WarnContext(c.Request().Context(), "Failed to bind request body for UpdateTaskStatus", "taskID", taskID, "error", err)
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body: "+err.Error())
+	if err = c.Bind(&statusUpdate); err != nil {
+		logger.WarnContext(ctx, "Failed to bind request body", "error", err)
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body: "+err.Error())
+	}
+	// Validate the status value
+	if statusUpdate.Status != models.TaskStatusOpen &&
+		statusUpdate.Status != models.TaskStatusInProgress &&
+		statusUpdate.Status != models.TaskStatusCompleted {
+		logger.WarnContext(ctx, "Invalid status value provided", "status", statusUpdate.Status)
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid status value.")
 	}
 
-	ctx := c.Request().Context()
-
-	// Get user ID and role for authorization
-	userID, err := auth.GetUserIDFromContext(c)
+	// --- 2. Get User Context & Permissions ---
+	updaterUserID, err := auth.GetUserIDFromContext(c)
 	if err != nil {
 		return err
 	}
-	userRole, err := auth.GetUserRoleFromContext(c)
+	updaterRole, err := auth.GetUserRoleFromContext(c)
 	if err != nil {
 		return err
 	}
+	logger.DebugContext(ctx, "Status update request initiated", "updaterUserID", updaterUserID, "newStatus", statusUpdate.Status)
 
-	// --- Authorization Check: Verify task exists and user has permission ---
-	var task models.Task
-	err = h.db.Pool.QueryRow(ctx, `
-		SELECT status, assigned_to_user_id, created_by_user_id, completed_at
-		FROM tasks WHERE id = $1
-	`, taskID).Scan(&task.Status, &task.AssignedToUserID, &task.CreatedByUserID, &task.CompletedAt)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			slog.WarnContext(ctx, "Task not found for status update", "taskID", taskID)
-			return echo.NewHTTPError(http.StatusNotFound, "task not found")
+	// --- 3. Authorization Check ---
+	// Use checkTaskAccess helper
+	if _, authErr := checkTaskAccess(ctx, h.db, taskID, updaterUserID, updaterRole); authErr != nil {
+		logger.WarnContext(ctx, "Authorization check failed", "error", authErr)
+		if authErr.Error() == "task not found" {
+			return echo.NewHTTPError(http.StatusNotFound, authErr.Error())
 		}
-		slog.ErrorContext(ctx, "Failed to query task for status update check", "taskID", taskID, "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get task details")
+		if authErr.Error() == "not authorized to access this task" {
+			return echo.NewHTTPError(http.StatusForbidden, authErr.Error())
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to verify task access.")
 	}
 
-	// Authorization logic: Admin, creator, or assignee can update status
-	isAssignee := task.AssignedToUserID != nil && *task.AssignedToUserID == userID
-	if userRole != models.RoleAdmin && task.CreatedByUserID != userID && !isAssignee {
-		slog.WarnContext(ctx, "Unauthorized attempt to update task status", "taskID", taskID, "userID", userID)
-		return echo.NewHTTPError(http.StatusForbidden, "not authorized to update this task status")
+	// Fetch the current status specifically for comparison
+	var currentStatus models.TaskStatus
+	var currentCompletedAt *time.Time
+	err = h.db.Pool.QueryRow(ctx, `SELECT status, completed_at FROM tasks WHERE id = $1`, taskID).Scan(&currentStatus, &currentCompletedAt)
+	if err != nil {
+		logger.ErrorContext(ctx, "Failed to fetch current task status after auth check", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve current task status.")
 	}
-	// --- End Authorization Check ---
 
-	// Begin transaction
+	// --- 4. Determine completed_at Timestamp ---
+	var newCompletedAt *time.Time
+	now := time.Now()
+	if statusUpdate.Status == models.TaskStatusCompleted && currentStatus != models.TaskStatusCompleted {
+		newCompletedAt = &now // Set completion time if moving to Completed
+	} else if statusUpdate.Status != models.TaskStatusCompleted && currentStatus == models.TaskStatusCompleted {
+		newCompletedAt = nil // Clear completion time if moving away from Completed
+	} else {
+		newCompletedAt = currentCompletedAt // Keep existing value otherwise
+	}
+
+	// --- 5. Database Transaction ---
 	tx, err := h.db.Pool.Begin(ctx)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to begin transaction for UpdateTaskStatus", "taskID", taskID, "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to begin transaction")
+		logger.ErrorContext(ctx, "Failed to begin database transaction", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to start transaction.")
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		if err != nil {
+			logger.WarnContext(ctx, "Rolling back transaction due to error", "error", err)
+			if rbErr := tx.Rollback(ctx); rbErr != nil {
+				logger.ErrorContext(ctx, "Failed to rollback transaction", "rollbackError", rbErr)
+			}
+		}
+	}()
 
-	// Determine completed_at timestamp based on status change
-	var completedAt *time.Time
-	now := time.Now() // Get current time once
-	if statusUpdate.Status == models.TaskStatusCompleted && task.Status != models.TaskStatusCompleted {
-		completedAt = &now // Set completion time if moving to Completed
-	} else if statusUpdate.Status != models.TaskStatusCompleted && task.Status == models.TaskStatusCompleted {
-		completedAt = nil // Clear completion time if moving away from Completed
-	} else {
-		completedAt = task.CompletedAt // Keep existing value otherwise
-	}
-
-	// Update task status and completed_at in database
+	// --- 6. Execute Update Query ---
 	_, err = tx.Exec(ctx, `
-		UPDATE tasks
-		SET status = $1, updated_at = $2, completed_at = $3
-		WHERE id = $4
-	`,
-		statusUpdate.Status,
-		now, // Update updated_at timestamp
-		completedAt,
-		taskID,
-	)
+        UPDATE tasks SET status = $1, updated_at = $2, completed_at = $3 WHERE id = $4
+    `, statusUpdate.Status, now, newCompletedAt, taskID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to execute task status update query", "taskID", taskID, "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to update task status")
+		logger.ErrorContext(ctx, "Failed to execute task status update query", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to update task status.")
 	}
 
-	// Commit transaction
-	if err := tx.Commit(ctx); err != nil {
-		slog.ErrorContext(ctx, "Failed to commit transaction for UpdateTaskStatus", "taskID", taskID, "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save task status update")
+	// --- 7. Log Status Change as System Comment ---
+	// Fetch updater's name (best effort)
+	updaterName := "System" // Default
+	var name string
+	// Use background context as this is non-critical path for the request
+	if nameErr := h.db.Pool.QueryRow(context.Background(), `SELECT name FROM users WHERE id = $1`, updaterUserID).Scan(&name); nameErr == nil {
+		updaterName = name
+	} else {
+		logger.WarnContext(ctx, "Could not fetch updater name for system comment", "error", nameErr)
 	}
 
-	slog.InfoContext(ctx, "Task status updated successfully", "taskID", taskID, "newStatus", statusUpdate.Status)
-	// Return updated task details
-	return h.GetTaskByID(c)
+	changeDesc := fmt.Sprintf("Status changed from '%s' to '%s' by %s.", currentStatus, statusUpdate.Status, updaterName)
+	// Use the addSystemComment helper defined in utils.go
+	commentErr := addSystemComment(ctx, tx, taskID, updaterUserID, changeDesc)
+	if commentErr != nil {
+		logger.ErrorContext(ctx, "Failed to add automatic status change comment", "error", commentErr)
+		// Decide if this should rollback the status update
+		// err = commentErr // Uncomment to make comment failure critical
+	}
+
+	// --- 8. Commit Transaction ---
+	if err == nil {
+		err = tx.Commit(ctx)
+		if err != nil {
+			logger.ErrorContext(ctx, "Failed to commit transaction", "error", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to save status update.")
+		}
+	} else {
+		// Defer handles rollback
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to complete status update.")
+	}
+
+	// --- 9. Return Updated Task Details ---
+	logger.InfoContext(ctx, "Task status updated successfully", "newStatus", statusUpdate.Status)
+	return h.GetTaskByID(c) // Reuse GetTaskByID handler
 }
 
-// DeleteTask deletes a task
+// DeleteTask handles requests to delete a task.
+// Performs authorization checks (only creator or admin can delete).
+//
+// Path Parameters:
+//   - id: The UUID of the task to delete.
+//
+// Returns:
+//   - JSON success message or an error response.
 func (h *Handler) DeleteTask(c echo.Context) error {
-	// ... (Keep existing DeleteTask implementation) ...
-	taskID := c.Param("id")
-	if taskID == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "missing task ID")
-	}
-
 	ctx := c.Request().Context()
+	taskID := c.Param("id")
+	logger := slog.With("handler", "DeleteTask", "taskUUID", taskID)
 
-	// Get user ID and role for authorization
-	userID, err := auth.GetUserIDFromContext(c)
+	// --- 1. Input Validation ---
+	if taskID == "" {
+		logger.WarnContext(ctx, "Missing task ID in request path")
+		return echo.NewHTTPError(http.StatusBadRequest, "Missing task ID.")
+	}
+
+	// --- 2. Get User Context & Permissions ---
+	deleterUserID, err := auth.GetUserIDFromContext(c)
 	if err != nil {
 		return err
 	}
-	userRole, err := auth.GetUserRoleFromContext(c)
+	deleterRole, err := auth.GetUserRoleFromContext(c)
 	if err != nil {
 		return err
 	}
+	logger.DebugContext(ctx, "Delete request initiated", "deleterUserID", deleterUserID, "deleterRole", deleterRole)
 
-	// --- Authorization Check: Verify task exists and user has permission ---
-	var createdByUserID string
-	err = h.db.Pool.QueryRow(ctx, `SELECT created_by_user_id FROM tasks WHERE id = $1`, taskID).Scan(&createdByUserID)
+	// --- 3. Authorization Check ---
+	// Fetch only the creator ID for the check
+	var creatorUserID string
+	err = h.db.Pool.QueryRow(ctx, `SELECT created_by_user_id FROM tasks WHERE id = $1`, taskID).Scan(&creatorUserID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			slog.WarnContext(ctx, "Task not found for deletion", "taskID", taskID)
-			return echo.NewHTTPError(http.StatusNotFound, "task not found")
+			logger.WarnContext(ctx, "Task not found for deletion")
+			return echo.NewHTTPError(http.StatusNotFound, "Task not found.")
 		}
-		slog.ErrorContext(ctx, "Failed to query task for deletion check", "taskID", taskID, "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get task details")
+		logger.ErrorContext(ctx, "Failed to query task for deletion check", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve task details.")
 	}
 
-	// Authorization logic: Only admins or the task creator can delete tasks
-	if userRole != models.RoleAdmin && createdByUserID != userID {
-		slog.WarnContext(ctx, "Unauthorized attempt to delete task", "taskID", taskID, "userID", userID)
-		return echo.NewHTTPError(http.StatusForbidden, "not authorized to delete this task")
+	// Authorization: Only Admin or the creator can delete
+	if deleterRole != models.RoleAdmin && creatorUserID != deleterUserID {
+		logger.WarnContext(ctx, "Unauthorized attempt to delete task", "creatorUserID", creatorUserID)
+		return echo.NewHTTPError(http.StatusForbidden, "Not authorized to delete this task.")
 	}
-	// --- End Authorization Check ---
 
-	// Delete task from database
-	result, err := h.db.Pool.Exec(ctx, `DELETE FROM tasks WHERE id = $1`, taskID)
+	// --- 4. Execute Delete Query ---
+	// Associated task_updates should be deleted automatically via ON DELETE CASCADE foreign key constraint.
+	commandTag, err := h.db.Pool.Exec(ctx, `DELETE FROM tasks WHERE id = $1`, taskID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to execute task deletion query", "taskID", taskID, "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to delete task")
+		logger.ErrorContext(ctx, "Failed to execute task deletion query", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to delete task.")
 	}
 
 	// Check if any row was actually deleted
-	if result.RowsAffected() == 0 {
-		// This case might happen if the task was deleted between the check and the delete command
-		slog.WarnContext(ctx, "Task deletion affected 0 rows, likely already deleted", "taskID", taskID)
-		return echo.NewHTTPError(http.StatusNotFound, "task not found or already deleted")
+	if commandTag.RowsAffected() == 0 {
+		logger.WarnContext(ctx, "Task deletion affected 0 rows, likely already deleted")
+		return echo.NewHTTPError(http.StatusNotFound, "Task not found or already deleted.")
 	}
 
-	slog.InfoContext(ctx, "Task deleted successfully", "taskID", taskID)
+	// --- 5. Return Success Response ---
+	logger.InfoContext(ctx, "Task deleted successfully")
 	return c.JSON(http.StatusOK, models.APIResponse{
 		Success: true,
-		Message: "Task deleted successfully",
+		Message: "Task deleted successfully.",
 	})
 }
 
-// --- AddTaskUpdate Function (Moved Here) ---
-// AddTaskUpdate adds a comment/update to a task
-func (h *Handler) AddTaskUpdate(c echo.Context) error {
-	taskID := c.Param("id")
-	if taskID == "" {
-		slog.Warn("AddTaskUpdate called with missing task ID")
-		return echo.NewHTTPError(http.StatusBadRequest, "missing task ID")
-	}
-
-	// --- Use TaskUpdateCreate for binding ---
-	var updateCreate models.TaskUpdateCreate
-	if err := c.Bind(&updateCreate); err != nil {
-		slog.WarnContext(c.Request().Context(), "Failed to bind request body for AddTaskUpdate", "taskID", taskID, "error", err)
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body: "+err.Error())
-	}
-
+// AddTaskUpdate handles requests to add a comment/update to a task.
+// Performs authorization checks.
+//
+// Path Parameters:
+//   - id: The UUID of the task to add the update to.
+//
+// Request Body:
+//   - Expects JSON matching models.TaskUpdateCreate.
+//
+// Returns:
+//   - JSON response with the newly created TaskUpdate object or an error response.
+func (h *Handler) AddTaskUpdate(c echo.Context) (err error) { // Use named return
 	ctx := c.Request().Context()
-	userID, err := auth.GetUserIDFromContext(c)
+	taskID := c.Param("id")
+	logger := slog.With("handler", "AddTaskUpdate", "taskUUID", taskID)
+
+	// --- 1. Input Validation & Binding ---
+	if taskID == "" {
+		logger.WarnContext(ctx, "Missing task ID in request path")
+		return echo.NewHTTPError(http.StatusBadRequest, "Missing task ID.")
+	}
+
+	var updateCreate models.TaskUpdateCreate
+	if err = c.Bind(&updateCreate); err != nil {
+		logger.WarnContext(ctx, "Failed to bind request body", "error", err)
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body: "+err.Error())
+	}
+	if strings.TrimSpace(updateCreate.Comment) == "" {
+		logger.WarnContext(ctx, "Attempted to add empty comment")
+		return echo.NewHTTPError(http.StatusBadRequest, "Comment cannot be empty.")
+	}
+	// TODO: Add other validation if needed (e.g., comment length)
+
+	// --- 2. Get User Context & Permissions ---
+	updaterUserID, err := auth.GetUserIDFromContext(c)
 	if err != nil {
 		return err
 	}
-
-	// --- Authorization Check ---
-	var taskStatus models.TaskStatus
-	var createdByID string
-	var assignedToID *string
-	err = h.db.Pool.QueryRow(ctx, `SELECT status, created_by_user_id, assigned_to_user_id FROM tasks WHERE id = $1`, taskID).Scan(&taskStatus, &createdByID, &assignedToID)
+	updaterRole, err := auth.GetUserRoleFromContext(c)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			slog.WarnContext(ctx, "Attempted to add update to non-existent task", "taskID", taskID, "userID", userID)
-			return echo.NewHTTPError(http.StatusNotFound, "task not found")
-		}
-		slog.ErrorContext(ctx, "Failed to get task details for authorization check", "taskID", taskID, "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to check task details")
+		return err
 	}
-	userRole, _ := auth.GetUserRoleFromContext(c)
-	isAssignee := assignedToID != nil && *assignedToID == userID
-	if userRole != models.RoleAdmin && createdByID != userID && !isAssignee {
-		slog.WarnContext(ctx, "Unauthorized attempt to add task update", "taskID", taskID, "userID", userID)
-		return echo.NewHTTPError(http.StatusForbidden, "not authorized to update this task")
-	}
-	// --- End Authorization Check ---
+	logger.DebugContext(ctx, "Add update request initiated", "updaterUserID", updaterUserID)
 
+	// --- 3. Authorization Check ---
+	// Verify user has access to the task they are commenting on
+	if _, authErr := checkTaskAccess(ctx, h.db, taskID, updaterUserID, updaterRole); authErr != nil {
+		logger.WarnContext(ctx, "Authorization failed for adding task update", "error", authErr)
+		if authErr.Error() == "task not found" {
+			return echo.NewHTTPError(http.StatusNotFound, authErr.Error())
+		}
+		if authErr.Error() == "not authorized to access this task" {
+			return echo.NewHTTPError(http.StatusForbidden, authErr.Error())
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to verify task access.")
+	}
+
+	// --- 4. Database Transaction ---
 	tx, err := h.db.Pool.Begin(ctx)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to begin transaction for AddTaskUpdate", "taskID", taskID, "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to start transaction")
+		logger.ErrorContext(ctx, "Failed to begin database transaction", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to start transaction.")
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		if err != nil {
+			logger.WarnContext(ctx, "Rolling back transaction due to error", "error", err)
+			if rbErr := tx.Rollback(ctx); rbErr != nil {
+				logger.ErrorContext(ctx, "Failed to rollback transaction", "rollbackError", rbErr)
+			}
+		}
+	}()
 
+	// --- 5. Insert Task Update ---
 	var updateID string
 	// Insert into task_updates table
 	err = tx.QueryRow(ctx, `
-		INSERT INTO task_updates (task_id, user_id, comment, created_at) 
-		VALUES ($1, $2, $3, $4) 
-		RETURNING id
-	`, taskID, userID, updateCreate.Comment, time.Now()).Scan(&updateID)
+        INSERT INTO task_updates (task_id, user_id, comment, created_at)
+        VALUES ($1, $2, $3, $4) RETURNING id
+    `, taskID, updaterUserID, updateCreate.Comment, time.Now()).Scan(&updateID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to insert task update", "taskID", taskID, "userID", userID, "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to add update")
+		logger.ErrorContext(ctx, "Failed to insert task update", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to add update.")
 	}
 
-	// Update task's updated_at timestamp
+	// --- 6. Update Task's updated_at Timestamp ---
 	_, err = tx.Exec(ctx, `UPDATE tasks SET updated_at = $1 WHERE id = $2`, time.Now(), taskID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to update task updated_at timestamp after adding update", "taskID", taskID, "error", err)
+		logger.ErrorContext(ctx, "Failed to update task's updated_at timestamp", "error", err)
+		// Decide if this is critical enough to rollback
+		// err = fmt.Errorf("failed to update task timestamp: %w", err) // Uncomment to trigger rollback
 	}
 
-	if err := tx.Commit(ctx); err != nil {
-		slog.ErrorContext(ctx, "Failed to commit transaction for AddTaskUpdate", "taskID", taskID, "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save update")
+	// --- 7. Commit Transaction ---
+	if err == nil {
+		err = tx.Commit(ctx)
+		if err != nil {
+			logger.ErrorContext(ctx, "Failed to commit transaction", "error", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to save update.")
+		}
+	} else {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to complete update addition.")
 	}
 
-	slog.InfoContext(ctx, "Successfully added task update", "taskID", taskID, "updateID", updateID, "userID", userID)
-
-	// --- Fetch the newly created update using TaskUpdate struct ---
-	var createdUpdate models.TaskUpdate // Use TaskUpdate struct
-	var updateUserID *string
-	var updateUserName, updateUserEmail, updateUserRole *string
-	var updateUserCreatedAt, updateUserUpdatedAt *time.Time
-
-	err = h.db.Pool.QueryRow(ctx, `
-		SELECT tu.id, tu.task_id, tu.user_id, tu.comment, tu.created_at, 
-		       u.id as update_user_id, u.name as update_user_name, u.email as update_user_email, u.role as update_user_role, 
-			   u.created_at as update_user_created_at, u.updated_at as update_user_updated_at
-		FROM task_updates tu 
-		LEFT JOIN users u ON tu.user_id = u.id 
-		WHERE tu.id = $1
-	`, updateID).Scan(
-		&createdUpdate.ID,
-		&createdUpdate.TaskID, // Scan into TaskID field
-		&updateUserID,         // Scan the user_id from task_updates
-		&createdUpdate.Comment,
-		// &createdUpdate.IsInternalNote, // Add if using this field
-		&createdUpdate.CreatedAt,
-		// User details (all nullable from LEFT JOIN) - use aliases
-		&updateUserID, // Scan user ID again for the User struct
-		&updateUserName,
-		&updateUserEmail,
-		&updateUserRole,
-		&updateUserCreatedAt,
-		&updateUserUpdatedAt,
-	)
-
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to fetch created task update details", "updateID", updateID, "error", err)
+	// --- 8. Fetch Created Update with User Details ---
+	// Use the helper function from utils.go (which is now exported)
+	createdUpdate, fetchErr := GetTaskUpdateByID(ctx, h.db, updateID) // Corrected function name
+	if fetchErr != nil {
+		logger.ErrorContext(ctx, "Failed to fetch created task update details", "updateID", updateID, "error", fetchErr)
 		return c.JSON(http.StatusCreated, models.APIResponse{
 			Success: true,
-			Message: "Update added successfully, but failed to fetch details.",
+			Message: "Update added successfully, but failed to retrieve full details.",
 			Data:    map[string]string{"id": updateID},
 		})
 	}
 
-	// Populate the nested User struct if the user exists
-	if updateUserID != nil && updateUserName != nil {
-		createdUpdate.UserID = updateUserID
-		createdUpdate.User = &models.User{
-			ID: *updateUserID, Name: *updateUserName, Email: *updateUserEmail,
-			Role: models.UserRole(*updateUserRole), CreatedAt: *updateUserCreatedAt, UpdatedAt: *updateUserUpdatedAt,
-		}
-	}
-
+	// --- 9. Return Success Response ---
+	logger.InfoContext(ctx, "Task update added successfully", "updateID", updateID)
 	return c.JSON(http.StatusCreated, models.APIResponse{
 		Success: true,
-		Message: "Update added successfully",
-		Data:    createdUpdate, // Return TaskUpdate object
+		Message: "Update added successfully.",
+		Data:    createdUpdate, // Return the TaskUpdate object with user details
 	})
 }
