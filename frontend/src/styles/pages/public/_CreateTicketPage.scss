@@ -1,7 +1,7 @@
 // src/styles/pages/public/_CreateTicketPage.scss
 // ==========================================================================
 // Styles specific to the public Create Ticket page.
-// **REVISED: Ensured all colors use CSS variables.**
+// **REVISED: Ensured CSS variables are used. Considered secondary/accent.**
 // ==========================================================================
 
 @use '../../variables' as *;
@@ -15,53 +15,60 @@
   // --- Page Header ---
   .page-header {
     text-align: center; margin-bottom: $spacing-8;
-    h1 { font-size: $font-size-3xl; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; } // Use CSS var
-    p { color: var(--text-secondary); max-width: 600px; margin: 0 auto; transition: color $transition-medium; } // Use CSS var
+    h1 { font-size: $font-size-3xl; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; }
+    p { color: var(--text-secondary); max-width: 600px; margin: 0 auto; transition: color $transition-medium; }
   }
 
   // --- Success Message ---
-  // Shown after successful ticket submission
+  // Uses --success variables (defined in _variables.scss)
   .success-message {
-    background-color: rgba(var(--success-rgb), 0.1); // Use success RGB var
-    border: 1px solid rgba(var(--success-rgb), 0.3); // Use success RGB var
+    background-color: rgba(var(--success-rgb), 0.1);
+    border: 1px solid rgba(var(--success-rgb), 0.3);
     border-radius: $border-radius-lg; padding: $spacing-6; margin-bottom: $spacing-8;
     text-align: center; transition: background-color $transition-medium, border-color $transition-medium;
-    h2 { color: var(--success); margin-bottom: $spacing-4; transition: color $transition-medium; } // Use CSS var
-    p { margin-bottom: $spacing-3; color: var(--text-secondary); transition: color $transition-medium; } // Use CSS var
+    h2 { color: var(--success); margin-bottom: $spacing-4; transition: color $transition-medium; }
+    p { margin-bottom: $spacing-3; color: var(--text-secondary); transition: color $transition-medium; }
   }
 
   // --- Ticket Form ---
   .ticket-form {
-    @include mixins.card-base; // Use card styles for the form container (uses CSS vars)
+    @include mixins.card-base; // Uses CSS vars from mixin
     padding: $spacing-6;
 
-    // Form group styles inherited from _forms.scss (which use CSS vars)
+    // Form group styles inherited from _forms.scss (should use CSS vars)
     .form-group {
-      margin-bottom: $spacing-6; // More space between groups in this form
-      textarea { min-height: 200px; } // Larger text area
+      margin-bottom: $spacing-6;
+      textarea { min-height: 200px; }
 
       // Tag selection container
       .tags-container {
         display: flex; flex-wrap: wrap; gap: $spacing-2;
         margin-top: $spacing-3;
         .tag { // Individual clickable tag
-          background-color: var(--surface-alt-bg); color: var(--text-secondary); // Use CSS vars
-          padding: $spacing-2 $spacing-3; border: 1px solid var(--border-color); // Use CSS var
+          background-color: var(--surface-alt-bg); color: var(--text-secondary);
+          padding: $spacing-2 $spacing-3; border: 1px solid var(--border-color);
           border-radius: $border-radius; font-size: $font-size-sm;
           cursor: pointer; transition: all $transition-fast;
-          &:hover { background-color: var(--surface-bg); border-color: var(--border-color-strong); } // Use CSS vars
+          &:hover { background-color: var(--surface-bg); border-color: var(--border-color-strong); }
           &.selected { // Style for selected tag
-            background-color: var(--primary); color: var(--text-inverted); border-color: var(--primary); // Use CSS vars
-            &:hover { background-color: var(--primary-dark); border-color: var(--primary-dark); } // Use CSS vars
+            // --- Option: Use accent or secondary for selected tags? ---
+            // background-color: var(--accent); color: var(--text-inverted); border-color: var(--accent);
+            // &:hover { background-color: var(--accent-dark); border-color: var(--accent-dark); }
+            // --- Current: Using primary ---
+            background-color: var(--primary); color: var(--text-inverted); border-color: var(--primary);
+            &:hover { background-color: var(--primary-dark); border-color: var(--primary-dark); }
           }
         }
       }
     }
 
-    // Submit button styling (uses global .btn styles)
+    // Submit button uses global .btn styles (likely primary by default)
     .submit-button {
-      display: block; width: 100%; // Full width
-      padding: $spacing-4; font-size: $font-size-lg; // Larger button
+      display: block; width: 100%;
+      padding: $spacing-4; font-size: $font-size-lg;
+      // --- Option: Make the main submit button secondary or accent? ---
+      // &.btn-secondary { /* Styles defined in global.scss */ }
+      // &.btn-accent { /* Needs definition in global.scss or here */ }
     }
   }
 }
@@ -70,8 +77,8 @@
 @media (max-width: $breakpoint-md) {
   .create-ticket-page {
     .ticket-form {
-      padding: $spacing-4; // Reduce padding
-      .form-group { margin-bottom: $spacing-4; } // Reduce spacing
+      padding: $spacing-4;
+      .form-group { margin-bottom: $spacing-4; }
     }
   }
 }

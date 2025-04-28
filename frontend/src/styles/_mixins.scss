@@ -1,12 +1,11 @@
 // src/styles/_mixins.scss
 // ==========================================================================
 // Reusable SCSS mixins for common UI patterns.
-// These mixins often utilize CSS variables defined in _variables.scss
-// to ensure theme adaptability.
+// **REVISED: Use accent color for focus rings.**
 // ==========================================================================
 
 @use 'variables' as *; // Import variables for use within mixins
-
+@use "sass:map";
 // --------------------------------------------------------------------------
 // Card Mixins
 // --------------------------------------------------------------------------
@@ -16,7 +15,7 @@
     background-color: var(--surface-bg);
     border: 1px solid var(--border-color);
     border-radius: $border-radius-lg;
-    box-shadow: $shadow; // Consider removing shadow for dark mode via CSS var if needed
+    box-shadow: $shadow;
     padding: $spacing-6;
     transition: background-color $transition-medium, border-color $transition-medium;
 }
@@ -35,66 +34,79 @@
     cursor: pointer;
     text-align: center;
     text-decoration: none;
-    transition: background-color $transition-fast, transform $transition-fast, border-color $transition-fast, color $transition-fast;
+    transition: background-color $transition-fast, transform $transition-fast, border-color $transition-fast, color $transition-fast, box-shadow $transition-fast; // Added box-shadow
 
-    &:focus {
-    outline: none;
-    // Use a generic focus ring that adapts
-    box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.4);
+    &:focus-visible { // Use focus-visible for better accessibility
+        outline: none;
+        // --- Use ACCENT color for focus ring for higher visibility ---
+        // Ensure --accent-rgb is defined in _variables.scss/:root and body.dark-mode
+        box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.4);
     }
 
-    &:active {
-    transform: translateY(1px);
+    &:active:not(:disabled) { // Ensure active doesn't apply when disabled
+        transform: translateY(1px);
     }
 
     &:disabled {
-    // Disabled styles handled globally via body.dark-mode
-    cursor: not-allowed;
-    opacity: 0.7;
+        // Styles handled globally now, but ensure cursor/opacity are set
+        cursor: not-allowed;
+        opacity: 0.7;
     }
 }
 
-// Mixin for button color variants
-// Parameters are CSS variable names (passed as strings)
+// Mixin for button color variants (Solid)
 @mixin button-variant($bg-color-var, $text-color-var, $bg-hover-color-var) {
     background-color: var($bg-color-var);
     color: var($text-color-var);
+    border-color: var($bg-color-var); // Ensure border matches bg for solid buttons
+
     &:hover:not(:disabled) {
-    background-color: var($bg-hover-color-var);
-    // Optional: Adjust border/text color on hover if needed
+        background-color: var($bg-hover-color-var);
+        border-color: var($bg-hover-color-var); // Keep border matching hover bg
     }
 }
 
 // Mixin for outline button variant
-// Parameters are CSS variable names (passed as strings)
 @mixin button-outline-variant($color-var, $text-hover-color-var) {
     background-color: transparent;
     border: 1px solid var($color-var);
     color: var($color-var);
     &:hover:not(:disabled) {
-    background-color: var($color-var);
-    color: var($text-hover-color-var);
+        background-color: var($color-var);
+        color: var($text-hover-color-var);
+        border-color: var($color-var); // Keep border matching hover bg
     }
 }
+
+// Mixin for secondary outline button (Example specific use case)
+@mixin button-outline-secondary {
+    // Use secondary variables directly
+    background-color: transparent;
+    border: 1px solid var(--secondary);
+    color: var(--secondary);
+    &:hover:not(:disabled) {
+        background-color: var(--secondary);
+        color: var(--text-inverted); // Or adjust if secondary needs different inverted text
+        border-color: var(--secondary);
+    }
+}
+
 
 // Mixin for button loading state (spinner)
 @mixin button-loading {
     position: relative;
     color: transparent !important; // Hide text
     &::before {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: 16px; // Spinner size
-    height: 16px;
-    // Use a consistent spinner color or adapt based on button text color var
-    border: 2px solid var(--text-inverted); // Assuming most buttons have inverted text
-    border-top-color: transparent; // Creates the spinning effect
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-    opacity: 0.8;
+        content: "";
+        position: absolute;
+        left: 50%; top: 50%;
+        transform: translate(-50%, -50%);
+        width: 16px; height: 16px;
+        border: 2px solid currentColor; // Use currentColor for spinner base
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+        opacity: 0.8;
     }
 }
 
@@ -110,34 +122,40 @@
     font-size: $font-size-xs;
     font-weight: $font-weight-medium;
     text-align: center;
+    line-height: 1.4; // Added for better vertical centering
     transition: background-color $transition-medium, color $transition-medium;
 }
 
 // Mixin for badges with alpha background based on color variable
-// Requires corresponding CSS variables for alpha backgrounds (e.g., --badge-info-bg-alpha)
-// Usage: Add class like .badge-info, .badge-success etc. to the element
+// Assumes variables like --info, --success, --warning, --error, --secondary, --accent are defined
+// Assumes corresponding --[color]-rgb variables are defined for rgba()
 @mixin badge-alpha-variants {
-    &.badge-info { background-color: var(--badge-info-bg-alpha); color: var(--info-color); }
-    &.badge-success { background-color: var(--badge-success-bg-alpha); color: var(--success-color); }
-    &.badge-warning { background-color: var(--badge-warning-bg-alpha); color: var(--warning-color); }
-    &.badge-error { background-color: var(--badge-error-bg-alpha); color: var(--error-color); }
+    // Ensure corresponding CSS variables (--info-rgb, --info etc.) are defined
+    &.badge-info { background-color: rgba(var(--info-rgb), 0.15); color: var(--info); }
+    &.badge-success { background-color: rgba(var(--success-rgb), 0.15); color: var(--success); }
+    &.badge-warning { background-color: rgba(var(--warning-rgb), 0.15); color: var(--warning); }
+    &.badge-error { background-color: rgba(var(--error-rgb), 0.15); color: var(--error); }
+    &.badge-primary { background-color: rgba(var(--primary-rgb), 0.15); color: var(--primary); }
+    &.badge-secondary { background-color: rgba(var(--secondary-rgb), 0.15); color: var(--secondary); }
+    &.badge-accent { background-color: rgba(var(--accent-rgb), 0.15); color: var(--accent); } // Accent badge
 
-    // Status specific examples (using status color vars)
-    &.badge-unassigned { background-color: rgba(var(--status-unassigned-color), 0.15); color: var(--status-unassigned-color); }
-    &.badge-assigned { background-color: rgba(var(--status-assigned-color), 0.15); color: var(--status-assigned-color); }
-    &.badge-progress { background-color: rgba(var(--status-progress-color), 0.15); color: var(--status-progress-color); }
-    &.badge-closed { background-color: rgba(var(--status-closed-color), 0.15); color: var(--status-closed-color); }
+    // Role specific examples (using semantic vars)
+    &.badge-admin { background-color: rgba(var(--accent-rgb), 0.15); color: var(--accent); } // Use accent for admin
+    &.badge-staff { background-color: rgba(var(--info-rgb), 0.15); color: var(--info); }
 
-    // Urgency specific examples
-    &.badge-low { background-color: rgba(var(--urgency-low-color), 0.15); color: var(--urgency-low-color); }
-    &.badge-medium { background-color: rgba(var(--urgency-medium-color), 0.15); color: var(--urgency-medium-color); }
-    &.badge-high { background-color: rgba(var(--urgency-high-color), 0.15); color: var(--urgency-high-color); }
-    &.badge-critical { background-color: rgba(var(--urgency-critical-color), 0.15); color: var(--urgency-critical-color); }
+    // Status examples (using semantic vars mapped in _variables)
+    &.badge-unassigned { background-color: rgba(var(--warning-rgb), 0.15); color: var(--warning); } // Status vars map to state vars
+    &.badge-assigned { background-color: rgba(var(--info-rgb), 0.15); color: var(--info); }
+    &.badge-progress { background-color: rgba(var(--secondary-rgb), 0.15); color: var(--secondary); } // Use secondary for progress
+    &.badge-closed { background-color: rgba(var(--text-muted-rgb), 0.15); color: var(--text-muted); } // Use text-muted for closed
 
-    // Role specific examples
-    &.badge-admin { background-color: rgba(var(--accent-color), 0.15); color: var(--accent-color); }
-    &.badge-staff { background-color: rgba(var(--info-color), 0.15); color: var(--info-color); }
+    // Urgency examples (using semantic vars mapped in _variables)
+    &.badge-low { background-color: rgba(var(--info-rgb), 0.15); color: var(--info); }
+    &.badge-medium { background-color: rgba(var(--success-rgb), 0.15); color: var(--success); }
+    &.badge-high { background-color: rgba(var(--warning-rgb), 0.15); color: var(--warning); }
+    &.badge-critical { background-color: rgba(var(--error-rgb), 0.15); color: var(--error); } // Use error for critical
 }
+
 
 // --------------------------------------------------------------------------
 // Form Element Mixins
@@ -150,32 +168,37 @@
     border: 1px solid var(--border-color-strong);
     border-radius: $border-radius;
     font-size: $font-size-base;
-    background-color: var(--surface-alt-bg);
+    background-color: var(--surface-alt-bg); // Use alt bg for contrast
     color: var(--text-primary);
     transition: border-color $transition-fast, box-shadow $transition-fast, background-color $transition-medium, color $transition-medium;
 
     &:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.2);
-    outline: none;
+        // Use primary color for border focus (standard practice)
+        border-color: var(--primary);
+        // Use accent color for focus shadow for visibility
+        box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2); // Lighter shadow
+        outline: none;
+        background-color: var(--surface-bg); // Slightly change bg on focus
     }
 
     &::placeholder {
-    color: var(--text-muted);
-    transition: color $transition-medium;
+        color: var(--text-muted);
+        transition: color $transition-medium;
     }
 
     &:disabled {
-    // Disabled styles handled globally via body.dark-mode
-    cursor: not-allowed;
+        // Disabled styles handled globally via body.dark-mode
+        cursor: not-allowed;
+        background-color: var(--surface-alt-bg) !important; // Ensure consistent disabled bg
+        opacity: 0.6;
     }
 }
 
 // Mixin for select arrow styling (adapts to theme)
 @mixin select-arrow {
     appearance: none;
-    // Default arrow (light mode)
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    // Default arrow (light mode) - using primary color
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='#{map.get($themes, light, primary)}' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
     background-position: right 0.5rem center;
     background-repeat: no-repeat;
     background-size: 1.5em 1.5em;
@@ -183,9 +206,11 @@
 
     // Override arrow color in dark mode using the body class
     body.dark-mode & {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); // Dark mode arrow
+        // Using primary color from dark theme map
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='#{map.get($themes, dark, primary)}' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
     }
 }
+
 
 // --------------------------------------------------------------------------
 // Animation Mixins (Example)

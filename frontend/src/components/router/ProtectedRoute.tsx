@@ -38,6 +38,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
     // --- Render Logic ---
     // 1. Show loader while authentication status is being checked
+    console.log('[ProtectedRoute] Rendering. Checking auth state:', { loading, isAuthenticated });
     if (loading) {
     // You might want a more prominent, full-page loader here
     return <Loader text="Authenticating..." />;

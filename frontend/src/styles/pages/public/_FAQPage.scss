@@ -1,136 +1,112 @@
 // src/styles/pages/public/_FAQPage.scss
 // ==========================================================================
 // Styles specific to the public FAQ page.
-// **REVISED: Adjusted FAQ item/question styling and interaction.**
+// **REVISED: Ensured CSS variables used. Considered secondary/accent.**
 // ==========================================================================
 
 @use '../../variables' as *;
 @use '../../mixins'; // Use mixins
 
 .faq-page {
-  max-width: 1200px; // Max width for content
-  margin: 0 auto; // Center content
-  padding: $spacing-8 $spacing-4; // Page padding
+  max-width: 1200px; margin: 0 auto; padding: $spacing-8 $spacing-4;
 
   // --- Page Header ---
   .faq-header {
     text-align: center; margin-bottom: $spacing-10;
-    h1 { font-size: $font-size-3xl; margin-bottom: $spacing-4; color: var(--text-primary); transition: color $transition-medium; } // Use CSS var
-    p { font-size: $font-size-lg; color: var(--text-secondary); max-width: 600px; margin: 0 auto $spacing-6; transition: color $transition-medium; } // Use CSS var
+    h1 { font-size: $font-size-3xl; margin-bottom: $spacing-4; color: var(--text-primary); transition: color $transition-medium; }
+    p { font-size: $font-size-lg; color: var(--text-secondary); max-width: 600px; margin: 0 auto $spacing-6; transition: color $transition-medium; }
     // Search form
     .search-form {
       max-width: 600px; margin: 0 auto; display: flex;
       .search-input { @include mixins.form-element-base; flex: 1; border-radius: $border-radius 0 0 $border-radius; } // Mixin uses CSS vars
-      .search-button { padding: $spacing-3 $spacing-5; border-radius: 0 $border-radius $border-radius 0; } // Uses global .btn styles
+      // Search button uses global .btn style (default primary)
+      // --- Option: Make search button secondary/accent? Add class .btn-secondary etc. ---
+      .search-button { padding: $spacing-3 $spacing-5; border-radius: 0 $border-radius $border-radius 0; }
     }
   }
 
   // --- Loading/Error States ---
-  .loading { // Uses global .loading styles
-    p { color: var(--text-muted); } // Use CSS var
-  }
-  .error-message { // Uses global .error-message styles
-    text-align: center; padding: $spacing-10;
-    p { color: var(--error); margin-bottom: $spacing-4; } // Use CSS var
-    .btn { padding: $spacing-2 $spacing-4; } // Style link as button
-  }
+  // Use global styles which use CSS vars like --text-muted, --error
+  .loading { p { color: var(--text-muted); } }
+  .error-message { p { color: var(--error); margin-bottom: $spacing-4; }}
 
   // --- Main FAQ Content Area ---
   .faq-content {
-    display: grid;
-    grid-template-columns: 1fr; // Stack by default
-    gap: $spacing-8;
-    @media (min-width: $breakpoint-md) {
-      grid-template-columns: 250px 1fr; // Sidebar layout on medium+ screens
-    }
+    display: grid; grid-template-columns: 1fr; gap: $spacing-8;
+    @media (min-width: $breakpoint-md) { grid-template-columns: 250px 1fr; }
 
     // Category filter buttons
     .category-filters {
       display: flex; flex-wrap: wrap; gap: $spacing-2; margin-bottom: $spacing-6;
-      @media (min-width: $breakpoint-md) {
-        flex-direction: column; margin-bottom: 0; // Stack vertically in sidebar
-      }
-      button { // Filter button style
-        padding: $spacing-2 $spacing-4; background-color: var(--surface-alt-bg); // Use CSS var
-        border: 1px solid var(--border-color); border-radius: $border-radius; // Use CSS var
-        cursor: pointer; font-size: $font-size-sm; color: var(--text-secondary); // Use CSS var
-        transition: all $transition-fast; text-align: left; // Align text left for vertical layout
-        width: 100%; // Full width in vertical layout
-        &:hover { background-color: var(--surface-bg); border-color: var(--border-color-strong); color: var(--text-primary); } // Use CSS vars
+      @media (min-width: $breakpoint-md) { flex-direction: column; margin-bottom: 0; }
+      button {
+        padding: $spacing-2 $spacing-4; background-color: var(--surface-alt-bg);
+        border: 1px solid var(--border-color); border-radius: $border-radius;
+        cursor: pointer; font-size: $font-size-sm; color: var(--text-secondary);
+        transition: all $transition-fast; text-align: left; width: 100%;
+        &:hover { background-color: var(--surface-bg); border-color: var(--border-color-strong); color: var(--text-primary); }
         &.active { // Active filter button style
-          background-color: var(--primary); color: var(--text-inverted); border-color: var(--primary); // Use CSS vars
+          // --- Option: Use accent or secondary for active filter? ---
+          // background-color: var(--accent); color: var(--text-inverted); border-color: var(--accent);
+          // --- Current: Using primary ---
+          background-color: var(--primary); color: var(--text-inverted); border-color: var(--primary);
         }
       }
     }
 
     // List of FAQ items
     .faq-list {
-      .faq-item { // Individual FAQ item container
-        margin-bottom: $spacing-4;
-        border: 1px solid var(--border-color); // Use CSS var
-        border-radius: $border-radius;
-        background-color: var(--surface-bg); // Use CSS var
-        transition: background-color $transition-medium, border-color $transition-medium;
-        overflow: hidden; // Ensure answer stays within rounded corners
+      .faq-item {
+        margin-bottom: $spacing-4; border: 1px solid var(--border-color);
+        border-radius: $border-radius; background-color: var(--surface-bg);
+        transition: background-color $transition-medium, border-color $transition-medium; overflow: hidden;
 
-        .faq-question { // Clickable question header (button)
+        .faq-question {
           display: flex; justify-content: space-between; align-items: center;
-          width: 100%; // Make button take full width
-          padding: $spacing-4 $spacing-5;
-          cursor: pointer;
-          background-color: transparent; // No background on the button itself initially
-          border: none; // Remove button border
-          border-bottom: 1px solid transparent; // Add border space for expanded state
-          text-align: left; // Align text left
-          transition: background-color $transition-fast, border-color $transition-fast;
+          width: 100%; padding: $spacing-4 $spacing-5; cursor: pointer;
+          background-color: transparent; border: none; border-bottom: 1px solid transparent;
+          text-align: left; transition: background-color $transition-fast, border-color $transition-fast;
 
-          h3 { margin: 0; font-size: $font-size-lg; font-weight: $font-weight-medium; color: var(--text-primary); transition: color $transition-medium; } // Use CSS var
-          .expand-icon { font-size: $font-size-xl; color: var(--text-muted); transition: transform $transition-fast, color $transition-medium; } // Use CSS var
+          h3 { margin: 0; font-size: $font-size-lg; font-weight: $font-weight-medium; color: var(--text-primary); transition: color $transition-medium; }
+          .expand-icon { font-size: $font-size-xl; color: var(--text-muted); transition: transform $transition-fast, color $transition-medium; }
 
-          &:hover {
-            background-color: var(--surface-alt-bg); // Add hover background to button
-          }
+          &:hover { background-color: var(--surface-alt-bg); }
 
           // Styles when expanded
           &.expanded {
-            // Remove hover effect when expanded
-            &:hover {
-                background-color: transparent;
-            }
-            // Add border below question when expanded for separation
+            &:hover { background-color: transparent; }
             border-bottom-color: var(--border-color);
             .expand-icon {
-                color: var(--primary); // Use CSS var
-                // transform: rotate(180deg); // Keep rotation if desired
+                // --- Option: Use accent or secondary for expanded icon? ---
+                // color: var(--accent);
+                // --- Current: Using primary ---
+                color: var(--primary);
+                // transform: rotate(180deg); // Keep if desired
             }
           }
         } // End .faq-question
 
-        .faq-answer { // Answer content (conditionally displayed)
+        .faq-answer {
           padding: $spacing-4 $spacing-5;
-          p { margin: 0; color: var(--text-secondary); line-height: 1.6; transition: color $transition-medium; } // Use CSS var
+          p { margin: 0; color: var(--text-secondary); line-height: 1.6; transition: color $transition-medium; }
         }
       } // End .faq-item
 
-      // Message when no results match filters/search
-      .no-results {
-        text-align: center; padding: $spacing-8; color: var(--text-muted); // Use CSS var
-        p { margin-bottom: $spacing-4; }
-        .clear-search { // Button to clear search query (uses global .btn)
-          padding: $spacing-2 $spacing-4;
-        }
-      }
+      // No results message uses --text-muted
+      .no-results { text-align: center; padding: $spacing-8; color: var(--text-muted); p { margin-bottom: $spacing-4; } }
+
     } // End .faq-list
   } // End .faq-content
 
   // --- Footer CTA Section ---
   .faq-footer {
     margin-top: $spacing-16; text-align: center; padding: $spacing-8;
-    background-color: var(--surface-alt-bg); border: 1px solid var(--border-color); // Use CSS vars
-    border-radius: $border-radius-lg;
-    transition: background-color $transition-medium, border-color $transition-medium;
-    h2 { font-size: $font-size-2xl; margin-bottom: $spacing-4; color: var(--text-primary); transition: color $transition-medium; } // Use CSS var
-    p { color: var(--text-secondary); margin-bottom: $spacing-6; max-width: 600px; margin-left: auto; margin-right: auto; transition: color $transition-medium; } // Use CSS var
-    .cta-button { padding: $spacing-3 $spacing-6; } // Link styled as button (uses global .btn)
+    background-color: var(--surface-alt-bg); border: 1px solid var(--border-color);
+    border-radius: $border-radius-lg; transition: background-color $transition-medium, border-color $transition-medium;
+    h2 { font-size: $font-size-2xl; margin-bottom: $spacing-4; color: var(--text-primary); transition: color $transition-medium; }
+    p { color: var(--text-secondary); margin-bottom: $spacing-6; max-width: 600px; margin-left: auto; margin-right: auto; transition: color $transition-medium; }
+    // CTA button uses global .btn style (default primary)
+    // --- Option: Make CTA button secondary/accent? Add class .btn-secondary etc. ---
+    .cta-button { padding: $spacing-3 $spacing-6; }
   }
 }

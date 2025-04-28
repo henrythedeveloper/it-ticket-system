@@ -1,128 +1,98 @@
 // src/styles/layouts/_PublicLayout.scss
 // ==========================================================================
 // Styles for the public-facing layout (Homepage, FAQ, Create Ticket).
-// Includes side navigation and footer.
-// **REVISED: Added mobile navigation styles.**
+// **REVISED: Fixed empty rulesets for focus styles.**
 // ==========================================================================
 
 @use '../variables' as *;
-@use '../mixins'; // For buttons
+@use '../mixins'; // For buttons, focus styles
 @use 'sass:math'; // For calculations
 
 // --- Sticky Theme Toggle Button ---
 .theme-toggle-sticky {
-  position: fixed;
-  top: $spacing-4;
-  right: $spacing-4;
-  z-index: $z-index-fixed + 10; // Ensure above mobile nav toggle
-  background-color: var(--surface-bg);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 50%;
+  position: fixed; top: $spacing-4; right: $spacing-4;
+  z-index: $z-index-fixed + 10;
+  background-color: var(--surface-bg); color: var(--text-secondary);
+  border: 1px solid var(--border-color); border-radius: 50%;
   width: 40px; height: 40px;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  box-shadow: $shadow-md;
-  transition: background-color $transition-fast, color $transition-fast, border-color $transition-fast, transform $transition-fast;
+  cursor: pointer; box-shadow: $shadow-md;
+  transition: background-color $transition-fast, color $transition-fast, border-color $transition-fast, transform $transition-fast, box-shadow $transition-fast;
   font-size: $font-size-lg;
+  appearance: none;
 
   &:hover {
     background-color: var(--surface-alt-bg);
     color: var(--text-primary);
     transform: scale(1.1);
   }
-  &:focus {
+  &:focus-visible { // Apply focus style directly
     outline: none;
-    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.4);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.4); // Use accent focus shadow
   }
 }
 
 // --- Mobile Nav Toggle Button ---
 .mobile-nav-toggle {
   display: none; // Hidden by default
-  position: fixed;
-  top: $spacing-3;
-  left: $spacing-3;
-  z-index: $z-index-fixed + 10; // High z-index
-  background-color: var(--surface-bg);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  border-radius: $border-radius;
-  padding: $spacing-2;
-  cursor: pointer;
-  box-shadow: $shadow;
-  transition: background-color $transition-medium, color $transition-medium, border-color $transition-medium;
+  position: fixed; top: $spacing-3; left: $spacing-3;
+  z-index: $z-index-fixed + 10;
+  background-color: var(--surface-bg); color: var(--text-primary);
+  border: 1px solid var(--border-color); border-radius: $border-radius;
+  padding: $spacing-2; cursor: pointer; box-shadow: $shadow;
+  transition: background-color $transition-medium, color $transition-medium, border-color $transition-medium, box-shadow $transition-medium;
+  appearance: none;
 
-  @media (max-width: $breakpoint-md) {
-    display: block; // Show on mobile
+  &:focus-visible { // Apply focus style directly
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.4); // Use accent focus shadow
   }
+
+  @media (max-width: $breakpoint-md) { display: block; }
 }
 
 // --- Mobile Nav Overlay ---
 .mobile-nav-overlay {
-  display: none; // Hidden by default
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5); // Semi-transparent black
-  z-index: $z-index-fixed + 4; // Below nav, above content
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: $z-index-fixed + 4;
 
   @media (max-width: $breakpoint-md) {
-    // Only needed for mobile
-    display: block;
-    opacity: 0;
-    visibility: hidden;
+    display: block; opacity: 0; visibility: hidden;
     transition: opacity $transition-medium, visibility $transition-medium;
-
-    // Show overlay when nav is open
-    .public-layout .side-nav.mobile-open + & { // Select overlay when nav has mobile-open class
-      opacity: 1;
-      visibility: visible;
-    }
+    .public-layout .side-nav.mobile-open + & { opacity: 1; visibility: visible; }
   }
 }
 
 
 // --- Main Layout Container ---
 .public-layout {
-  display: flex;
-  flex-direction: row;
-  min-height: 100vh;
-  background-color: var(--body-bg);
+  display: flex; flex-direction: row;
+  min-height: 100vh; background-color: var(--body-bg);
 
   // --- Side Navigation ---
   .side-nav {
-    width: $sidebar-width; // Fixed width sidebar
-    background-color: var(--surface-bg);
-    box-shadow: $shadow;
-    padding: $spacing-4;
-    position: fixed;
-    left: 0;
-    top: 0;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
+    width: $sidebar-width; background-color: var(--surface-bg);
+    box-shadow: $shadow; padding: $spacing-4; position: fixed;
+    left: 0; top: 0; height: 100vh; display: flex; flex-direction: column;
     border-right: 1px solid var(--border-color);
-    transition: background-color $transition-medium, border-color $transition-medium, transform $transition-medium; // Add transform transition
-    z-index: $z-index-fixed + 5; // Ensure above overlay
+    transition: background-color $transition-medium, border-color $transition-medium, transform $transition-medium;
+    z-index: $z-index-fixed + 5;
 
     // Logo container
     .logo-container {
-      padding: $spacing-4 0; text-align: center;
-      margin-bottom: $spacing-6; border-bottom: 1px solid var(--border-color);
-      transition: border-color $transition-medium;
+      padding: $spacing-4 0; text-align: center; margin-bottom: $spacing-6;
+      border-bottom: 1px solid var(--border-color); transition: border-color $transition-medium;
       .logo {
         font-size: $font-size-xl; font-weight: $font-weight-bold;
-        color: var(--primary);
-        text-decoration: none;
-        transition: color $transition-fast;
+        color: var(--primary); text-decoration: none; transition: color $transition-fast;
         &:hover { color: var(--primary-dark); }
       }
     }
 
     // Navigation links list
     .nav-links {
-      list-style: none; padding: 0; margin: 0;
-      flex-grow: 1;
+      list-style: none; padding: 0; margin: 0; flex-grow: 1;
       li { margin-bottom: $spacing-2;
         a {
           display: flex; align-items: center; padding: $spacing-3 $spacing-4;
@@ -134,6 +104,10 @@
             color: var(--primary);
             background-color: rgba(var(--primary-rgb), 0.1);
           }
+          &:focus-visible { // Add focus state for keyboard navigation
+               outline: none;
+               box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.5); // Use inset accent shadow
+           }
         }
       }
     }
@@ -142,66 +116,48 @@
     .auth-buttons {
       padding-top: $spacing-4; border-top: 1px solid var(--border-color);
       transition: border-color $transition-medium;
+      // Apply base button styles via class .btn in HTML
       .login-btn, .dashboard-btn {
-        width: 100%; padding: $spacing-3;
-        display: flex; align-items: center; justify-content: center;
+        width: 100%; margin-bottom: $spacing-2;
+        padding: $spacing-3; display: flex; align-items: center; justify-content: center;
         .icon { margin-right: $spacing-2; }
+        &:last-child { margin-bottom: 0; }
       }
     }
 
     // Mobile specific styles
     @media (max-width: $breakpoint-md) {
-      transform: translateX(-100%); // Hide off-screen by default on mobile
-      width: 280px; // Fixed width for mobile overlay menu
-      box-shadow: $shadow-lg; // Stronger shadow for overlay
-
-      &.mobile-open {
-        transform: translateX(0); // Slide in when open
-      }
+      transform: translateX(-100%); width: 280px; box-shadow: $shadow-lg;
+      &.mobile-open { transform: translateX(0); }
     }
-
   } // End .side-nav
 
   // --- Container for Content + Footer ---
   .content-footer-wrapper {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    flex-grow: 1;
-    margin-left: $sidebar-width; // Offset by sidebar width (desktop)
+    display: flex; flex-direction: column; min-height: 100vh;
+    flex-grow: 1; margin-left: $sidebar-width;
     width: calc(100% - #{$sidebar-width});
     transition: margin-left $transition-medium, width $transition-medium;
-
-    @media (max-width: $breakpoint-md) {
-      margin-left: 0; // No margin on mobile
-      width: 100%;
-    }
+    @media (max-width: $breakpoint-md) { margin-left: 0; width: 100%; }
   }
 
   // --- Main Content Area ---
   main.public-content {
-    flex-grow: 1;
-    padding: $spacing-8;
-
-    @media (max-width: $breakpoint-md) {
-      padding: $spacing-6 $spacing-4; // Adjust padding
-    }
+    flex-grow: 1; padding: $spacing-8;
+    @media (max-width: $breakpoint-md) { padding: $spacing-6 $spacing-4; }
   }
 
   // --- Footer ---
   .public-footer {
-    background-color: var(--surface-bg);
-    color: var(--text-secondary);
-    border-top: 1px solid var(--border-color);
-    padding: $spacing-6 $spacing-6; // Adjusted padding
+    background-color: var(--surface-bg); color: var(--text-secondary);
+    border-top: 1px solid var(--border-color); padding: $spacing-6;
     font-size: $font-size-sm;
     transition: background-color $transition-medium, color $transition-medium, border-color $transition-medium;
     flex-shrink: 0;
 
     .footer-content {
       display: flex; justify-content: space-around; flex-wrap: wrap;
-      gap: $spacing-8; max-width: $max-content-width;
-      margin: 0 auto $spacing-6 auto; text-align: left;
+      gap: $spacing-8; max-width: $max-content-width; margin: 0 auto $spacing-6 auto; text-align: left;
 
       .footer-section {
         flex: 1; min-width: 200px;
@@ -218,17 +174,14 @@
     }
 
     .footer-bottom {
-      border-top: 1px solid var(--border-color);
-      padding-top: $spacing-4; margin-top: $spacing-6; text-align: center;
-      transition: border-color $transition-medium;
+      border-top: 1px solid var(--border-color); padding-top: $spacing-4;
+      margin-top: $spacing-6; text-align: center; transition: border-color $transition-medium;
       p { color: var(--text-muted); font-size: $font-size-xs; margin: 0; }
     }
 
     @media (max-width: $breakpoint-md) {
-      padding: $spacing-6 $spacing-4; // Adjust padding
+      padding: $spacing-6 $spacing-4;
       .footer-content { text-align: center; }
     }
   } // End .public-footer
 } // End .public-layout
-
-// --- Responsive Adjustments (Simplified - handled within selectors now) ---

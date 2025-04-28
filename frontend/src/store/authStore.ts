@@ -51,10 +51,19 @@ export const useAuthStore = create<AuthStore>()(
          * @param user - The user object received from the API.
          */
         login: (token, user) => {
-        // Store token in localStorage (handled by persist middleware)
-        // Update state
-        set({ user, token, isAuthenticated: true, loading: false });
-        console.log('AuthStore: User logged in.');
+          if (!token || !user) {
+            console.error('[AuthStore] Login called with missing token or user');
+            return;
+          }
+          console.log('[AuthStore] Login action called. Setting state:', { token: !!token, user: !!user });
+          // Set all state at once to prevent race conditions
+          set({
+            token,
+            user,
+            isAuthenticated: true,
+            loading: false
+          });
+          console.log('AuthStore: User logged in successfully');
         },
 
         /**
@@ -63,6 +72,7 @@ export const useAuthStore = create<AuthStore>()(
         logout: () => {
         // Clear token from localStorage (handled by persist middleware via setting null)
         // Reset state
+        console.log('[AuthStore] Logout action called. Clearing state.');
         set({ user: null, token: null, isAuthenticated: false, loading: false });
         console.log('AuthStore: User logged out.');
             // Optionally clear other related application state here if needed

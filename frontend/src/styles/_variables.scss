@@ -4,101 +4,101 @@
 // 1. Theme map for light and dark modes.
 // 2. CSS custom properties (:root) derived from the theme map.
 // 3. Non-color SCSS variables (typography, spacing, layout, etc.).
-// **REVISED: Updated theme colors again based on user request.**
+// **REVISED: Updated theme map values using the new color scales.**
 // ==========================================================================
 @use 'sass:map'; // Use sass:map for map functions
 @use 'sass:color'; // Use sass:color for color functions
 
 // --------------------------------------------------------------------------
-// Theme Map (Updated with user's provided colors)
+// Theme Map (Updated with specific values from user's new color scales)
 // --------------------------------------------------------------------------
 $themes: (
   light: (
-    // Base Colors from User
-    text:           #0f1014, // Dark blue/black
-    background:     #f0f1f4, // Light gray/blue
-    primary:        #3c4353, // Dark grayish blue
-    secondary:      #b6aa9a, // Muted beige/brown
-    accent:         #667958, // Muted olive green
+    // --- Map existing semantic names to new scale values ---
+    text:           #030817, // text-950
+    background:     #e8eefd, // background-50
+    primary:        #1f4fe0, // primary-500
+    secondary:      #f95f06, // secondary-500
+    accent:         #e31c51, // accent-500
 
-    // Semantic Names (Mapping user's terms + defining others)
-    text-primary:    #0f1014, // from text
-    text-secondary:  color.adjust(#0f1014, $lightness: 30%), // Lighter primary text
-    text-muted:      color.adjust(#0f1014, $lightness: 50%), // Even lighter
-    text-inverted:   #f0f1f4, // from background
-    text-link:       #3c4353, // from primary
-    text-link-hover: color.adjust(#3c4353, $blackness: 10%), // Darken primary
+    // Semantic Names (Mapping existing names to new scale values)
+    text-primary:    #06102d, // text-900 (darker for headings)
+    text-secondary:  #122f87, // text-700 (main body text)
+    text-muted:      #7895ed, // text-300 (lighter for hints)
+    text-inverted:   #e8edfc, // text-50 (text on colored backgrounds)
+    text-link:       #173fb5, // text-600 (link color)
+    text-link-hover: #0c1f5a, // text-800 (darker link hover)
 
-    body-bg:         #f0f1f4, // from background
-    surface-bg:      #ffffff, // Keep white for cards/modals
-    surface-alt-bg:  color.adjust(#f0f1f4, $blackness: 2%), // Slightly darker background
+    body-bg:         #e8eefd, // background-50
+    surface-bg:      #ffffff, // Keep pure white, or use background-0 if added
+    surface-alt-bg:  #d1ddfa, // background-100 (slightly darker bg)
 
-    border-color:       color.adjust(#f0f1f4, $blackness: 10%), // Border derived from background
-    border-color-strong: color.adjust(#f0f1f4, $blackness: 20%), // Stronger border
+    border-color:       #a3baf5, // background-200 (standard border)
+    border-color-strong: #7598f0, // background-300 (stronger border)
 
-    primary-light:     color.adjust(#3c4353, $lightness: 15%),
-    primary-dark:      color.adjust(#3c4353, $blackness: 10%),
-    secondary-light:   color.adjust(#b6aa9a, $lightness: 10%),
-    secondary-dark:    color.adjust(#b6aa9a, $blackness: 10%),
-    accent-light:      color.adjust(#667958, $lightness: 10%),
-    accent-dark:       color.adjust(#667958, $blackness: 10%),
+    // Use the '-500' as the base for primary/secondary/accent if not defined above
+    primary-light:     #4b72e7, // primary-400
+    primary-dark:      #183fb4, // primary-600 (darker for hover/active)
+    secondary-light:   #fa7f38, // secondary-400
+    secondary-dark:    #c74c05, // secondary-600
+    accent-light:      #e94974, // accent-400
+    accent-dark:       #b61641, // accent-600
 
-    // Define standard state colors (using common defaults, adjust if needed)
-    success:         #10b981,
-    error:           #ef4444,
-    warning:         #f59e0b,
-    info:            #3b82f6,
+    // Define standard state colors (Choose appropriate shades from scale or keep separate)
+    success:         #10b981, // Keeping existing green, or map to a scale value
+    error:           #e31c51, // Mapped to accent-500
+    warning:         #f95f06, // Mapped to secondary-500
+    info:            #1d4ee2, // Mapped to text-500 (or primary-500)
 
-    // Component Specific (Adjust based on new palette)
-    header-bg:       var(--surface-bg),
-    sidebar-bg:      #2d323d, // Darker version of primary for sidebar
-    footer-bg:       var(--surface-alt-bg), // Use alt surface for footer now
-    // Footer text/links for light footer background
+    // Component Specific (Map to new scale values)
+    header-bg:       var(--surface-bg), // Use surface white
+    sidebar-bg:      #0c205a, // primary-800 (dark primary for sidebar)
+    footer-bg:       var(--surface-alt-bg), // Use alt surface
     footer-text:     var(--text-secondary),
     footer-link:     var(--text-link),
     footer-link-hover: var(--text-link-hover),
   ),
   dark: (
-    // Base Colors from User
-    text:           #ebecf0, // Light gray/blue text
-    background:     #0b0c0f, // Very dark blue/black
-    primary:        #acb3c3, // Light grayish blue
-    secondary:      #655949, // Muted dark brown
-    accent:         #94a786, // Muted light olive green
+    // --- Map existing semantic names to new scale values ---
+    text:           #e8edfc, // text-950
+    background:     #020817, // background-50
+    primary:        #1f4fe0, // primary-500 (same hex, corresponds to dark primary-500)
+    secondary:      #f95f06, // secondary-500 (same hex, corresponds to dark secondary-500)
+    accent:         #e31c51, // accent-500 (same hex, corresponds to dark accent-500)
 
-    // Semantic Names (Mapping user's terms + defining others)
-    text-primary:    #ebecf0, // from text
-    text-secondary:  color.adjust(#ebecf0, $blackness: 25%), // Darker version of primary text
-    text-muted:      color.adjust(#ebecf0, $blackness: 40%), // Even darker version
-    text-inverted:   #0b0c0f, // from background
-    text-link:       #acb3c3, // from primary
-    text-link-hover: color.adjust(#acb3c3, $lightness: 10%), // Lighten primary for hover
+    // Semantic Names (Mapping existing names to new scale values)
+    text-primary:    #e8edfc, // text-950 (main text often primary in dark)
+    text-secondary:  #a5b8f3, // text-800 (slightly dimmer text)
+    text-muted:      #4a72e8, // text-600 (dimmest text)
+    text-inverted:   #ebecf0, // text-50 (text on light colored backgrounds)
+    text-link:       #7895ed, // text-700 (link color)
+    text-link-hover: #a5b8f3, // text-800 (lighter link hover)
 
-    body-bg:         #0b0c0f, // from background
-    surface-bg:      #1a1d24, // Slightly lighter dark blue/black
-    surface-alt-bg:  #292e38, // Lighter still
+    body-bg:         #020817, // background-50
+    surface-bg:      #0d2c73, // background-100 (card/modal bg)
+    surface-alt-bg:  #0a215c, // background-200 (table header bg)
 
-    border-color:       #3a404d, // Border derived from surfaces
-    border-color-strong: #4b5563, // Stronger border
+    border-color:       #0f328a, // background-300 (standard border)
+    border-color-strong: #1342b9, // background-400 (stronger border)
 
-    primary-light:     color.adjust(#acb3c3, $lightness: 10%),
-    primary-dark:      color.adjust(#acb3c3, $blackness: 10%),
-    secondary-light:   color.adjust(#655949, $lightness: 10%),
-    secondary-dark:    color.adjust(#655949, $blackness: 10%),
-    accent-light:      color.adjust(#94a786, $lightness: 10%),
-    accent-dark:       color.adjust(#94a786, $blackness: 10%),
+    // Use the '-500' as the base for primary/secondary/accent if not defined above
+    primary-light:     #4b72e7, // primary-600 (Lighter shade for hover/active in dark)
+    primary-dark:      #183fb4, // primary-400 (Darker shade)
+    secondary-light:   #fa7f38, // secondary-600
+    secondary-dark:    #c74c05, // secondary-400
+    accent-light:      #e94974, // accent-600
+    accent-dark:       #b61641, // accent-400
 
-    // Define standard state colors (adjust brightness/saturation for dark mode)
-    success:         #34d399,
-    error:           #f87171,
-    warning:         #fbbf24,
-    info:            #60a5fa,
+    // Define standard state colors (Choose appropriate shades from scale or keep separate)
+    success:         #34d399, // Keeping existing green, or map to a scale value
+    error:           #e31c51, // Mapped to accent-500
+    warning:         #f95f06, // Mapped to secondary-500
+    info:            #4a72e8, // Mapped to text-600 (or primary-600)
 
-    // Component Specific (Adjust based on new palette)
+    // Component Specific (Map to new scale values)
     header-bg:       var(--surface-bg),
-    sidebar-bg:      #1f232b,       // Darker sidebar
-    footer-bg:       var(--surface-alt-bg), // Use alt surface for footer
-    // Footer text/links for dark footer background
+    sidebar-bg:      #06102d, // primary-900 (darker sidebar)
+    footer-bg:       var(--surface-alt-bg),
     footer-text:     var(--text-secondary),
     footer-link:     var(--text-link),
     footer-link-hover: var(--text-link-hover),

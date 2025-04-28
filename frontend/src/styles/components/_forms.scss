@@ -1,7 +1,7 @@
 // src/styles/components/_forms.scss
 // ==========================================================================
 // Styles for forms and form elements, utilizing variables and mixins.
-// **REVISED: Ensured all colors use CSS variables.**
+// **REVISED: Use accent/secondary colors more deliberately.**
 // ==========================================================================
 
 @use '../variables' as *; // Needed for non-color vars like spacing, breakpoints
@@ -24,7 +24,7 @@
     display: block;
     font-weight: $font-weight-medium;
     margin-bottom: $spacing-2;
-    color: var(--text-primary); // Use CSS var
+    color: var(--text-primary);
     transition: color $transition-medium;
   }
 
@@ -38,7 +38,7 @@
   input[type="url"],
   select,
   textarea {
-    @include mixins.form-element-base; // Mixin uses CSS vars internally
+    @include mixins.form-element-base; // Mixin now uses accent for focus shadow
   }
 
   textarea { // Specific textarea styles
@@ -47,12 +47,12 @@
   }
 
   select { // Specific select styles
-    @include mixins.select-arrow; // Mixin handles theme-aware arrow
+    @include mixins.select-arrow; // Mixin handles theme-aware arrow (uses primary)
   }
 
   // Error message styling
   .error {
-    color: var(--error); // Use CSS var
+    color: var(--error); // Use CSS var for error text
     font-size: $font-size-sm;
     margin-top: $spacing-1;
   }
@@ -69,7 +69,8 @@
       input[type="checkbox"] {
         margin-right: $spacing-2;
         cursor: pointer;
-        accent-color: var(--primary); // Use CSS var for accent
+        // --- Use ACCENT color for checkbox ---
+        accent-color: var(--accent); // More prominent than primary for selection state
       }
     }
   }
@@ -88,7 +89,7 @@
   // Field description/note styling
   .field-description, .field-info {
       font-size: $font-size-sm;
-      color: var(--text-muted); // Use CSS var
+      color: var(--text-muted);
       margin-top: $spacing-1;
       transition: color $transition-medium;
   }
@@ -96,35 +97,41 @@
   // Static field display (read-only look)
   .static-field {
       padding: $spacing-3;
-      background-color: var(--surface-alt-bg); // Use CSS var
-      border: 1px solid var(--border-color-strong); // Use CSS var
+      background-color: var(--surface-alt-bg);
+      border: 1px solid var(--border-color); // Use regular border, strong seems too much
       border-radius: $border-radius;
-      color: var(--text-secondary); // Use CSS var
+      color: var(--text-secondary);
       transition: background-color $transition-medium, border-color $transition-medium, color $transition-medium;
   }
 
   // Input with addon/button
-    .input-with-button {
-      display: flex;
-      input { // Input styles inherited via mixin
-        flex: 1;
-        border-radius: $border-radius 0 0 $border-radius; // Adjust radius
-      }
-      .add-btn { // Example button class
-        border-radius: 0 $border-radius $border-radius 0; // Adjust radius
-        padding: 0 $spacing-4; // Adjust padding
-      }
+  .input-with-button {
+    display: flex;
+    input { // Input styles inherited via mixin
+      flex: 1;
+      border-radius: $border-radius 0 0 $border-radius; // Adjust radius
+      border-right-width: 0; // Remove right border to connect with button
+      &:focus { z-index: 1; position: relative; } // Ensure focus styles overlap button
     }
+    .add-btn { // Example button class - assumes base .btn styles are applied
+      border-radius: 0 $border-radius $border-radius 0; // Adjust radius
+      padding: 0 $spacing-4; // Adjust padding based on base button padding
+      // Apply specific variant if needed, e.g., primary
+      // @include mixins.button-variant(--primary, --text-inverted, --primary-dark);
+    }
+  }
 }
 
 // Form divided in columns
 .form-row {
   display: flex;
+  flex-wrap: wrap; // Allow wrapping on smaller screens if needed
   gap: $spacing-4;
   margin-bottom: $spacing-4;
 
   .form-group {
-    flex: 1;
+    flex: 1 1 auto; // Allow shrinking and growing
+    min-width: 150px; // Prevent excessive shrinking
     margin-bottom: 0;
   }
 }
@@ -132,33 +139,23 @@
 // Form actions (buttons container)
 .form-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-end; // Align buttons to the right
+  flex-wrap: wrap; // Allow buttons to wrap on small screens
   gap: $spacing-3;
   margin-top: $spacing-6;
 
-  // Specific button styles within actions if needed
-  .cancel-btn { // Example cancel button style
-      border-color: var(--border-color-strong); // Use CSS var
-      color: var(--text-secondary); // Use CSS var
-
-      &:hover {
-        background-color: var(--surface-alt-bg); // Use CSS var
-        border-color: var(--border-color-strong); // Use CSS var
-        color: var(--text-primary); // Use CSS var
-      }
+  // Use secondary outline for cancel buttons by default
+  .cancel-btn {
+      @include mixins.button-base; // Apply base styles first
+      @include mixins.button-outline-secondary; // Apply secondary outline mixin
   }
 }
 
 // Responsive adjustments
-@media (max-width: $breakpoint-md) {
-  .form-row {
-    flex-direction: column;
-    gap: $spacing-4; // Keep gap for column layout
-  }
-
+@media (max-width: $breakpoint-sm) { // Trigger earlier for button wrapping
   .form-actions {
-    flex-direction: column;
-    .btn { // Ensure buttons take full width in column layout
+    flex-direction: column-reverse; // Stack buttons vertically, primary action last (often visually first)
+    .btn, .cancel-btn { // Ensure buttons take full width in column layout
       width: 100%;
     }
   }

@@ -45,38 +45,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Perform initial authentication check on component mount
   useEffect(() => {
     const verifyAuth = async () => {
+      console.log('[AuthContext] useEffect verifyAuth started.');
       setLoading(true);
-      const storedToken = localStorage.getItem('authToken'); // Or wherever token is stored
+      
+      // Get token from store instead of localStorage
+      const token = useAuthStore.getState().token;
+      console.log('[AuthContext] Token from store:', !!token);
 
-      if (storedToken) {
-        try {
-            // Set token in store first, so interceptor can use it
-            useAuthStore.setState({ token: storedToken, isAuthenticated: true });
-            // Validate token by fetching user profile
-            const userProfile = await fetchUserProfile();
-            // If fetch succeeds, token is valid, update user state using store action
-            storeSetUser(userProfile); // Use store action here too
-            useAuthStore.setState({ isAuthenticated: true, loading: false }); // Update loading via store is also an option
-            console.log("AuthContext: User profile fetched successfully.");
-        } catch (error) {
-            // Token invalid or expired, or profile fetch failed
-            console.warn("AuthContext: Token validation failed or profile fetch error.", error);
-            storeLogout(); // Clear invalid state from store and localStorage
+      if (!token) {
+        console.log('[AuthContext] No token in store. Ensuring logged out state.');
+        if (isAuthenticated) {
+          storeLogout();
         }
-      } else {
-        // No token found, ensure user is logged out
-          if (isAuthenticated) { // If zustand state is somehow true, correct it
-            storeLogout();
-          }
-        console.log("AuthContext: No stored token found.");
+        setLoading(false);
+        return;
       }
-      setLoading(false); // Finish loading check
-      // checkAuthStatus(); // This might be redundant now
+
+      // Only verify profile if we don't have user data
+      if (!user) {
+        try {
+          console.log('[AuthContext] No user data, fetching profile...');
+          const userProfile = await fetchUserProfile();
+          console.log('[AuthContext] Profile fetch successful:', userProfile);
+          storeSetUser(userProfile);
+          useAuthStore.setState({ isAuthenticated: true });
+        } catch (error) {
+          console.error('[AuthContext] Profile fetch failed:', error);
+          storeLogout();
+        }
+      }
+      
+      setLoading(false);
     };
 
     verifyAuth();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only once on mount
+  }, [storeLogout, storeSetUser, isAuthenticated, user]);
 
   // --- Context Value ---
   // Assemble the value to be provided by the context
@@ -91,6 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // --- Render ---
+  console.log('[AuthContext] Provider rendering with state:', { user: !!user, token: !!token, isAuthenticated, loading });
   return (
     <AuthContext.Provider value={contextValue}>
       {/* Render children only after initial auth check is complete */}
