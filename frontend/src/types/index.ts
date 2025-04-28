@@ -226,4 +226,3 @@ export interface TicketStatusFormInputs {
     resolutionNotes?: string; // Required if closing
 }
 
-// Add other necessary types as the application grows...

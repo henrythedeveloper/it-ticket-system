@@ -23,12 +23,32 @@ interface LoginResponse {
  */
 export const login = async (credentials: LoginFormInputs): Promise<LoginResponse> => {
     try {
-    const response = await api.post<LoginResponse>('/auth/login', credentials);
-    return response.data; // Return token and user object
-    } catch (error) {
-    console.error('Login API error:', error);
-    // Rethrow the error to be handled by the calling component/hook
-    throw error;
+        interface APIResponse {
+            success: boolean;
+            message: string;
+            data: {
+                access_token: string;
+                token_type: string;
+                expires_at: string;
+                user: User;
+            };
+        }
+        
+        const response = await api.post<APIResponse>('/auth/login', credentials);
+        const { data } = response.data;
+        
+        return {
+            token: data.access_token,
+            user: data.user
+        };
+    } catch (error: any) {
+        const errorMessage = error.response?.data?.message || error.message || 'Login failed';
+        console.error('Login API error:', {
+            message: errorMessage,
+            response: error.response?.data,
+            error
+        });
+        throw new Error(errorMessage);
     }
 };
 
