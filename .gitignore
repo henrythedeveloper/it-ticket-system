@@ -80,5 +80,5 @@ icons8-tech-ios-17-filled-favicons.zip
 # Add any other specific files or directories you want to ignore
 frontend/package-lock.json
 
-**/*.css
-**/*.css.map
+*.css
+*.css.map
