@@ -1,63 +1,39 @@
 // src/services/ticketService.ts
 // ==========================================================================
 // Service functions for handling ticket-related API calls.
-// FIX: createTicket now returns the full API response object.
+// **REVISED**: Fixed fetchTicketById to correctly extract nested data object.
+// **REVISED AGAIN**: Updated createTicket to handle FormData for attachments.
+// **REVISED AGAIN**: Added checks for optional data in API responses.
 // ==========================================================================
 
 import api from './api'; // Import the configured Axios instance
-import { Ticket, PaginatedResponse, TicketUpdate, TicketAttachment } from '../types'; // Import relevant types
+import { Ticket, PaginatedResponse, TicketUpdate, TicketAttachment, Tag, APIResponse } from '../types'; // Import relevant types
 import { buildQueryString } from '../utils/helpers'; // Helper for query params
 
-/**
- * Represents the parameters for fetching tickets (filtering, pagination, sorting).
- */
+// --- Interface Definitions (FetchTicketsParams, AddTicketUpdateInput, UpdateTicketStatusInput) ---
 interface FetchTicketsParams {
-page?: number;
-limit?: number;
-status?: string; // e.g., 'Unassigned', 'Closed'
-urgency?: string; // e.g., 'High', 'Low'
-assigneeId?: string | 'unassigned'; // Filter by assignee or specifically unassigned
-submitterId?: string; // Filter by submitter
-sortBy?: string; // e.g., 'createdAt', 'updatedAt', 'urgency'
-sortOrder?: 'asc' | 'desc';
-search?: string; // Search term
-tags?: string; // Comma-separated list of tags to filter by
+    page?: number;
+    limit?: number;
+    status?: string;
+    urgency?: string;
+    assigneeId?: string | 'unassigned' | 'me';
+    submitterId?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    search?: string;
+    tags?: string;
 }
 
-/**
- * Represents the data structure for creating a new ticket.
- */
-type CreateTicketInputData = Pick<Ticket, 'subject' | 'description' | 'urgency' | 'issueType' | 'tags'> & {
-// Submitter info might be inferred backend-side or added explicitly if needed
-submitterEmail?: string; // Example if email is collected for public submissions
-submitterName?: string;
-};
-
-/**
- * Represents the data structure for adding an update/comment.
- */
 interface AddTicketUpdateInput {
-content: string;
-isInternalNote?: boolean;
+    content: string;
+    isInternalNote?: boolean;
 }
 
-/**
- * Represents the data structure for updating ticket status/assignment.
- */
 interface UpdateTicketStatusInput {
-status: Ticket['status'];
-assignedToId?: string | null;
-resolutionNotes?: string; // Required if status is 'Closed'
+    status: Ticket['status'];
+    assignedToId?: string | null;
+    resolutionNotes?: string;
 }
-
-// --- API Response Structure for Create Ticket ---
-// Define the expected structure of the full API response from the backend
-interface CreateTicketApiResponse {
-    success: boolean;
-    message: string;
-    data: Ticket; // The actual ticket data is nested here
-}
-
 
 // --- Service Functions ---
 
@@ -67,15 +43,26 @@ interface CreateTicketApiResponse {
  * @returns A Promise resolving with a PaginatedResponse containing tickets.
  */
 export const fetchTickets = async (params: FetchTicketsParams = {}): Promise<PaginatedResponse<Ticket>> => {
-try {
-const queryString = buildQueryString(params);
-// Assuming the backend response for listing matches PaginatedResponse<Ticket>
-const response = await api.get<PaginatedResponse<Ticket>>(`/tickets${queryString}`);
-return response.data;
-} catch (error) {
-console.error('Fetch tickets API error:', error);
-throw error;
-}
+    try {
+        const queryString = buildQueryString(params);
+        const response = await api.get<PaginatedResponse<Ticket>>(`/tickets${queryString}`);
+        // Ensure nested data arrays exist
+        if (response.data && Array.isArray(response.data.data)) {
+            response.data.data = response.data.data.map(ticket => ({
+                ...ticket,
+                tags: Array.isArray(ticket.tags) ? ticket.tags : [],
+                updates: Array.isArray(ticket.updates) ? ticket.updates : [],
+                attachments: Array.isArray(ticket.attachments) ? ticket.attachments : []
+            }));
+        } else {
+            // Handle case where response.data or response.data.data is not as expected
+            response.data = { ...response.data, data: [], total: 0, totalPages: 0 }; // Provide default empty structure
+        }
+        return response.data;
+    } catch (error) {
+        console.error('Fetch tickets API error:', error);
+        throw error;
+    }
 };
 
 /**
@@ -84,36 +71,50 @@ throw error;
  * @returns A Promise resolving with the full Ticket object.
  */
 export const fetchTicketById = async (ticketId: string): Promise<Ticket> => {
-try {
-    // Assuming the backend returns the ticket data directly (or nested in a standard response)
-    // If nested like { success: true, data: Ticket }, adjust accordingly:
-    // const response = await api.get<{ success: boolean, data: Ticket }>(`/tickets/${ticketId}`);
-    // return response.data.data;
-    const response = await api.get<Ticket>(`/tickets/${ticketId}`); // Adjust if response is nested
-    return response.data;
-} catch (error) {
-    console.error(`Fetch ticket by ID (${ticketId}) API error:`, error);
-    throw error;
-}
+    try {
+        const response = await api.get<APIResponse<Ticket>>(`/tickets/${ticketId}`);
+        const ticketData = response.data.data; // Access nested data
+
+        // FIX: Check if ticketData exists before processing/returning
+        if (!ticketData) {
+            throw new Error("Ticket data missing in API response.");
+        }
+
+        // Ensure nested arrays exist
+        ticketData.tags = Array.isArray(ticketData.tags) ? ticketData.tags : [];
+        ticketData.updates = Array.isArray(ticketData.updates) ? ticketData.updates : [];
+        ticketData.attachments = Array.isArray(ticketData.attachments) ? ticketData.attachments : [];
+
+        return ticketData; // Return the validated data
+    } catch (error) {
+        console.error(`Fetch ticket by ID (${ticketId}) API error:`, error);
+        throw error;
+    }
 };
 
 /**
- * Creates a new ticket.
- * @param ticketData - The data for the new ticket.
+ * Creates a new ticket, potentially including attachments.
+ * @param formData - The FormData object containing ticket details and files.
  * @returns A Promise resolving with the full API response containing the new Ticket object.
  */
-// FIX: Change return type to Promise<CreateTicketApiResponse>
-export const createTicket = async (ticketData: CreateTicketInputData): Promise<CreateTicketApiResponse> => {
-try {
-    // FIX: Expect the full CreateTicketApiResponse structure from the backend
-    const response = await api.post<CreateTicketApiResponse>('/tickets', ticketData);
-    // FIX: Return the entire response data, not just response.data.data
-    return response.data;
-} catch (error) {
-    console.error('Create ticket API error:', error);
-    throw error;
-}
+export const createTicket = async (formData: FormData): Promise<APIResponse<Ticket>> => {
+    try {
+        const response = await api.post<APIResponse<Ticket>>('/tickets', formData);
+
+        // Ensure nested arrays exist in the response data
+        if (response.data?.data) {
+            response.data.data.tags = Array.isArray(response.data.data.tags) ? response.data.data.tags : [];
+            response.data.data.updates = Array.isArray(response.data.data.updates) ? response.data.data.updates : [];
+            response.data.data.attachments = Array.isArray(response.data.data.attachments) ? response.data.data.attachments : [];
+        }
+        // Return the whole APIResponse structure as expected by useFormSubmit
+        return response.data;
+    } catch (error: any) {
+        console.error('Create ticket API error:', error);
+        throw error;
+    }
 };
+
 
 /**
  * Adds an update (comment) to a specific ticket.
@@ -122,14 +123,17 @@ try {
  * @returns A Promise resolving with the newly added TicketUpdate object.
  */
 export const addTicketUpdate = async (ticketId: string, updateData: AddTicketUpdateInput): Promise<TicketUpdate> => {
-try {
-    // Assuming backend returns { success: true, data: TicketUpdate }
-    const response = await api.post<{ success: boolean, data: TicketUpdate }>(`/tickets/${ticketId}/comments`, updateData);
-    return response.data.data; // Return nested data
-} catch (error) {
-    console.error(`Add ticket update (${ticketId}) API error:`, error);
-    throw error;
-}
+    try {
+        const response = await api.post<APIResponse<TicketUpdate>>(`/tickets/${ticketId}/comments`, updateData);
+        // FIX: Check if data exists before returning
+        if (!response.data.data) {
+            throw new Error("Ticket update data missing in API response.");
+        }
+        return response.data.data;
+    } catch (error) {
+        console.error(`Add ticket update (${ticketId}) API error:`, error);
+        throw error;
+    }
 };
 
 /**
@@ -139,18 +143,26 @@ try {
  * @returns A Promise resolving with the updated Ticket object.
  */
 export const updateTicketStatus = async (ticketId: string, statusData: UpdateTicketStatusInput): Promise<Ticket> => {
-try {
-    // Assuming backend returns { success: true, data: Ticket }
-    const response = await api.put<{ success: boolean, data: Ticket }>(`/tickets/${ticketId}`, statusData); // Assuming PUT /tickets/:id handles status updates
-    return response.data.data; // Return nested data
-} catch (error) {
-    console.error(`Update ticket status (${ticketId}) API error:`, error);
-    throw error;
-}
+    try {
+        const response = await api.put<APIResponse<Ticket>>(`/tickets/${ticketId}`, statusData);
+        // FIX: Check if data exists before processing/returning
+        if (!response.data.data) {
+            throw new Error("Updated ticket data missing in API response.");
+        }
+        // Ensure nested arrays exist
+        response.data.data.tags = Array.isArray(response.data.data.tags) ? response.data.data.tags : [];
+        response.data.data.updates = Array.isArray(response.data.data.updates) ? response.data.data.updates : [];
+        response.data.data.attachments = Array.isArray(response.data.data.attachments) ? response.data.data.attachments : [];
+
+        return response.data.data;
+    } catch (error) {
+        console.error(`Update ticket status (${ticketId}) API error:`, error);
+        throw error;
+    }
 };
 
 /**
- * Uploads an attachment file for a specific ticket.
+ * Uploads an attachment file for a specific ticket (alternative way, if not done during creation).
  * Uses FormData for file upload.
  * @param ticketId - The ID of the ticket to attach the file to.
  * @param file - The File object to upload.
@@ -158,30 +170,28 @@ try {
  * @returns A Promise resolving with the newly created TicketAttachment object.
  */
 export const uploadTicketAttachment = async (
-ticketId: string,
-file: File,
-onUploadProgress?: (progressEvent: any) => void // Use appropriate progress event type if needed
+    ticketId: string,
+    file: File,
+    onUploadProgress?: (progressEvent: any) => void
 ): Promise<TicketAttachment> => {
-try {
-    const formData = new FormData();
-    formData.append('file', file); // Backend expects the file under the 'file' key
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
 
-    // Assuming backend returns { success: true, data: TicketAttachment }
-    const response = await api.post<{ success: boolean, data: TicketAttachment }>(
-    `/tickets/${ticketId}/attachments`,
-    formData,
-    {
-        headers: {
-        'Content-Type': 'multipart/form-data', // Important for file uploads
-        },
-        onUploadProgress, // Pass the progress callback to Axios
+        const response = await api.post<APIResponse<TicketAttachment>>(
+            `/tickets/${ticketId}/attachments`,
+            formData,
+            { onUploadProgress }
+        );
+        // FIX: Check if data exists before returning
+        if (!response.data.data) {
+            throw new Error("Attachment data missing in API response after upload.");
+        }
+        return response.data.data;
+    } catch (error) {
+        console.error(`Upload ticket attachment (${ticketId}) API error:`, error);
+        throw error;
     }
-    );
-    return response.data.data; // Return nested data
-} catch (error) {
-    console.error(`Upload ticket attachment (${ticketId}) API error:`, error);
-    throw error;
-}
 };
 
 /**
@@ -192,16 +202,9 @@ try {
  */
 export const deleteTicketAttachment = async (ticketId: string, attachmentId: string): Promise<void> => {
     try {
-        // Assuming backend returns { success: true } or similar on delete
         await api.delete(`/tickets/${ticketId}/attachments/${attachmentId}`);
     } catch (error) {
         console.error(`Delete ticket attachment (${ticketId}/${attachmentId}) API error:`, error);
         throw error;
     }
 };
-
-
-//TODO --- Potentially add other ticket actions ---
-// - updateTicketDetails (for subject, description, urgency etc.)
-// - assignTicketToSelf
-// - deleteTicket

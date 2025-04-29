@@ -1,7 +1,8 @@
 // src/styles/layouts/_PublicLayout.scss
 // ==========================================================================
 // Styles for the public-facing layout (Homepage, FAQ, Create Ticket).
-// **REVISED: Fixed empty rulesets for focus styles.**
+// **REVISED**: Fixed empty rulesets for focus styles.
+// **REVISED AGAIN**: Added margin between auth buttons.
 // ==========================================================================
 
 @use '../variables' as *;
@@ -116,12 +117,17 @@
     .auth-buttons {
       padding-top: $spacing-4; border-top: 1px solid var(--border-color);
       transition: border-color $transition-medium;
+      display: flex; // Added flex
+      flex-direction: column; // Stack buttons vertically
+      gap: $spacing-2; // Add gap between buttons
+
       // Apply base button styles via class .btn in HTML
-      .login-btn, .dashboard-btn {
-        width: 100%; margin-bottom: $spacing-2;
+      .login-btn, .dashboard-btn, .logout-btn { // Target all buttons
+        width: 100%;
+        // margin-bottom: $spacing-2; // Removed individual margin
         padding: $spacing-3; display: flex; align-items: center; justify-content: center;
         .icon { margin-right: $spacing-2; }
-        &:last-child { margin-bottom: 0; }
+        // &:last-child { margin-bottom: 0; } // Removed last-child rule
       }
     }
 
@@ -185,3 +191,4 @@
     }
   } // End .public-footer
 } // End .public-layout
+

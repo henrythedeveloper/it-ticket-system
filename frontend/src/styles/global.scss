@@ -15,6 +15,7 @@
 // Import component styles
 @use './components/forms';
 @use './components/tickets/TicketCard';
+@use './components/common/modal';
 
 // Import layout styles
 @use './layouts/AuthLayout';

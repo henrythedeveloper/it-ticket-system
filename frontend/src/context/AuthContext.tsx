@@ -2,104 +2,105 @@
 // ==========================================================================
 // Provides authentication state and actions to the application using React Context
 // and integrates with the Zustand auth store.
-// Also handles initial authentication check on app load.
-// Updated to include setUser in context value.
+// Handles initial authentication check on app load.
+// **REVISED**: Derives isAuthenticated, simplifies effect, waits for loading.
 // ==========================================================================
 
-import React, { createContext, useEffect, useState, ReactNode } from 'react';
-import { useAuthStore } from '../store/authStore'; // Zustand store
-import { AuthContextType, User } from '../types'; // Shared types
-import { fetchUserProfile } from '../services/authService'; // API service
+import React, { createContext, useEffect, ReactNode, useMemo } from 'react';
+import { useAuthStore } from '../store/authStore';
+import { AuthContextType, User } from '../types';
+import { fetchUserProfile } from '../services/authService';
+import Loader from '../components/common/Loader'; // Import Loader
 
 // --- Create Context ---
-/**
- * React Context for authentication state.
- * Initial value is undefined to detect usage outside the provider.
- */
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // --- Context Provider Component ---
-
-/**
- * Props for the AuthProvider component.
- */
 interface AuthProviderProps {
-  children: ReactNode; // Allow component nesting
+  children: ReactNode;
 }
 
-/**
- * Provides authentication state (user, token, isAuthenticated) and actions (login, logout, setUser)
- * to its children components via context. It utilizes the `useAuthStore` (Zustand)
- * for state management and performs initial token/profile validation.
- */
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  // --- State ---
-  // Local loading state for initial auth check
-  const [loading, setLoading] = useState<boolean>(true);
+  // --- Get State & Actions from Store ---
+  // Use individual selectors for better performance if components re-render often
+  const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
+  const loading = useAuthStore((state) => state.loading);
+  const storeLogin = useAuthStore((state) => state.login);
+  const storeLogout = useAuthStore((state) => state.logout);
+  const storeSetUser = useAuthStore((state) => state.setUser);
+  const setLoading = useAuthStore((state) => state.setLoading);
 
-  // Get state and actions from Zustand store
-  // FIX: Destructure setUser from the store
-  const { user, token, isAuthenticated, login: storeLogin, logout: storeLogout, setUser: storeSetUser, checkAuthStatus } = useAuthStore();
+  // --- Derive isAuthenticated ---
+  // isAuthenticated is true only if the user object exists
+  const isAuthenticated = useMemo(() => !!user, [user]);
 
-  // --- Effects ---
-  // Perform initial authentication check on component mount
+  // --- Initial Auth Check Effect ---
   useEffect(() => {
-    const verifyAuth = async () => {
-      console.log('[AuthContext] useEffect verifyAuth started.');
-      setLoading(true);
-      
-      // Get token from store instead of localStorage
-      const token = useAuthStore.getState().token;
-      console.log('[AuthContext] Token from store:', !!token);
+    let isMounted = true; // Flag to prevent state updates on unmounted component
 
-      if (!token) {
-        console.log('[AuthContext] No token in store. Ensuring logged out state.');
-        if (isAuthenticated) {
-          storeLogout();
-        }
-        setLoading(false);
-        return;
-      }
+    const verifyTokenAndFetchUser = async () => {
+      // Get current state directly inside effect
+      const currentToken = useAuthStore.getState().token;
+      const currentUser = useAuthStore.getState().user;
 
-      // Only verify profile if we don't have user data
-      if (!user) {
+      console.log('[AuthContext] verifyEffect running. Token:', !!currentToken, 'User:', !!currentUser);
+
+      // Only proceed if token exists and user data is missing
+      if (currentToken && !currentUser) {
+        console.log('[AuthContext] Token found, user missing. Fetching profile...');
+        // Ensure loading is true while fetching (might be redundant if store default is true)
+        if (isMounted) setLoading(true);
         try {
-          console.log('[AuthContext] No user data, fetching profile...');
           const userProfile = await fetchUserProfile();
           console.log('[AuthContext] Profile fetch successful:', userProfile);
-          storeSetUser(userProfile);
-          useAuthStore.setState({ isAuthenticated: true });
+          // Use storeLogin to set token, user, and loading=false atomically
+          if (isMounted) storeLogin(currentToken, userProfile);
         } catch (error) {
           console.error('[AuthContext] Profile fetch failed:', error);
-          storeLogout();
+          // Logout if token is invalid or profile fetch fails
+          if (isMounted) storeLogout();
+        }
+        // No finally block needed as storeLogin/storeLogout set loading=false
+      } else {
+        // No token, or user already exists. Initial check is done.
+        console.log('[AuthContext] No token or user already loaded. Setting loading false.');
+        if (isMounted && useAuthStore.getState().loading) { // Only set loading if it's currently true
+             setLoading(false);
         }
       }
-      
-      setLoading(false);
     };
 
-    verifyAuth();
-  }, [storeLogout, storeSetUser, isAuthenticated, user]);
+    verifyTokenAndFetchUser();
+
+    // Cleanup function to set isMounted to false
+    return () => {
+      isMounted = false;
+    };
+    // Dependencies: Only run when token potentially changes (initial load/hydration)
+    // Avoid depending on `user` or `loading` here to prevent infinite loops.
+  }, [token, storeLogin, storeLogout, setLoading]);
 
   // --- Context Value ---
-  // Assemble the value to be provided by the context
-  const contextValue: AuthContextType = {
+  // Memoize the context value to prevent unnecessary re-renders of consumers
+  const contextValue: AuthContextType = useMemo(() => ({
     user,
     token,
-    isAuthenticated,
-    login: storeLogin, // Use login action from Zustand store
-    logout: storeLogout, // Use logout action from Zustand store
-    setUser: storeSetUser, // FIX: Pass setUser action from Zustand store
-    loading, // Provide the initial loading state
-  };
+    isAuthenticated, // Derived value
+    login: storeLogin,
+    logout: storeLogout,
+    setUser: storeSetUser,
+    loading, // Loading state from store
+  }), [user, token, isAuthenticated, storeLogin, storeLogout, storeSetUser, loading]);
+
+  console.log('[AuthContext] Provider rendering with state:', { user: !!user, token: !!token, isAuthenticated, loading });
 
   // --- Render ---
-  console.log('[AuthContext] Provider rendering with state:', { user: !!user, token: !!token, isAuthenticated, loading });
   return (
     <AuthContext.Provider value={contextValue}>
-      {/* Render children only after initial auth check is complete */}
-      {/* Or show a global loading spinner: loading ? <GlobalSpinner /> : children */}
-      {children}
+      {/* Render children only after initial loading is complete */}
+      {loading ? <Loader text="Initializing..." /> : children}
     </AuthContext.Provider>
   );
 };
+

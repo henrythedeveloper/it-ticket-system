@@ -2,6 +2,9 @@
 // ==========================================================================
 // Centralized type definitions for the application.
 // Added ticket_number to Ticket interface.
+// REVISED: Defined Tag interface and updated Ticket.tags type.
+// REVISED AGAIN: Changed Ticket.body to Ticket.description and
+//                Ticket.endUserEmail to Ticket.submitterEmail to match backend JSON tags.
 // ==========================================================================
 
 import { ReactNode } from 'react'; // Added for Context types
@@ -42,6 +45,19 @@ export interface AuthContextType extends AuthState {
 }
 
 // --------------------------------------------------------------------------
+// Tag Type
+// --------------------------------------------------------------------------
+
+/**
+ * Represents a tag object (used for categorizing tickets).
+ */
+export interface Tag {
+  id: string;
+  name: string;
+  createdAt: string; // ISO date string
+}
+
+// --------------------------------------------------------------------------
 // Ticket Types
 // --------------------------------------------------------------------------
 
@@ -62,7 +78,8 @@ export interface TicketUpdate {
   id: string;
   ticketId: string; // Added ticketId for context
   content: string;
-  author: Pick<User, 'id' | 'name'>; // Only need author's id and name
+  author?: Pick<User, 'id' | 'name'> | null;
+  User?: Pick<User, 'id' | 'name'> | null; 
   createdAt: string; // ISO date string
   isSystemUpdate?: boolean; // Flag for system-generated updates (e.g., status change)
   isInternalNote?: boolean; // Flag for internal staff notes
@@ -74,26 +91,33 @@ export interface TicketUpdate {
 export interface TicketAttachment {
   id: string;
   filename: string;
-  mimetype: string;
+  mime_type: string;
   size: number; // Size in bytes
   url: string; // URL to access/download the file
-  createdAt: string; // ISO date string
+  uploaded_at: string; // ISO date string
 }
 
 /**
  * Represents the main structure of a ticket object.
  * Added ticket_number field.
+ * Changed tags type from string[] to Tag[].
+ * Changed body to description to match backend JSON tag.
+ * Changed endUserEmail to submitterEmail to match backend JSON tag.
  */
 export interface Ticket {
   id: string;
-  ticket_number: number; // FIX: Added ticket number field (maps to int32)
+  ticket_number: number; // User-facing sequential number
   subject: string;
-  description: string;
+  // FIX: Changed from 'body' to 'description' to match backend JSON tag `json:"description"`
+  description: string; // Detailed description of the issue
   status: TicketStatus;
   urgency: TicketUrgency;
   issueType?: string; // Optional issue type/category
-  tags?: string[]; // Optional tags
-  submitter: Pick<User, 'id' | 'name' | 'email'>; // Submitter info
+  tags?: Tag[]; // Array of associated tag objects
+  // FIX: Changed from 'endUserEmail' to 'submitterEmail' to match backend JSON tag `json:"submitterEmail"`
+  submitterEmail: string; // Email of the person who submitted the ticket
+  // Consider adding a submitter object if backend provides it consistently
+  submitter?: Pick<User, 'id' | 'name' | 'email'> | null; // Submitter info (assuming backend provides this structure)
   assignedTo?: Pick<User, 'id' | 'name'> | null; // Assigned staff member
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
@@ -123,7 +147,7 @@ export interface Task {
   dueDate?: string | null; // Optional due date (ISO date string)
   assignedTo?: Pick<User, 'id' | 'name'> | null; // Assigned staff member
   ticketId?: string | null; // Optional associated ticket ID
-  createdBy: Pick<User, 'id' | 'name'>; // User who created the task
+  createdBy?: Pick<User, 'id' | 'name'> | null; // User who created the task
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
   completedAt?: string | null; // ISO date string when completed
@@ -164,6 +188,17 @@ export interface AppSettings {
 // --------------------------------------------------------------------------
 // API Response Types (Examples)
 // --------------------------------------------------------------------------
+
+/**
+ * Generic structure for API responses.
+ * It indicates success/failure and includes optional data, message, or error details.
+ */
+export interface APIResponse<T> {
+	success: boolean;       // True if the request was successful, false otherwise
+	message?: string;      // Optional message (e.g., "User created successfully")
+	data?: T;              // Optional data payload (generic type T)
+	error?: string;        // Optional error message if success is false
+}
 
 /**
  * Generic structure for paginated API responses.
@@ -237,10 +272,10 @@ export interface LoginFormInputs {
  */
 export interface TicketFormInputs {
   subject: string;
-  description: string;
+  description: string; // Frontend often uses 'description'
   urgency: TicketUrgency;
   issueType?: string;
-  tags?: string[];
+  tags?: string[]; // Form might still handle tags as strings initially
   // Submitter info usually comes from context or backend
   // Status and AssignedTo are typically handled separately
 }

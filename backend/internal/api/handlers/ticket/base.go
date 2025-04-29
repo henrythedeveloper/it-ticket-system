@@ -76,6 +76,7 @@ func RegisterRoutes(g *echo.Group, h *Handler) {
 		{"POST", "/:id/comments", h.AddTicketComment},             // POST /api/tickets/{id}/comments
 		{"POST", "/:id/attachments", h.UploadAttachment},          // POST /api/tickets/{id}/attachments
 		{"GET", "/:id/attachments/:attachmentId", h.GetAttachment}, // GET /api/tickets/{id}/attachments/{attachmentId} (Metadata)
+		{"DELETE", "/:id/attachments/:attachmentId", h.DeleteAttachment},
 		// Note: Download route is often separate or handled differently, e.g., /api/attachments/download/:attachmentId
 		// Assuming download route is handled elsewhere or via GetAttachment providing a URL
 		// {"GET", "/attachments/download/:attachmentId", h.DownloadAttachment}, // Example if download is handled here

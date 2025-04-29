@@ -2,6 +2,7 @@
 // ==========================================================================
 // Styles for forms and form elements, utilizing variables and mixins.
 // **REVISED: Use accent/secondary colors more deliberately.**
+// **REVISED AGAIN: Added styles for attachment input/preview.**
 // ==========================================================================
 
 @use '../variables' as *; // Needed for non-color vars like spacing, breakpoints
@@ -129,7 +130,122 @@
       // @include mixins.button-variant(--primary, --text-inverted, --primary-dark);
     }
   }
-}
+
+  // --- Attachment Input Styles (Added for TicketForm) ---
+  .attachment-input-area {
+    margin-top: $spacing-1; // Space below the label
+  }
+
+  .file-input-hidden {
+      width: 0.1px;
+      height: 0.1px;
+      opacity: 0;
+      overflow: hidden;
+      position: absolute;
+      z-index: -1;
+  }
+
+  .file-input-trigger {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem 1rem; // Adjust padding as needed
+      border: 2px dashed var(--border-color-strong); // Use CSS variables
+      border-radius: var(--border-radius-lg); // Use CSS variable for radius
+      background-color: var(--surface-alt-bg); // Use CSS variable
+      color: var(--text-muted); // Use CSS variable
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+      text-align: center;
+
+      svg {
+          margin-bottom: 0.5rem; // Space below icon
+          color: var(--primary); // Use CSS variable for icon color
+      }
+
+      &:hover {
+          border-color: var(--primary); // Use CSS variable
+          background-color: var(--surface-bg); // Use CSS variable
+          color: var(--text-secondary); // Use CSS variable
+      }
+      &.drag-over {
+        border-color: var(--primary); // Highlight border with primary color
+        background-color: rgba(var(--primary-rgb), 0.05); // Subtle primary background tint
+        color: var(--primary); // Change text color
+
+        svg {
+            color: var(--primary-dark); // Make icon slightly darker
+        }
+    }
+  }
+
+  /* Styles for the file preview list */
+  .file-preview-list {
+      margin-top: 1rem; // Space above the list
+      border: 1px solid var(--border-color); // Use CSS variable
+      border-radius: var(--border-radius); // Use CSS variable
+      padding: 0.5rem; // Padding inside the list container
+      background-color: var(--surface-bg); // Use CSS variable
+      max-height: 150px; // Limit height and allow scroll if many files
+      overflow-y: auto;
+  }
+
+  .file-preview-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem;
+      font-size: $font-size-sm; /* text-sm */
+      color: var(--text-secondary); // Use CSS variable
+      border-bottom: 1px solid var(--border-color); // Use CSS variable
+
+      &:last-child {
+          border-bottom: none; // Remove border from last item
+      }
+
+      .file-name {
+          white-space: nowrap; // Prevent wrapping
+          overflow: hidden; // Hide overflow
+          text-overflow: ellipsis; // Add ellipsis for long names
+          margin-right: 0.5rem; // Space between name and size/button
+          flex-grow: 1; // Allow name to take available space
+      }
+
+      .file-size {
+          color: var(--text-muted); // Use CSS variable
+          font-size: $font-size-xs; /* text-xs */
+          white-space: nowrap; // Prevent wrapping
+          margin-right: 0.5rem; // Space before remove button
+          flex-shrink: 0; // Prevent size from shrinking
+      }
+
+      .remove-file-btn {
+          background: none;
+          border: none;
+          color: var(--error); // Use CSS variable for error color
+          cursor: pointer;
+          padding: 0.25rem; // Small padding for click area
+          line-height: 1; // Ensure icon aligns well
+          border-radius: 50%; // Circular background on hover
+          transition: background-color 0.15s ease;
+          flex-shrink: 0; // Prevent button from shrinking
+
+          &:hover {
+              // Use RGB version for alpha background
+              background-color: rgba(var(--error-rgb), 0.1);
+          }
+
+          &:disabled {
+              color: var(--text-muted); // Use CSS variable
+              cursor: not-allowed;
+              background-color: transparent; // No background when disabled
+          }
+      }
+  }
+  // --- End Attachment Input Styles ---
+
+} // End .form-group
 
 // Form divided in columns
 .form-row {
@@ -169,3 +285,4 @@
     }
   }
 }
+

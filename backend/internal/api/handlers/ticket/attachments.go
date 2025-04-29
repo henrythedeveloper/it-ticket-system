@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/henrythedeveloper/it-ticket-system/internal/api/middleware/auth"
 	"github.com/henrythedeveloper/it-ticket-system/internal/models" // Data models
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
@@ -242,6 +243,97 @@ func (h *Handler) DownloadAttachment(c echo.Context) error {
 	// as headers might already be sent.
 	return c.Stream(http.StatusOK, mimeType, fileReader)
 }
+
+// DeleteAttachment handles requests to delete an attachment file and its metadata.
+// Performs authorization check based on the associated ticket.
+//
+// Path Parameters:
+//   - id: The UUID of the ticket.
+//   - attachmentId: The UUID of the attachment to delete.
+//
+// Returns:
+//   - JSON success message or an error response.
+func (h *Handler) DeleteAttachment(c echo.Context) error {
+	ctx := c.Request().Context()
+	ticketID := c.Param("id")
+	attachmentID := c.Param("attachmentId")
+	logger := slog.With("handler", "DeleteAttachment", "ticketUUID", ticketID, "attachmentID", attachmentID)
+
+	// --- 1. Input Validation ---
+	if ticketID == "" || attachmentID == "" {
+		logger.WarnContext(ctx, "Missing ticket ID or attachment ID in request path")
+		return echo.NewHTTPError(http.StatusBadRequest, "Missing ticket ID or attachment ID.")
+	}
+
+	// --- 2. Authorization Check ---
+	// Get user context and verify they can manage this ticket
+	userID, err := auth.GetUserIDFromContext(c)
+	if err != nil { return err } // Error logged in helper
+	userRole, err := auth.GetUserRoleFromContext(c)
+	if err != nil {
+		// Log the error from GetUserRoleFromContext if needed, but it usually returns an HTTP error itself
+		logger.ErrorContext(ctx, "Failed to get user role from context", "error", err)
+		return err // Return the error provided by the helper
+	}
+	isAdmin := userRole == models.RoleAdmin
+	// Use checkTicketAccess helper to verify permission (fetches ticket data needed for check)
+	_, err = h.checkTicketAccess(ctx, ticketID, userID, isAdmin)
+	if err != nil {
+		logger.WarnContext(ctx, "Authorization check failed for deleting attachment", "error", err)
+		if err.Error() == "ticket not found" { return echo.NewHTTPError(http.StatusNotFound, "Ticket not found.") }
+		if err.Error() == "not authorized to access this ticket" { return echo.NewHTTPError(http.StatusForbidden, "Not authorized to manage this ticket's attachments.") }
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to verify ticket access.")
+	}
+	// Optional: Add check if ticket is closed?
+	// if ticketData.Status == models.StatusClosed {
+	// 	 return echo.NewHTTPError(http.StatusBadRequest, "Cannot delete attachments from a closed ticket.")
+	// }
+
+	// --- 3. Get Attachment Storage Path ---
+	var storagePath, filename string
+	err = h.db.Pool.QueryRow(ctx, `SELECT storage_path, filename FROM attachments WHERE id = $1 AND ticket_id = $2`, attachmentID, ticketID).Scan(&storagePath, &filename)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			logger.WarnContext(ctx, "Attachment not found for deletion")
+			return echo.NewHTTPError(http.StatusNotFound, "Attachment not found.")
+		}
+		logger.ErrorContext(ctx, "Failed to query attachment storage path", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve attachment details.")
+	}
+
+	// --- 4. Delete File from Storage Service ---
+	logger.DebugContext(ctx, "Attempting to delete file from storage", "storagePath", storagePath)
+	err = h.fileService.DeleteFile(ctx, storagePath)
+	if err != nil {
+		// Log the error but proceed to delete DB record anyway, as the file might already be gone
+		// or there might be an issue with the storage service itself.
+		logger.ErrorContext(ctx, "Failed to delete file from storage service (continuing to delete DB record)", "storagePath", storagePath, "error", err)
+		// Depending on requirements, you might choose to return an error here instead.
+	} else {
+		logger.InfoContext(ctx, "Successfully deleted file from storage", "storagePath", storagePath)
+	}
+
+
+	// --- 5. Delete Metadata from Database ---
+	commandTag, err := h.db.Pool.Exec(ctx, `DELETE FROM attachments WHERE id = $1`, attachmentID)
+	if err != nil {
+		logger.ErrorContext(ctx, "Failed to delete attachment metadata from database", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to delete attachment metadata.")
+	}
+	if commandTag.RowsAffected() == 0 {
+		// Should be rare if previous check passed, but handle defensively
+		logger.WarnContext(ctx, "Attachment metadata deletion affected 0 rows")
+		return echo.NewHTTPError(http.StatusNotFound, "Attachment metadata not found or already deleted.")
+	}
+
+	// --- 6. Return Success Response ---
+	logger.InfoContext(ctx, "Attachment deleted successfully", "filename", filename)
+	return c.JSON(http.StatusOK, models.APIResponse{
+		Success: true,
+		Message: "Attachment deleted successfully.",
+	})
+}
+
 
 // --- Helper Functions ---
 

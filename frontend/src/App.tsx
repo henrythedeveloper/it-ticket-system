@@ -6,7 +6,7 @@
 import { BrowserRouter as Router } from 'react-router-dom';
 // Correct the import path for AppRouter
 import AppRouter from './components/router'; // Main application router configuration
-// No longer need useTheme or useEffect here for body class manipulation
+
 
 /**
  * Root Application Component `App`

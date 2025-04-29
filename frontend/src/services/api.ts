@@ -2,14 +2,14 @@
 // ==========================================================================
 // Axios instance setup and configuration for API communication.
 // Includes base URL, interceptors for adding auth tokens and handling errors.
+// **REVISED**: Removed default 'Content-Type' header to allow Axios to set
+//              it automatically (e.g., for FormData uploads).
 // ==========================================================================
 
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from 'axios';
 import { useAuthStore } from '../store/authStore'; // Zustand store for auth state
 
 // --- Constants ---
-// Determine API base URL from environment variables (Vite specific)
-// Fallback to a default development URL if not set.
 const API_BASE_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:8080/api';
 
 // --- Create Axios Instance ---
@@ -18,10 +18,10 @@ const API_BASE_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:8080/ap
  */
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-    // Other default headers can be added here
-  },
+  // ** REMOVED default Content-Type header **
+  // headers: {
+  //   'Content-Type': 'application/json', // <-- REMOVE THIS LINE
+  // },
   // timeout: 10000, // Optional: Add a request timeout
 });
 
@@ -29,17 +29,21 @@ const api: AxiosInstance = axios.create({
 // Intercepts requests before they are sent to add the authentication token.
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Get the token from the Zustand auth store
     const token = useAuthStore.getState().token;
 
-    // If a token exists, add it to the Authorization header
+    // Add auth token if available
     if (token && config.headers) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
-    return config; // Continue with the modified request config
+
+    // ** Important: Do NOT manually set Content-Type here if data is FormData **
+    // Axios will handle setting 'multipart/form-data' with the correct boundary
+    // automatically when the 'data' payload is a FormData instance.
+    // If you were setting it here previously, remove that logic as well.
+
+    return config;
   },
   (error: AxiosError) => {
-    // Handle request configuration errors (e.g., invalid headers)
     console.error('Axios request error:', error);
     return Promise.reject(error);
   }
@@ -49,31 +53,18 @@ api.interceptors.request.use(
 // Intercepts responses to handle common scenarios like authorization errors.
 api.interceptors.response.use(
   (response) => {
-    // Any status code within the range of 2xx causes this function to trigger
-    // Simply return the successful response
+    // Successful response
     return response;
   },
   (error: AxiosError) => {
-    // Any status codes outside the range of 2xx cause this function to trigger
+    // Handle errors
     console.error('Axios response error:', error.response?.status, error.message);
-
-    // Handle specific error statuses
     if (error.response?.status === 401) {
-      // Unauthorized: Token might be invalid or expired.
-      // Clear the auth state using the Zustand store's logout action.
-      // Redirecting to login is usually handled by components checking auth state.
       console.warn('Unauthorized request (401). Logging out.');
       useAuthStore.getState().logout();
-      // Optional: Could trigger a redirect here, but often better handled in UI layer
-      // window.location.href = '/login';
     } else if (error.response?.status === 403) {
-      // Forbidden: User does not have permission for this action.
       console.warn('Forbidden request (403). User lacks permission.');
-      // Optional: Show a notification to the user
     }
-    // ... handle other common errors like 500, 404 etc. if needed ...
-
-    // Reject the promise so the error can be caught by the calling function
     return Promise.reject(error);
   }
 );
