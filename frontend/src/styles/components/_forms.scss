@@ -97,11 +97,16 @@
   // Static field display (read-only look)
   .static-field {
       padding: $spacing-3;
-      background-color: var(--surface-alt-bg);
-      border: 1px solid var(--border-color); // Use regular border, strong seems too much
+      background-color: var(--surface-tonal-1);
+      border: 1px solid var(--surface-tonal-2);
       border-radius: $border-radius;
       color: var(--text-secondary);
-      transition: background-color $transition-medium, border-color $transition-medium, color $transition-medium;
+      transition: all $transition-medium;
+
+      &:hover {
+        background-color: var(--surface-tonal-2);
+        border-color: var(--surface-tonal-3);
+      }
   }
 
   // Input with addon/button
@@ -110,8 +115,12 @@
     input { // Input styles inherited via mixin
       flex: 1;
       border-radius: $border-radius 0 0 $border-radius; // Adjust radius
-      border-right-width: 0; // Remove right border to connect with button
-      &:focus { z-index: 1; position: relative; } // Ensure focus styles overlap button
+      border-right-width: 0;
+      &:focus {
+        z-index: 1;
+        position: relative;
+        background-color: var(--surface-tonal); // Lighter background on focus
+      }
     }
     .add-btn { // Example button class - assumes base .btn styles are applied
       border-radius: 0 $border-radius $border-radius 0; // Adjust radius

@@ -2,6 +2,7 @@
 // ==========================================================================
 // Custom hook to abstract common form submission logic.
 // Handles loading state, error handling, success feedback, and API calls.
+// ADDED CONSOLE LOGS FOR DEBUGGING
 // ==========================================================================
 
 import { useState, useCallback } from 'react';
@@ -89,39 +90,72 @@ export const useFormSubmit = <TData, TResponse>(
      * @param data - The data to be passed to the `submitFn`.
      */
     const submit = useCallback(async (data: TData): Promise<void> => {
-    setIsLoading(true);
-    setError(null);
-    setSuccessMessage(null);
+        // *** DEBUG LOG: Log input data ***
+        console.log('[useFormSubmit] Submit called with data:', JSON.stringify(data));
+        setIsLoading(true);
+        setError(null);
+        setSuccessMessage(null);
 
-    try {
-        const response = await submitFn(data);
-        setSuccessMessage(successMsgOption); // Set success message from options
-        onSuccess?.(response); // Call success callback if provided
-    } catch (err: unknown) {
-        console.error("Form submission error:", err);
-        let errorMessage = 'An unexpected error occurred.';
-        // Type guard for AxiosError
-        if (typeof err === 'object' && err !== null && 'isAxiosError' in err && err.isAxiosError) {
-            const axiosError = err as AxiosError<any>; // Type assertion
-            errorMessage = axiosError.response?.data?.message || axiosError.message || 'Request failed.';
-        } else if (err instanceof Error) {
-            errorMessage = err.message;
+        try {
+            // *** DEBUG LOG: Log before API call ***
+            console.log('[useFormSubmit] Calling submitFn...');
+            const response = await submitFn(data);
+            // *** DEBUG LOG: Log successful response from API function ***
+            console.log('[useFormSubmit] submitFn successful. Response:', JSON.stringify(response));
+
+            setSuccessMessage(successMsgOption); // Set success message from options
+
+            // *** DEBUG LOG: Log before calling onSuccess callback ***
+            console.log('[useFormSubmit] About to call onSuccess callback...');
+            if (onSuccess) {
+                onSuccess(response); // Call success callback if provided
+                 // *** DEBUG LOG: Log after calling onSuccess callback ***
+                console.log('[useFormSubmit] onSuccess callback executed.');
+            } else {
+                console.log('[useFormSubmit] No onSuccess callback provided.');
+            }
+            // ********************
+
+        } catch (err: unknown) {
+            // *** DEBUG LOG: Log error caught by hook ***
+            console.error("[useFormSubmit] Form submission error caught in hook:", err);
+            let errorMessage = 'An unexpected error occurred.';
+            // Type guard for AxiosError
+            if (typeof err === 'object' && err !== null && 'isAxiosError' in err && err.isAxiosError) {
+                const axiosError = err as AxiosError<any>; // Type assertion
+                errorMessage = axiosError.response?.data?.message || axiosError.message || 'Request failed.';
+            } else if (err instanceof Error) {
+                errorMessage = err.message;
+            }
+            setError(errorMessage);
+
+            // *** DEBUG LOG: Log before calling onError callback ***
+            console.log('[useFormSubmit] About to call onError callback...');
+            if (onError) {
+                onError(err as Error | AxiosError); // Call error callback if provided
+                // *** DEBUG LOG: Log after calling onError callback ***
+                console.log('[useFormSubmit] onError callback executed.');
+            } else {
+                console.log('[useFormSubmit] No onError callback provided.');
+            }
+            // ********************
+
+        } finally {
+            // *** DEBUG LOG: Log finally block execution ***
+            console.log('[useFormSubmit] Setting isLoading to false.');
+            setIsLoading(false);
         }
-        setError(errorMessage);
-        onError?.(err as Error | AxiosError); // Call error callback if provided
-    } finally {
-        setIsLoading(false);
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [submitFn, onSuccess, onError, successMsgOption]); // Dependencies for useCallback
 
     // --- Return Value ---
     return {
-    isLoading,
-    error,
-    successMessage,
-    submit,
-    clearError,
-    clearSuccessMessage,
+        isLoading,
+        error,
+        successMessage,
+        submit,
+        clearError,
+        clearSuccessMessage,
     };
 };
+

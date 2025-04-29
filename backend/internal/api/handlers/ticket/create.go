@@ -1,9 +1,4 @@
 // backend/internal/api/handlers/ticket/create.go
-// ==========================================================================
-// Handler function for creating new support tickets.
-// Handles request binding, database insertion (within a transaction),
-// tag management, and sending confirmation emails.
-// ==========================================================================
 
 package ticket
 
@@ -11,7 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog" // Use structured logging
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -20,20 +15,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// --- Handler Function ---
-
 // CreateTicket handles the HTTP request to create a new support ticket.
 // It expects ticket details in the request body (JSON format).
-//
-// Parameters:
-//   - c: The echo context, providing access to request and response.
-//
-// Returns:
-//   - error: An error if processing fails (e.g., bad request, database error),
-//     otherwise nil. Returns a JSON response with the created ticket on success.
 func (h *Handler) CreateTicket(c echo.Context) (err error) { // Use named return for defer rollback check
 	ctx := c.Request().Context()
-	logger := slog.With("handler", "CreateTicket") // Create a logger specific to this handler
+	logger := slog.With("handler", "CreateTicket")
 
 	// --- 1. Bind Request Body ---
 	var ticketCreate models.TicketCreate
@@ -41,10 +27,14 @@ func (h *Handler) CreateTicket(c echo.Context) (err error) { // Use named return
 		logger.WarnContext(ctx, "Failed to bind request body", "error", err)
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body: "+err.Error())
 	}
-	// TODO: Add validation using a library like 'validator' if not handled by Echo middleware
+	// TODO: Add validation
+
+	// *** CAPTURE EMAIL IMMEDIATELY ***
+	emailToSend := ticketCreate.EndUserEmail
 
 	logger.DebugContext(ctx, "Ticket creation request received",
-		"endUserEmail", ticketCreate.EndUserEmail, // Log non-sensitive identifiers
+		"endUserEmail", ticketCreate.EndUserEmail, // Log from original struct
+		"capturedEmailToSend", emailToSend,         // Log the captured value
 		"subject", ticketCreate.Subject)
 
 	// --- 2. Database Transaction ---
@@ -53,9 +43,8 @@ func (h *Handler) CreateTicket(c echo.Context) (err error) { // Use named return
 		logger.ErrorContext(ctx, "Failed to begin database transaction", "error", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to start transaction.")
 	}
-	// Defer rollback ensures transaction is cleaned up if any error occurs before commit
 	defer func() {
-		if err != nil { // Check the named return error
+		if err != nil {
 			logger.WarnContext(ctx, "Rolling back transaction due to error", "error", err)
 			if rbErr := tx.Rollback(ctx); rbErr != nil {
 				logger.ErrorContext(ctx, "Failed to rollback transaction", "rollbackError", rbErr)
@@ -65,7 +54,7 @@ func (h *Handler) CreateTicket(c echo.Context) (err error) { // Use named return
 
 	// --- 3. Insert Ticket into Database ---
 	var createdTicket models.Ticket
-	// Insert the main ticket record
+	// Use ticketCreate.EndUserEmail (or emailToSend) for the insert
 	err = tx.QueryRow(ctx, `
         INSERT INTO tickets (
             end_user_email, issue_type, urgency, subject, body,
@@ -75,8 +64,9 @@ func (h *Handler) CreateTicket(c echo.Context) (err error) { // Use named return
                   status, assigned_to_user_id, created_at, updated_at, closed_at,
                   resolution_notes
         `,
-		ticketCreate.EndUserEmail, ticketCreate.IssueType, ticketCreate.Urgency,
-		ticketCreate.Subject, ticketCreate.Body, models.StatusUnassigned, // Default status
+		emailToSend, // Use the captured email for insertion
+		ticketCreate.IssueType, ticketCreate.Urgency,
+		ticketCreate.Subject, ticketCreate.Body, models.StatusUnassigned,
 		time.Now(), time.Now(),
 	).Scan(
 		&createdTicket.ID, &createdTicket.TicketNumber, &createdTicket.EndUserEmail,
@@ -87,33 +77,35 @@ func (h *Handler) CreateTicket(c echo.Context) (err error) { // Use named return
 	)
 	if err != nil {
 		logger.ErrorContext(ctx, "Failed to insert ticket into database", "error", err)
-		// Specific error handling (e.g., check for constraint violations) could go here
 		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to create ticket record.")
 	}
+
+	// Log email immediately after scan to verify RETURNING clause
+	logger.DebugContext(ctx, "Scanned ticket details after insert",
+		"ticketUUID", createdTicket.ID,
+		"ticketNumber", createdTicket.TicketNumber,
+		"scannedEndUserEmail", createdTicket.EndUserEmail) // Check this value specifically
+
 	logger.DebugContext(ctx, "Ticket record inserted", "ticketUUID", createdTicket.ID, "ticketNumber", createdTicket.TicketNumber)
+
 
 	// --- 4. Process and Link Tags ---
 	if len(ticketCreate.Tags) > 0 {
-		// Use the helper function to handle tag creation/linking within the transaction
-		tagIDs, err := h.findOrCreateTags(ctx, tx, ticketCreate.Tags)
-		if err != nil {
-			// Error is already logged within findOrCreateTags
-			// The defer func will handle rollback
+		tagIDs, tagErr := h.findOrCreateTags(ctx, tx, ticketCreate.Tags)
+		if tagErr != nil {
+			err = tagErr // Set the named return error to trigger rollback
 			return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to process tags.")
 		}
-
-		// Link tags to the ticket using the retrieved tag IDs
-		err = h.linkTagsToTicket(ctx, tx, createdTicket.ID, tagIDs)
-		if err != nil {
-			// Error is already logged within linkTagsToTicket
-			// The defer func will handle rollback
+		linkErr := h.linkTagsToTicket(ctx, tx, createdTicket.ID, tagIDs)
+		if linkErr != nil {
+			err = linkErr // Set the named return error to trigger rollback
 			return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to link tags to ticket.")
 		}
 		logger.DebugContext(ctx, "Tags processed and linked", "ticketUUID", createdTicket.ID, "tagIDs", tagIDs)
 	}
 
 	// --- 5. Commit Transaction ---
-	err = tx.Commit(ctx) // Assign commit error to the named return variable
+	err = tx.Commit(ctx)
 	if err != nil {
 		logger.ErrorContext(ctx, "Failed to commit transaction", "ticketUUID", createdTicket.ID, "error", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to save ticket.")
@@ -122,41 +114,39 @@ func (h *Handler) CreateTicket(c echo.Context) (err error) { // Use named return
 	// --- 6. Post-Creation Actions (Email Notification) ---
 	logger.InfoContext(ctx, "Ticket created successfully", "ticketUUID", createdTicket.ID, "ticketNumber", createdTicket.TicketNumber)
 
+	// *** ADD EXTRA LOGGING BEFORE GOROUTINE ***
+	logger.DebugContext(ctx, "Preparing to send confirmation email",
+		"emailToSendVar", emailToSend, // Log the variable being passed
+		"ticketNumber", createdTicket.TicketNumber,
+		"ticketSubject", createdTicket.Subject)
+
 	// Send confirmation email asynchronously
-	go func(t models.Ticket) {
+	go func(recipientEmail, ticketNumStr, ticketSubject string) {
 		// Use background context for the goroutine
 		bgCtx := context.Background()
 		// Create a logger for the goroutine
-		emailLogger := slog.With("operation", "SendTicketConfirmation", "ticketUUID", t.ID, "ticketNumber", t.TicketNumber)
-		ticketNumStr := fmt.Sprintf("%d", t.TicketNumber) // Format ticket number for display
+		emailLogger := slog.With("operation", "SendTicketConfirmation", "ticketNumber", ticketNumStr)
 
-		if emailErr := h.emailService.SendTicketConfirmation(t.EndUserEmail, ticketNumStr, t.Subject); emailErr != nil {
-			emailLogger.ErrorContext(bgCtx, "Failed to send ticket confirmation email", "recipient", t.EndUserEmail, "error", emailErr)
+		// Use the recipientEmail passed directly into the goroutine
+		if emailErr := h.emailService.SendTicketConfirmation(recipientEmail, ticketNumStr, ticketSubject); emailErr != nil {
+			// Log the email that was attempted
+			emailLogger.ErrorContext(bgCtx, "Failed to send ticket confirmation email", "recipient", recipientEmail, "error", emailErr)
 		} else {
-			emailLogger.InfoContext(bgCtx, "Sent ticket confirmation email", "recipient", t.EndUserEmail)
+			emailLogger.InfoContext(bgCtx, "Sent ticket confirmation email", "recipient", recipientEmail)
 		}
-	}(createdTicket) // Pass a copy of the created ticket
+	}(emailToSend, fmt.Sprintf("%d", createdTicket.TicketNumber), createdTicket.Subject) // Pass the captured email
 
 	// --- 7. Return Success Response ---
 	return c.JSON(http.StatusCreated, models.APIResponse{
 		Success: true,
 		Message: "Ticket created successfully.",
-		Data:    createdTicket, // Return the full created ticket object
+		Data:    createdTicket,
 	})
 }
 
-// --- Helper Functions ---
+// --- Helper Functions (findOrCreateTags, linkTagsToTicket) remain the same ---
 
 // findOrCreateTags finds existing tags or creates new ones within a transaction.
-//
-// Parameters:
-//   - ctx: The request context.
-//   - tx: The database transaction.
-//   - tagNames: A slice of tag names to find or create.
-//
-// Returns:
-//   - []string: A slice of UUIDs for the found/created tags.
-//   - error: An error if any database operation fails.
 func (h *Handler) findOrCreateTags(ctx context.Context, tx pgx.Tx, tagNames []string) ([]string, error) {
 	logger := slog.With("helper", "findOrCreateTags")
 	tagIDs := make([]string, 0, len(tagNames))
@@ -189,51 +179,27 @@ func (h *Handler) findOrCreateTags(ctx context.Context, tx pgx.Tx, tagNames []st
 }
 
 // linkTagsToTicket associates a list of tag IDs with a ticket ID in the join table.
-// It uses ON CONFLICT DO NOTHING to avoid errors if the link already exists.
-//
-// Parameters:
-//   - ctx: The request context.
-//   - tx: The database transaction.
-//   - ticketID: The UUID of the ticket.
-//   - tagIDs: A slice of tag UUIDs to link.
-//
-// Returns:
-//   - error: An error if the database insertion fails.
 func (h *Handler) linkTagsToTicket(ctx context.Context, tx pgx.Tx, ticketID string, tagIDs []string) error {
 	logger := slog.With("helper", "linkTagsToTicket", "ticketUUID", ticketID)
 	if len(tagIDs) == 0 {
 		return nil // Nothing to link
 	}
 
-	// Prepare bulk insert statement for ticket_tags
-	// Using COPY FROM is generally more efficient for large numbers of rows,
-	// but for a typical number of tags per ticket, individual inserts with
-	// ON CONFLICT are simpler and often sufficient.
 	sql := `INSERT INTO ticket_tags (ticket_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`
 	batch := &pgx.Batch{}
 	for _, tagID := range tagIDs {
 		batch.Queue(sql, ticketID, tagID)
 	}
 
-	// Execute the batch insert
 	results := tx.SendBatch(ctx, batch)
-	// Check results for errors (important!)
+	defer results.Close() // Ensure results are closed
+
 	for i := 0; i < len(tagIDs); i++ {
 		_, err := results.Exec()
 		if err != nil {
-			// Close the results explicitly on error as per pgx docs
-			if closeErr := results.Close(); closeErr != nil {
-				logger.ErrorContext(ctx, "Failed to close batch results after error", "error", closeErr)
-			}
 			logger.ErrorContext(ctx, "Failed to link tag in batch", "tagID", tagIDs[i], "error", err)
 			return fmt.Errorf("failed to link tag ID %s: %w", tagIDs[i], err)
 		}
-	}
-
-	// Close the results after successful execution
-	if err := results.Close(); err != nil {
-		logger.ErrorContext(ctx, "Failed to close batch results after success", "error", err)
-		return fmt.Errorf("failed to finalize tag linking: %w", err)
 	}
 
 	logger.DebugContext(ctx, "Successfully linked tags to ticket")

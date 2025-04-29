@@ -1,158 +1,287 @@
 // src/styles/_variables.scss
 // ==========================================================================
 // Defines the core design tokens for the application, including:
-// 1. Theme map for light and dark modes.
-// 2. CSS custom properties (:root) derived from the theme map.
+// 1. CSS custom properties for light theme (default).
+// 2. CSS custom properties for dark theme (applied via body.dark-mode).
 // 3. Non-color SCSS variables (typography, spacing, layout, etc.).
-// **REVISED: Updated theme map values using the new color scales.**
+// **REVISED: Removed @media (prefers-color-scheme: dark) block.**
 // ==========================================================================
-@use 'sass:map'; // Use sass:map for map functions
-@use 'sass:color'; // Use sass:color for color functions
+@use 'sass:color'; // Use sass:color for color functions like adjust
 
 // --------------------------------------------------------------------------
-// Theme Map (Updated with specific values from user's new color scales)
+// Default Theme (Light Mode) & Base Color Definitions
 // --------------------------------------------------------------------------
-$themes: (
-  light: (
-    // --- Map existing semantic names to new scale values ---
-    text:           #030817, // text-950
-    background:     #e8eefd, // background-50
-    primary:        #1f4fe0, // primary-500
-    secondary:      #f95f06, // secondary-500
-    accent:         #e31c51, // accent-500
-
-    // Semantic Names (Mapping existing names to new scale values)
-    text-primary:    #06102d, // text-900 (darker for headings)
-    text-secondary:  #122f87, // text-700 (main body text)
-    text-muted:      #7895ed, // text-300 (lighter for hints)
-    text-inverted:   #e8edfc, // text-50 (text on colored backgrounds)
-    text-link:       #173fb5, // text-600 (link color)
-    text-link-hover: #0c1f5a, // text-800 (darker link hover)
-
-    body-bg:         #e8eefd, // background-50
-    surface-bg:      #ffffff, // Keep pure white, or use background-0 if added
-    surface-alt-bg:  #d1ddfa, // background-100 (slightly darker bg)
-
-    border-color:       #a3baf5, // background-200 (standard border)
-    border-color-strong: #7598f0, // background-300 (stronger border)
-
-    // Use the '-500' as the base for primary/secondary/accent if not defined above
-    primary-light:     #4b72e7, // primary-400
-    primary-dark:      #183fb4, // primary-600 (darker for hover/active)
-    secondary-light:   #fa7f38, // secondary-400
-    secondary-dark:    #c74c05, // secondary-600
-    accent-light:      #e94974, // accent-400
-    accent-dark:       #b61641, // accent-600
-
-    // Define standard state colors (Choose appropriate shades from scale or keep separate)
-    success:         #10b981, // Keeping existing green, or map to a scale value
-    error:           #e31c51, // Mapped to accent-500
-    warning:         #f95f06, // Mapped to secondary-500
-    info:            #1d4ee2, // Mapped to text-500 (or primary-500)
-
-    // Component Specific (Map to new scale values)
-    header-bg:       var(--surface-bg), // Use surface white
-    sidebar-bg:      #0c205a, // primary-800 (dark primary for sidebar)
-    footer-bg:       var(--surface-alt-bg), // Use alt surface
-    footer-text:     var(--text-secondary),
-    footer-link:     var(--text-link),
-    footer-link-hover: var(--text-link-hover),
-  ),
-  dark: (
-    // --- Map existing semantic names to new scale values ---
-    text:           #e8edfc, // text-950
-    background:     #020817, // background-50
-    primary:        #1f4fe0, // primary-500 (same hex, corresponds to dark primary-500)
-    secondary:      #f95f06, // secondary-500 (same hex, corresponds to dark secondary-500)
-    accent:         #e31c51, // accent-500 (same hex, corresponds to dark accent-500)
-
-    // Semantic Names (Mapping existing names to new scale values)
-    text-primary:    #e8edfc, // text-950 (main text often primary in dark)
-    text-secondary:  #a5b8f3, // text-800 (slightly dimmer text)
-    text-muted:      #4a72e8, // text-600 (dimmest text)
-    text-inverted:   #ebecf0, // text-50 (text on light colored backgrounds)
-    text-link:       #7895ed, // text-700 (link color)
-    text-link-hover: #a5b8f3, // text-800 (lighter link hover)
-
-    body-bg:         #020817, // background-50
-    surface-bg:      #0d2c73, // background-100 (card/modal bg)
-    surface-alt-bg:  #0a215c, // background-200 (table header bg)
-
-    border-color:       #0f328a, // background-300 (standard border)
-    border-color-strong: #1342b9, // background-400 (stronger border)
-
-    // Use the '-500' as the base for primary/secondary/accent if not defined above
-    primary-light:     #4b72e7, // primary-600 (Lighter shade for hover/active in dark)
-    primary-dark:      #183fb4, // primary-400 (Darker shade)
-    secondary-light:   #fa7f38, // secondary-600
-    secondary-dark:    #c74c05, // secondary-400
-    accent-light:      #e94974, // accent-600
-    accent-dark:       #b61641, // accent-400
-
-    // Define standard state colors (Choose appropriate shades from scale or keep separate)
-    success:         #34d399, // Keeping existing green, or map to a scale value
-    error:           #e31c51, // Mapped to accent-500
-    warning:         #f95f06, // Mapped to secondary-500
-    info:            #4a72e8, // Mapped to text-600 (or primary-600)
-
-    // Component Specific (Map to new scale values)
-    header-bg:       var(--surface-bg),
-    sidebar-bg:      #06102d, // primary-900 (darker sidebar)
-    footer-bg:       var(--surface-alt-bg),
-    footer-text:     var(--text-secondary),
-    footer-link:     var(--text-link),
-    footer-link-hover: var(--text-link-hover),
-  )
-);
-
-// --------------------------------------------------------------------------
-// Generate CSS Custom Properties from Theme Map
-// --------------------------------------------------------------------------
-// Creates the :root variables based on the light theme map.
 :root {
-    // Generate CSS variables from the 'light' theme map
-    @each $key, $value in map.get($themes, light) {
-      --#{$key}: #{$value};
-    }
+  // -- Base Text Colors --
+  --text-50: #ebeff9;
+  --text-100: #d8dff3;
+  --text-200: #b0bfe8;
+  --text-300: #899fdc; // Mapped to text-muted
+  --text-400: #627fd0;
+  --text-500: #3b5fc4; // Mapped to info
+  --text-600: #2f4c9d; // Mapped to text-link
+  --text-700: #233976; // Mapped to text-secondary
+  --text-800: #17264f; // Mapped to text-link-hover
+  --text-900: #0c1327; // Mapped to text-primary
+  --text-950: #060a14;
 
-    // --- Add derived/alpha colors manually or via loop if needed ---
-    // Define RGB versions for use in rgba()
-    --primary-rgb: #{color.red(map.get(map.get($themes, light), primary))}, #{color.green(map.get(map.get($themes, light), primary))}, #{color.blue(map.get(map.get($themes, light), primary))};
-    --success-rgb: #{color.red(map.get(map.get($themes, light), success))}, #{color.green(map.get(map.get($themes, light), success))}, #{color.blue(map.get(map.get($themes, light), success))};
-    --error-rgb: #{color.red(map.get(map.get($themes, light), error))}, #{color.green(map.get(map.get($themes, light), error))}, #{color.blue(map.get(map.get($themes, light), error))};
-    --warning-rgb: #{color.red(map.get(map.get($themes, light), warning))}, #{color.green(map.get(map.get($themes, light), warning))}, #{color.blue(map.get(map.get($themes, light), warning))};
-    --info-rgb: #{color.red(map.get(map.get($themes, light), info))}, #{color.green(map.get(map.get($themes, light), info))}, #{color.blue(map.get(map.get($themes, light), info))};
-    --accent-rgb: #{color.red(map.get(map.get($themes, light), accent))}, #{color.green(map.get(map.get($themes, light), accent))}, #{color.blue(map.get(map.get($themes, light), accent))};
-    --text-muted-rgb: #{color.red(map.get(map.get($themes, light), text-muted))}, #{color.green(map.get(map.get($themes, light), text-muted))}, #{color.blue(map.get(map.get($themes, light), text-muted))};
-    --secondary-rgb: #{color.red(map.get(map.get($themes, light), secondary))}, #{color.green(map.get(map.get($themes, light), secondary))}, #{color.blue(map.get(map.get($themes, light), secondary))};
+  // -- Base Background Colors --
+  --background-50: #ecf0f9; // Mapped to body-bg, surface-tonal
+  --background-100: #d8e1f3; // Mapped to surface-alt-bg, surface-tonal-1
+  --background-200: #b2c3e6; // Mapped to border-color, surface-tonal-2
+  --background-300: #8ba5da; // Mapped to border-color-strong, surface-tonal-3
+  --background-400: #6588cd;
+  --background-500: #3e6ac1;
+  --background-600: #32559a;
+  --background-700: #253f74;
+  --background-800: #192a4d;
+  --background-900: #0c1527;
+  --background-950: #060b13;
 
+  // -- Primary Colors --
+  --primary-50: #e8eefc; // Mapped to text-inverted
+  --primary-100: #d2ddf9;
+  --primary-200: #a5bbf3;
+  --primary-300: #7899ed;
+  --primary-400: #4a77e8; // Mapped to primary-light
+  --primary-500: #1d55e2; // Mapped to primary
+  --primary-600: #1744b5; // Mapped to primary-dark
+  --primary-700: #123387;
+  --primary-800: #0c225a; // Mapped to sidebar-bg
+  --primary-900: #06112d;
+  --primary-950: #030817;
 
-    --primary-alpha-10: rgba(var(--primary-rgb), 0.1);
+  // -- Secondary Colors --
+  --secondary-50: #f6ecf9;
+  --secondary-100: #edd8f3;
+  --secondary-200: #dcb2e6;
+  --secondary-300: #ca8bda;
+  --secondary-400: #b865cd; // Mapped to secondary-light
+  --secondary-500: #a73ec1; // Mapped to secondary, warning, status-progress
+  --secondary-600: #85329a; // Mapped to secondary-dark
+  --secondary-700: #642574;
+  --secondary-800: #43194d;
+  --secondary-900: #210c27;
+  --secondary-950: #110613;
 
-    // Add Alpha Badge Backgrounds based on state colors
-    --badge-info-bg-alpha: rgba(var(--info-rgb), 0.15);
-    --badge-success-bg-alpha: rgba(var(--success-rgb), 0.15);
-    --badge-warning-bg-alpha: rgba(var(--warning-rgb), 0.15);
-    --badge-error-bg-alpha: rgba(var(--error-rgb), 0.15);
+  // -- Accent Colors --
+  --accent-50: #f9ecf7;
+  --accent-100: #f3d8f0;
+  --accent-200: #e6b2e1;
+  --accent-300: #da8bd2;
+  --accent-400: #cd65c3; // Mapped to accent-light
+  --accent-500: #c13eb4; // Mapped to accent, error, urgency-critical
+  --accent-600: #9a3290; // Mapped to accent-dark, error-dark
+  --accent-700: #74256c;
+  --accent-800: #4d1948;
+  --accent-900: #270c24;
+  --accent-950: #130612;
 
-    // Define status/urgency colors (can map to state colors or be unique)
+  // -- Semantic Mapping (Default Light) --
+  --text-primary:    var(--text-900);
+  --text-secondary:  var(--text-700);
+  --text-muted:      var(--text-300);
+  --text-inverted:   var(--primary-50);
+  --text-link:       var(--text-600);
+  --text-link-hover: var(--text-800);
+
+  --body-bg:         var(--background-50);
+  --surface-bg:      #ffffff;
+  --surface-tonal:   var(--background-50);
+  --surface-tonal-1: var(--background-100);
+  --surface-tonal-2: var(--background-200);
+  --surface-tonal-3: var(--background-300);
+  --surface-alt-bg:  var(--background-100);
+
+  --border-color:        var(--surface-tonal-2);
+  --border-color-strong: var(--surface-tonal-3);
+
+  --primary:         var(--primary-500);
+  --primary-light:   var(--primary-400);
+  --primary-dark:    var(--primary-600);
+  --secondary:       var(--secondary-500);
+  --secondary-light: var(--secondary-400);
+  --secondary-dark:  var(--secondary-600);
+  --accent:          var(--accent-500);
+  --accent-light:    var(--accent-400);
+  --accent-dark:     var(--accent-600);
+
+  --success:         #10b981;
+  --error:           var(--accent-500);
+  --warning:         var(--secondary-500);
+  --info:            var(--text-500);
+
+  --header-bg:       var(--surface-bg);
+  --sidebar-bg:      var(--primary-800);
+  --sidebar-text:    var(--primary-100);
+  --footer-bg:       var(--surface-alt-bg);
+
+  // RGB versions - Light
+  --primary-rgb:     #{color.red(#1d55e2)}, #{color.green(#1d55e2)}, #{color.blue(#1d55e2)};
+  --secondary-rgb:   #{color.red(#a73ec1)}, #{color.green(#a73ec1)}, #{color.blue(#a73ec1)};
+  --accent-rgb:      #{color.red(#c13eb4)}, #{color.green(#c13eb4)}, #{color.blue(#c13eb4)};
+  --success-rgb:     #{color.red(#10b981)}, #{color.green(#10b981)}, #{color.blue(#10b981)};
+  --error-rgb:       #{color.red(#c13eb4)}, #{color.green(#c13eb4)}, #{color.blue(#c13eb4)};
+  --warning-rgb:     #{color.red(#a73ec1)}, #{color.green(#a73ec1)}, #{color.blue(#a73ec1)};
+  --info-rgb:        #{color.red(#3b5fc4)}, #{color.green(#3b5fc4)}, #{color.blue(#3b5fc4)};
+  --text-muted-rgb:  #{color.red(#899fdc)}, #{color.green(#899fdc)}, #{color.blue(#899fdc)};
+
+  // Status/Urgency Mapping - Light
+  --status-unassigned-color: var(--warning);
+  --status-assigned-color:   var(--info);
+  --status-progress-color:   var(--secondary);
+  --status-closed-color:     var(--text-muted);
+  --urgency-low-color:       var(--info);
+  --urgency-medium-color:    var(--success);
+  --urgency-high-color:      var(--warning);
+  --urgency-critical-color:  var(--error);
+
+  --error-dark: var(--accent-600);
+
+  // Shadows
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-inset: inset 0 2px 4px 0 rgba(0,0,0,0.06);
+}
+
+// --------------------------------------------------------------------------
+// Dark Mode Override via .dark-mode Class
+// --------------------------------------------------------------------------
+// Apply these variables if the body has the 'dark-mode' class,
+// overriding the :root defaults.
+body.dark-mode {
+    // -- Base Text Colors --
+    --text-50: #060a14;
+    --text-100: #0c1327;
+    --text-200: #17264f;
+    --text-300: #233976;
+    --text-400: #2f4c9d;
+    --text-500: #3b5fc4;
+    --text-600: #627fd0; // Mapped to text-muted, info
+    --text-700: #899fdc; // Mapped to text-link
+    --text-800: #b0bfe8; // Mapped to text-secondary, text-link-hover
+    --text-900: #d8dff3;
+    --text-950: #ebeff9; // Mapped to text-primary
+
+    // -- Base Background Colors --
+    --background-50: #060b13; // Mapped to body-bg
+    --background-100: #0c1527; // Mapped to surface-bg, surface-tonal, sidebar-bg
+    --background-200: #192a4d; // Mapped to surface-alt-bg, surface-tonal-1
+    --background-300: #253f74; // Mapped to border-color, surface-tonal-2
+    --background-400: #32559a; // Mapped to border-color-strong, surface-tonal-3
+    --background-500: #3e6ac1;
+    --background-600: #6588cd;
+    --background-700: #8ba5da;
+    --background-800: #b2c3e6;
+    --background-900: #d8e1f3;
+    --background-950: #ecf0f9;
+
+    // -- Primary Colors --
+    --primary-50: #030817;
+    --primary-100: #06112d;
+    --primary-200: #0c225a;
+    --primary-300: #123387;
+    --primary-400: #1744b5; // Mapped to primary-dark
+    --primary-500: #1d55e2; // Mapped to primary
+    --primary-600: #4a77e8; // Mapped to primary-light
+    --primary-700: #7899ed; // Mapped to sidebar-text
+    --primary-800: #a5bbf3;
+    --primary-900: #d2ddf9;
+    --primary-950: #e8eefc; // Mapped to text-inverted
+
+    // -- Secondary Colors --
+    --secondary-50: #110613;
+    --secondary-100: #210c27;
+    --secondary-200: #43194d;
+    --secondary-300: #642574;
+    --secondary-400: #85329a; // Mapped to secondary-dark
+    --secondary-500: #a73ec1; // Mapped to secondary, warning, status-progress
+    --secondary-600: #b865cd; // Mapped to secondary-light
+    --secondary-700: #ca8bda;
+    --secondary-800: #dcb2e6;
+    --secondary-900: #edd8f3;
+    --secondary-950: #f6ecf9;
+
+    // -- Accent Colors --
+    --accent-50: #130612;
+    --accent-100: #270c24;
+    --accent-200: #4d1948;
+    --accent-300: #74256c;
+    --accent-400: #9a3290; // Mapped to accent-dark, error-dark
+    --accent-500: #c13eb4; // Mapped to accent, error, urgency-critical
+    --accent-600: #cd65c3; // Mapped to accent-light
+    --accent-700: #da8bd2;
+    --accent-800: #e6b2e1;
+    --accent-900: #f3d8f0;
+    --accent-950: #f9ecf7;
+
+    // -- Semantic Mapping (Dark - Class Override) --
+    --text-primary:    var(--text-950);
+    --text-secondary:  var(--text-800);
+    --text-muted:      var(--text-600);
+    --text-inverted:   var(--primary-950);
+    --text-link:       var(--text-700);
+    --text-link-hover: var(--text-800);
+
+    --body-bg:         var(--background-50);
+    --surface-bg:      var(--background-100);
+    --surface-tonal:   var(--background-100);
+    --surface-tonal-1: var(--background-200);
+    --surface-tonal-2: var(--background-300);
+    --surface-tonal-3: var(--background-400);
+    --surface-alt-bg:  var(--background-200);
+
+    --border-color:        var(--surface-tonal-2);
+    --border-color-strong: var(--surface-tonal-3);
+
+    --primary:         var(--primary-500);
+    --primary-light:   var(--primary-600);
+    --primary-dark:    var(--primary-400);
+    --secondary:       var(--secondary-500);
+    --secondary-light: var(--secondary-600);
+    --secondary-dark:  var(--secondary-400);
+    --accent:          var(--accent-500);
+    --accent-light:    var(--accent-600);
+    --accent-dark:     var(--accent-400);
+
+    --success:         #34d399;
+    --error:           var(--accent-500);
+    --warning:         var(--secondary-500);
+    --info:            var(--text-600);
+
+    --header-bg:       var(--surface-bg);
+    --sidebar-bg:      var(--surface-bg);
+    --sidebar-text:    var(--primary-700);
+    --footer-bg:       var(--surface-alt-bg);
+
+    // RGB versions - Dark
+    --primary-rgb:     #{color.red(#1d55e2)}, #{color.green(#1d55e2)}, #{color.blue(#1d55e2)};
+    --secondary-rgb:   #{color.red(#a73ec1)}, #{color.green(#a73ec1)}, #{color.blue(#a73ec1)};
+    --accent-rgb:      #{color.red(#c13eb4)}, #{color.green(#c13eb4)}, #{color.blue(#c13eb4)};
+    --success-rgb:     #{color.red(#34d399)}, #{color.green(#34d399)}, #{color.blue(#34d399)};
+    --error-rgb:       #{color.red(#c13eb4)}, #{color.green(#c13eb4)}, #{color.blue(#c13eb4)};
+    --warning-rgb:     #{color.red(#a73ec1)}, #{color.green(#a73ec1)}, #{color.blue(#a73ec1)};
+    --info-rgb:        #{color.red(#627fd0)}, #{color.green(#627fd0)}, #{color.blue(#627fd0)};
+    --text-muted-rgb:  #{color.red(#627fd0)}, #{color.green(#627fd0)}, #{color.blue(#627fd0)};
+
+    // Status/Urgency Mapping - Dark
     --status-unassigned-color: var(--warning);
-    --status-assigned-color: var(--info);
-    --status-progress-color: var(--secondary); // Using secondary color now
-    --status-closed-color: var(--text-muted);
+    --status-assigned-color:   var(--info);
+    --status-progress-color:   var(--secondary);
+    --status-closed-color:     var(--text-muted);
+    --urgency-low-color:       var(--info);
+    --urgency-medium-color:    var(--success);
+    --urgency-high-color:      var(--warning);
+    --urgency-critical-color:  var(--error);
 
-    --urgency-low-color: var(--info);
-    --urgency-medium-color: var(--success);
-    --urgency-high-color: var(--warning);
-    --urgency-critical-color: var(--error);
-
-    // Define hover/darker versions if needed by mixins
-    --error-dark: #{color.adjust(map.get(map.get($themes, light), error), $blackness: 10%)};
+    --error-dark: var(--accent-400);
 }
 
 
 // --------------------------------------------------------------------------
-// Non-Color Variables (Keep existing definitions)
+// Non-Color Variables (SCSS variables for structure, layout, etc.)
 // --------------------------------------------------------------------------
 // Typography
 $font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
@@ -192,11 +321,11 @@ $border-radius-lg: 0.5rem;    // 8px
 $border-radius-xl: 0.75rem;   // 12px
 $border-radius-full: 9999px;
 
-// Shadows
-$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-$shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+// Shadows (SCSS variables for convenience - these now just reference the CSS vars)
+$shadow-sm: var(--shadow-sm);
+$shadow: var(--shadow);
+$shadow-md: var(--shadow-md);
+$shadow-lg: var(--shadow-lg);
 
 // Layout
 $header-height: 4rem;

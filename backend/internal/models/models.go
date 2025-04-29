@@ -88,11 +88,11 @@ const (
 type Ticket struct {
 	ID               string         `json:"id"`                            // Unique identifier (UUID)
 	TicketNumber     int32          `json:"ticket_number"`                 // User-facing sequential number
-	EndUserEmail     string         `json:"end_user_email"`                // Email of the person who submitted the ticket
-	IssueType        string         `json:"issue_type,omitempty"`          // Category or type of issue (e.g., "Hardware", "Software")
+	EndUserEmail     string         `json:"submitterEmail"`                // Email of the person who submitted the ticket
+	IssueType        string         `json:"issueType,omitempty"`          // Category or type of issue (e.g., "Hardware", "Software")
 	Urgency          TicketUrgency  `json:"urgency"`                       // Urgency level (Low, Medium, High, Critical)
 	Subject          string         `json:"subject"`                       // Brief summary of the issue
-	Body             string         `json:"body"`                          // Detailed description of the issue
+	Body             string         `json:"description"`                          // Detailed description of the issue
 	Status           TicketStatus   `json:"status"`                        // Current status (Unassigned, Assigned, etc.)
 	AssignedToUserID *string        `json:"assigned_to_user_id,omitempty"` // UUID of the assigned staff member (nullable)
 	AssignedToUser   *User          `json:"assigned_to_user,omitempty"`    // Populated details of the assigned staff member (nested)
@@ -108,11 +108,11 @@ type Ticket struct {
 // TicketCreate represents the data required to create a new support ticket.
 // Used for binding request bodies, typically from public or internal forms.
 type TicketCreate struct {
-	EndUserEmail string        `json:"end_user_email" validate:"required,email"`               // Submitter's email
-	IssueType    string        `json:"issue_type" validate:"required"`                         // Issue category
+	EndUserEmail string        `json:"submitterEmail" validate:"required,email"`               // Submitter's email
+	IssueType    string        `json:"issueType" validate:"required"`                         // Issue category
 	Urgency      TicketUrgency `json:"urgency" validate:"required,oneof=Low Medium High Critical"` // Urgency level
 	Subject      string        `json:"subject" validate:"required,min=5,max=200"`              // Ticket subject
-	Body         string        `json:"body" validate:"required"`                               // Ticket description
+	Body         string        `json:"description" validate:"required"`                               // Ticket description
 	Tags         []string      `json:"tags,omitempty"`                                         // Optional list of tag names to associate
 }
 
@@ -283,7 +283,7 @@ type TicketFilter struct {
 	Status       *TicketStatus  `json:"status,omitempty"`       // Filter by status
 	Urgency      *TicketUrgency `json:"urgency,omitempty"`      // Filter by urgency
 	AssignedTo   *string        `json:"assigned_to,omitempty"`  // Filter by assignee ID, "me", or "unassigned"
-	EndUserEmail *string        `json:"end_user_email,omitempty"`// Filter by submitter email
+	EndUserEmail *string        `json:"submitterEmail,omitempty"`// Filter by submitter email
 	FromDate     *time.Time     `json:"from_date,omitempty"`    // Filter by creation/update date start
 	ToDate       *time.Time     `json:"to_date,omitempty"`      // Filter by creation/update date end
 	Tags         []string       `json:"tags,omitempty"`         // Filter by tag names

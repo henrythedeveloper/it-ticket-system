@@ -5,22 +5,12 @@
 // ==========================================================================
 
 import React, { useState, useEffect } from 'react';
+import { AppSettings } from '../../types'; // Adjust path if needed
 import SettingsForm from '../../components/forms/SettingsForm'; // The settings form component
 import Loader from '../../components/common/Loader'; // Loader component
 import Alert from '../../components/common/Alert'; // Alert component
 import { useAuth } from '../../hooks/useAuth'; // Auth hook for role check
 // import { fetchSettings } from '../../services/settingsService'; // Example API service
-
-// --- Types --- (Should match types used in SettingsForm)
-interface NotificationSettings {
-  emailOnNewTicket: boolean; emailOnAssignment: boolean; emailOnUpdate: boolean;
-}
-interface TicketSettings {
-  defaultUrgency: 'Low' | 'Medium' | 'High'; allowPublicSubmission: boolean; issueTypes: string[];
-}
-interface AppSettings {
-  notifications: NotificationSettings; tickets: TicketSettings;
-}
 
 // --- Mock Data (Replace with API call) ---
 const MOCK_INITIAL_SETTINGS: AppSettings = {

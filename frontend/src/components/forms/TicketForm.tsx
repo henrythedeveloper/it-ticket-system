@@ -2,6 +2,7 @@
 // ==========================================================================
 // Component rendering the form for creating new tickets (public facing).
 // Refactored to use the useFormSubmit hook.
+// FIX: Pass ticket_number instead of id to onSubmitSuccess callback.
 // ==========================================================================
 
 import React, { useState } from 'react';
@@ -16,7 +17,8 @@ import { createTicket } from '../../services/ticketService'; // API service call
 
 // --- Component Props ---
 interface TicketFormProps {
-    onSubmitSuccess: (newTicketId: string) => void;
+    // FIX: Change prop to expect ticket number (number) instead of ID (string)
+    onSubmitSuccess: (newTicketNumber: number) => void;
     issueTypes?: string[];
     availableTags?: string[];
 }
@@ -43,6 +45,15 @@ interface CreateTicketApiPayload {
     issueType?: string;
     tags?: string[];
 }
+
+// --- API Response Structure (Matching the backend) ---
+// Define the expected structure of the full API response
+interface CreateTicketApiResponse {
+    success: boolean;
+    message: string;
+    data: Ticket; // The actual ticket data is nested here
+}
+
 
 // --- Component ---
 
@@ -71,11 +82,23 @@ const TicketForm: React.FC<TicketFormProps> = ({
         error,
         clearError,
         // successMessage not needed, onSubmitSuccess handles UI change
-    } = useFormSubmit<CreateTicketApiPayload, Ticket>(
+    } = useFormSubmit<CreateTicketApiPayload, CreateTicketApiResponse>(
         createTicket, // Pass the API service function
         {
-            onSuccess: (newTicket) => {
-                onSubmitSuccess(newTicket.id); // Notify parent with the new ticket ID
+            // FIX: Modify onSuccess to pass response.data.ticket_number
+            onSuccess: (response) => {
+                console.log("[TicketForm] onSuccess received response:", response);
+                // Ensure response and nested data/ticket_number exist
+                if (response?.data?.ticket_number !== undefined) {
+                    onSubmitSuccess(response.data.ticket_number); // Pass the ticket number
+                } else {
+                    console.error("[TicketForm] Invalid response structure or missing ticket_number:", response);
+                    // Handle error - maybe call an onError prop or show a generic error
+                    // For now, we might call onSubmitSuccess with a placeholder like 0 or -1,
+                    // or ideally, have an onError callback to signal failure.
+                    // Calling with 0 for now, but this should be improved.
+                    onSubmitSuccess(0);
+                }
             },
             onError: (err) => {
                 console.error("Failed to create ticket (hook callback):", err);

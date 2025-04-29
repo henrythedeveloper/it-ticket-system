@@ -2,6 +2,8 @@
 // ==========================================================================
 // Provides theme state ('light' | 'dark') and toggle function via React Context,
 // using the Zustand theme store for state management and persistence.
+// Correctly applies/removes the 'dark-mode' class to the body.
+// Refactored Zustand state selection.
 // ==========================================================================
 
 import React, { createContext, ReactNode, useEffect } from 'react';
@@ -31,35 +33,46 @@ interface ThemeProviderProps {
  */
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     // --- State & Actions from Store ---
-    const { theme, toggleTheme, initializeTheme } = useThemeStore();
+    // Select state and actions individually from the store
+    const theme = useThemeStore((state) => state.theme);
+    const toggleTheme = useThemeStore((state) => state.toggleTheme);
+    const initializeTheme = useThemeStore((state) => state.initializeTheme);
 
     // --- Effects ---
     // Initialize theme from localStorage or system preference on mount
     useEffect(() => {
-    initializeTheme();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        initializeTheme();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Run only once on initial mount
 
-    // Apply the theme class to the body whenever the theme state changes
-    // NOTE: This logic might be duplicated in App.tsx. Consider having it in one place.
-    // If App.tsx handles it, this useEffect can be removed. If kept here, remove from App.tsx.
+    // Apply/Remove the 'dark-mode' class to the body whenever the theme state changes
     useEffect(() => {
-    const body = document.body;
-    body.classList.remove('light-mode', 'dark-mode');
-    body.classList.add(`${theme}-mode`);
-    console.log(`ThemeContext: Applied ${theme}-mode class.`);
+        const body = document.body;
+        if (theme === 'dark') {
+            body.classList.add('dark-mode');
+            console.log('ThemeContext: Added dark-mode class.');
+        } else {
+            // Ensure 'dark-mode' is removed if theme is light
+            body.classList.remove('dark-mode');
+            console.log('ThemeContext: Removed dark-mode class.');
+        }
+        // Cleanup function to remove class if component unmounts (optional but good practice)
+        return () => {
+            body.classList.remove('dark-mode');
+        };
     }, [theme]); // Re-run when theme changes
 
     // --- Context Value ---
+    // Memoize context value if necessary, but likely okay here
     const contextValue: ThemeContextType = {
-    theme,
-    toggleTheme,
+        theme,
+        toggleTheme,
     };
 
     // --- Render ---
     return (
-    <ThemeContext.Provider value={contextValue}>
-        {children}
-    </ThemeContext.Provider>
+        <ThemeContext.Provider value={contextValue}>
+            {children}
+        </ThemeContext.Provider>
     );
 };

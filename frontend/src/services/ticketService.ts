@@ -1,6 +1,7 @@
 // src/services/ticketService.ts
 // ==========================================================================
 // Service functions for handling ticket-related API calls.
+// FIX: createTicket now returns the full API response object.
 // ==========================================================================
 
 import api from './api'; // Import the configured Axios instance
@@ -49,6 +50,15 @@ assignedToId?: string | null;
 resolutionNotes?: string; // Required if status is 'Closed'
 }
 
+// --- API Response Structure for Create Ticket ---
+// Define the expected structure of the full API response from the backend
+interface CreateTicketApiResponse {
+    success: boolean;
+    message: string;
+    data: Ticket; // The actual ticket data is nested here
+}
+
+
 // --- Service Functions ---
 
 /**
@@ -59,6 +69,7 @@ resolutionNotes?: string; // Required if status is 'Closed'
 export const fetchTickets = async (params: FetchTicketsParams = {}): Promise<PaginatedResponse<Ticket>> => {
 try {
 const queryString = buildQueryString(params);
+// Assuming the backend response for listing matches PaginatedResponse<Ticket>
 const response = await api.get<PaginatedResponse<Ticket>>(`/tickets${queryString}`);
 return response.data;
 } catch (error) {
@@ -74,27 +85,33 @@ throw error;
  */
 export const fetchTicketById = async (ticketId: string): Promise<Ticket> => {
 try {
-// Assuming the backend returns the full ticket details, including updates/attachments
-const response = await api.get<Ticket>(`/tickets/${ticketId}`);
-return response.data;
+    // Assuming the backend returns the ticket data directly (or nested in a standard response)
+    // If nested like { success: true, data: Ticket }, adjust accordingly:
+    // const response = await api.get<{ success: boolean, data: Ticket }>(`/tickets/${ticketId}`);
+    // return response.data.data;
+    const response = await api.get<Ticket>(`/tickets/${ticketId}`); // Adjust if response is nested
+    return response.data;
 } catch (error) {
-console.error(`Fetch ticket by ID (${ticketId}) API error:`, error);
-throw error;
+    console.error(`Fetch ticket by ID (${ticketId}) API error:`, error);
+    throw error;
 }
 };
 
 /**
  * Creates a new ticket.
  * @param ticketData - The data for the new ticket.
- * @returns A Promise resolving with the newly created Ticket object.
+ * @returns A Promise resolving with the full API response containing the new Ticket object.
  */
-export const createTicket = async (ticketData: CreateTicketInputData): Promise<Ticket> => {
+// FIX: Change return type to Promise<CreateTicketApiResponse>
+export const createTicket = async (ticketData: CreateTicketInputData): Promise<CreateTicketApiResponse> => {
 try {
-const response = await api.post<Ticket>('/tickets', ticketData);
-return response.data;
+    // FIX: Expect the full CreateTicketApiResponse structure from the backend
+    const response = await api.post<CreateTicketApiResponse>('/tickets', ticketData);
+    // FIX: Return the entire response data, not just response.data.data
+    return response.data;
 } catch (error) {
-console.error('Create ticket API error:', error);
-throw error;
+    console.error('Create ticket API error:', error);
+    throw error;
 }
 };
 
@@ -106,8 +123,9 @@ throw error;
  */
 export const addTicketUpdate = async (ticketId: string, updateData: AddTicketUpdateInput): Promise<TicketUpdate> => {
 try {
-    const response = await api.post<TicketUpdate>(`/tickets/${ticketId}/updates`, updateData);
-    return response.data;
+    // Assuming backend returns { success: true, data: TicketUpdate }
+    const response = await api.post<{ success: boolean, data: TicketUpdate }>(`/tickets/${ticketId}/comments`, updateData);
+    return response.data.data; // Return nested data
 } catch (error) {
     console.error(`Add ticket update (${ticketId}) API error:`, error);
     throw error;
@@ -122,8 +140,9 @@ try {
  */
 export const updateTicketStatus = async (ticketId: string, statusData: UpdateTicketStatusInput): Promise<Ticket> => {
 try {
-    const response = await api.put<Ticket>(`/tickets/${ticketId}/status`, statusData);
-    return response.data;
+    // Assuming backend returns { success: true, data: Ticket }
+    const response = await api.put<{ success: boolean, data: Ticket }>(`/tickets/${ticketId}`, statusData); // Assuming PUT /tickets/:id handles status updates
+    return response.data.data; // Return nested data
 } catch (error) {
     console.error(`Update ticket status (${ticketId}) API error:`, error);
     throw error;
@@ -147,7 +166,8 @@ try {
     const formData = new FormData();
     formData.append('file', file); // Backend expects the file under the 'file' key
 
-    const response = await api.post<TicketAttachment>(
+    // Assuming backend returns { success: true, data: TicketAttachment }
+    const response = await api.post<{ success: boolean, data: TicketAttachment }>(
     `/tickets/${ticketId}/attachments`,
     formData,
     {
@@ -157,7 +177,7 @@ try {
         onUploadProgress, // Pass the progress callback to Axios
     }
     );
-    return response.data;
+    return response.data.data; // Return nested data
 } catch (error) {
     console.error(`Upload ticket attachment (${ticketId}) API error:`, error);
     throw error;
@@ -172,6 +192,7 @@ try {
  */
 export const deleteTicketAttachment = async (ticketId: string, attachmentId: string): Promise<void> => {
     try {
+        // Assuming backend returns { success: true } or similar on delete
         await api.delete(`/tickets/${ticketId}/attachments/${attachmentId}`);
     } catch (error) {
         console.error(`Delete ticket attachment (${ticketId}/${attachmentId}) API error:`, error);

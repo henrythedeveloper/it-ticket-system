@@ -1,8 +1,10 @@
 // src/types/index.ts
 // ==========================================================================
 // Centralized type definitions for the application.
-// Added setUser to AuthContextType.
+// Added ticket_number to Ticket interface.
 // ==========================================================================
+
+import { ReactNode } from 'react'; // Added for Context types
 
 // --------------------------------------------------------------------------
 // Authentication & User Types
@@ -35,7 +37,6 @@ export interface AuthState {
 export interface AuthContextType extends AuthState {
   login: (token: string, user: User) => void;
   logout: () => void;
-  // FIX: Add setUser to the context type definition
   setUser: (user: User | null) => void;
   loading: boolean; // Indicates if auth state is being loaded/verified
 }
@@ -59,6 +60,7 @@ export type TicketUrgency = 'Low' | 'Medium' | 'High' | 'Critical';
  */
 export interface TicketUpdate {
   id: string;
+  ticketId: string; // Added ticketId for context
   content: string;
   author: Pick<User, 'id' | 'name'>; // Only need author's id and name
   createdAt: string; // ISO date string
@@ -80,9 +82,11 @@ export interface TicketAttachment {
 
 /**
  * Represents the main structure of a ticket object.
+ * Added ticket_number field.
  */
 export interface Ticket {
   id: string;
+  ticket_number: number; // FIX: Added ticket number field (maps to int32)
   subject: string;
   description: string;
   status: TicketStatus;
@@ -94,7 +98,7 @@ export interface Ticket {
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
   closedAt?: string | null; // ISO date string when closed
-  resolutionNotes?: string | null; // Notes added upon closing
+  resolutionNotes?: string | null; // Notes added upon closing the ticket (nullable)
   updates?: TicketUpdate[]; // Array of comments/updates (potentially loaded separately)
   attachments?: TicketAttachment[]; // Array of attachments (potentially loaded separately)
 }
@@ -124,6 +128,38 @@ export interface Task {
   updatedAt: string; // ISO date string
   completedAt?: string | null; // ISO date string when completed
 }
+
+// --------------------------------------------------------------------------
+// Settings Types (Consolidated)
+// --------------------------------------------------------------------------
+
+/**
+ * Defines the structure for notification settings.
+ */
+export interface NotificationSettings {
+    emailOnNewTicket: boolean;
+    emailOnAssignment: boolean;
+    emailOnUpdate: boolean;
+}
+
+/**
+ * Defines the structure for ticket-related settings.
+ */
+export interface TicketSettings {
+    defaultUrgency: 'Low' | 'Medium' | 'High';
+    allowPublicSubmission: boolean;
+    issueTypes: string[]; // List of available issue types/categories
+}
+
+/**
+ * Defines the overall application settings structure.
+ */
+export interface AppSettings {
+    notifications: NotificationSettings;
+    tickets: TicketSettings;
+    // Add other setting categories as needed
+}
+
 
 // --------------------------------------------------------------------------
 // API Response Types (Examples)
@@ -225,4 +261,3 @@ export interface TicketStatusFormInputs {
     assignedToId?: string | null; // ID of the user to assign to
     resolutionNotes?: string; // Required if closing
 }
-

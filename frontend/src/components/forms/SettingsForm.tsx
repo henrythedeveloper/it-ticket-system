@@ -6,6 +6,7 @@
 // ==========================================================================
 
 import React, { useState, useEffect } from 'react';
+import { AppSettings, NotificationSettings, TicketSettings } from '../../types'; // Adjust path if needed
 import Input from '../common/Input'; // Reusable Input component
 import Button from '../common/Button'; // Reusable Button component
 import Alert from '../common/Alert'; // Reusable Alert component
@@ -13,22 +14,6 @@ import { useFormSubmit } from '../../hooks/useFormSubmit'; // Import the custom 
 // import Checkbox from '../common/Checkbox'; // Assuming a Checkbox component exists
 // import { fetchSettings, updateSettings } from '../../services/settingsService'; // Example API service
 
-// --- Types --- (Define specific settings structure)
-interface NotificationSettings {
-    emailOnNewTicket: boolean;
-    emailOnAssignment: boolean;
-    emailOnUpdate: boolean;
-}
-interface TicketSettings {
-    defaultUrgency: 'Low' | 'Medium' | 'High';
-    allowPublicSubmission: boolean;
-    issueTypes: string[]; // List of available issue types/categories
-}
-interface AppSettings {
-    notifications: NotificationSettings;
-    tickets: TicketSettings;
-    // Add other setting categories as needed
-}
 
 // --- Component Props ---
 interface SettingsFormProps {

@@ -48,9 +48,9 @@
 
 // --- Header Styles ---
 .header {
-  background-color: var(--header-bg); // Use CSS var
-  color: var(--header-text, var(--text-primary)); // Use CSS var (fallback to primary text)
-  box-shadow: $shadow; // Subtle shadow
+  background-color: var(--surface-tonal-1); // Use tonal surface for header
+  color: var(--text-primary);
+  box-shadow: $shadow;
   height: $header-height;
   display: flex;
   align-items: center;
@@ -61,7 +61,7 @@
   left: 0;
   right: 0;
   z-index: $z-index-fixed; // Ensure header stays on top
-  border-bottom: 1px solid var(--border-color); // Use CSS var
+  border-bottom: 1px solid var(--surface-tonal-2); // Use tonal surface for border
   transition: background-color $transition-medium, color $transition-medium, border-color $transition-medium;
 
   // Left side of the header (toggle, logo)
@@ -122,18 +122,18 @@
       // Dropdown menu content
       .dropdown-menu {
         position: absolute; top: calc(100% + #{$spacing-1}); right: 0;
-        background-color: var(--surface-bg); border-radius: $border-radius; // Use CSS var
+        background-color: var(--surface); border-radius: $border-radius;
         box-shadow: $shadow-lg; min-width: 180px; padding: $spacing-2 0;
         display: none; // Hidden by default, shown on hover/click
         flex-direction: column; z-index: $z-index-dropdown;
-        border: 1px solid var(--border-color); // Use CSS var
+        border: 1px solid var(--surface-tonal-2);
         // Menu items (links or buttons)
         a, button {
           display: block; padding: $spacing-2 $spacing-4; text-decoration: none;
           color: var(--text-secondary); text-align: left; background: none; // Use CSS var
           border: none; cursor: pointer; width: 100%; font-size: $font-size-sm;
           transition: background-color $transition-fast, color $transition-fast;
-          &:hover { background-color: var(--surface-alt-bg); color: var(--primary); } // Use CSS vars
+          &:hover { background-color: var(--surface-tonal-1); color: var(--primary); }
         }
       }
       // Show menu on hover (simple CSS approach)
@@ -144,13 +144,13 @@
 
 // --- Sidebar Styles ---
 .sidebar {
-  background-color: var(--sidebar-bg); // Use CSS var
+  background-color: var(--surface-tonal); // Use tonal surface for sidebar
   width: $sidebar-width; height: 100vh; position: fixed;
   top: 0; left: 0; z-index: $z-index-fixed - 1; // Below header
   padding-top: $header-height; // Account for fixed header
   transition: width $transition-medium, background-color $transition-medium;
   overflow-y: auto; // Allow scrolling if content exceeds height
-  border-right: 1px solid var(--border-color); // Use theme border color
+  border-right: 1px solid var(--surface-tonal-2);
 
   // Navigation list within sidebar
   .sidebar-nav {
@@ -168,9 +168,9 @@
           span { transition: opacity $transition-fast; opacity: 1; } // Text label
           // Active/hover state
           &:hover, &.active {
-            background-color: var(--sidebar-active-bg, var(--surface-alt-bg)); // Use CSS var (fallback)
-            color: var(--sidebar-text-hover, var(--primary)); // Use CSS var (fallback)
-            border-left-color: var(--sidebar-active-border, var(--primary)); // Use CSS var (fallback)
+            background-color: var(--surface-tonal-2);
+            color: var(--primary);
+            border-left-color: var(--primary);
           }
         }
       }
@@ -183,7 +183,7 @@
   margin-top: $header-height; // Avoid content going under fixed header
   min-height: calc(100vh - #{$header-height}); // Ensure footer is pushed down
   padding: $spacing-6;
-  background-color: var(--body-bg); // Use CSS var
+  background-color: var(--surface-tonal); // Use tonal surface for main content
   // Transitions handled by sidebar state classes
   transition: margin-left $transition-medium, width $transition-medium, background-color $transition-medium;
 }

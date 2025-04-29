@@ -6,31 +6,23 @@
 import { BrowserRouter as Router } from 'react-router-dom';
 // Correct the import path for AppRouter
 import AppRouter from './components/router'; // Main application router configuration
-import { useTheme } from './hooks/useTheme'; // Hook to manage theme changes
-import { useEffect } from 'react';
+// No longer need useTheme or useEffect here for body class manipulation
 
 /**
  * Root Application Component `App`
  *
  * - Sets up the main Router (`BrowserRouter`).
  * - Includes the application's routing logic (`AppRouter`).
- * - Applies the current theme class to the body element.
+ * - Theme class application is handled by ThemeProvider.
  */
 function App() {
   // --- Hooks ---
-  const { theme } = useTheme(); // Get current theme from context
+  // Theme state is accessed where needed via useTheme(),
+  // but the body class manipulation is handled within ThemeProvider.
 
   // --- Effects ---
-  // Apply theme class to body when theme changes
-  useEffect(() => {
-    const body = document.body;
-    // Remove previous theme class
-    body.classList.remove('light-mode', 'dark-mode');
-    // Add current theme class
-    body.classList.add(`${theme}-mode`);
-    // Optional: Set color scheme preference for browser UI elements
-    // document.documentElement.style.setProperty('color-scheme', theme);
-  }, [theme]); // Re-run effect when theme changes
+  // The useEffect to apply theme class to body has been removed from here
+  // and is correctly placed within ThemeProvider (ThemeContext.tsx).
 
   // --- Render ---
   return (

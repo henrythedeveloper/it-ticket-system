@@ -21,7 +21,7 @@
   &:hover {
     transform: translateY(-2px);
     box-shadow: $shadow-md;
-    border-color: var(--border-color-strong); // Use CSS var
+    border-color: var(--surface-tonal-3); // Use tonal surface for hover state
   }
 
   // Header section within the card
@@ -121,21 +121,27 @@
     margin-bottom: $spacing-3;
 
     .tag {
-      background-color: var(--surface-alt-bg); // Use CSS var
-      color: var(--text-secondary); // Use CSS var
+      background-color: var(--surface-tonal-1); // Use tonal surface for tags
+      color: var(--text-secondary);
       padding: $spacing-1 $spacing-2;
       border-radius: $border-radius-full;
       font-size: $font-size-xs;
-      transition: background-color $transition-medium, color $transition-medium;
+      border: 1px solid var(--surface-tonal-2);
+      transition: all $transition-medium;
+
+      &:hover {
+        background-color: var(--surface-tonal-2);
+        border-color: var(--surface-tonal-3);
+      }
     }
   }
 
   // View Ticket Button
   .view-ticket-btn {
     // Apply specific overrides for this button's appearance
-    background-color: var(--surface-alt-bg); // Use CSS var
-    color: var(--text-secondary); // Use CSS var
-    border: 1px solid var(--border-color); // Use CSS var
+    background-color: var(--surface-tonal-1); // Use tonal surface for button
+    color: var(--text-secondary);
+    border: 1px solid var(--surface-tonal-2);
     padding: $spacing-2 $spacing-4; // Specific padding
     font-size: $font-size-sm; // Specific font size
 
