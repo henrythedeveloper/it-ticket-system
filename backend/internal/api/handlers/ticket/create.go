@@ -19,8 +19,8 @@ import (
 	"time"
 
 	"github.com/henrythedeveloper/it-ticket-system/internal/models" // Correct models import
-	"github.com/jackc/pgx/v5"                                     // Correct pgx import
-	"github.com/labstack/echo/v4"                                 // Correct echo import
+	"github.com/jackc/pgx/v5"                                       // Correct pgx import
+	"github.com/labstack/echo/v4"                                   // Correct echo import
 	// Removed invalid/duplicate imports
 )
 
@@ -55,16 +55,16 @@ func (h *Handler) CreateTicket(c echo.Context) (err error) { // Use named return
 	}
 
 	ticketCreate := models.TicketCreate{
-		SubmitterEmail: getFormValue("submitter_email", ""),
-		IssueType:    getFormValue("issueType", ""),
-		Urgency:      models.TicketUrgency(getFormValue("urgency", string(models.UrgencyMedium))), // Default urgency
-		Subject:      getFormValue("subject", ""),
-		Description:         getFormValue("description", ""), // Map 'description' field from form to 'Description'
-		Tags:         getFormValueSlice("tags"),
+		EndUserEmail: getFormValue("end_user_email", ""),
+		IssueType:      getFormValue("issueType", ""),
+		Urgency:        models.TicketUrgency(getFormValue("urgency", string(models.UrgencyMedium))), // Default urgency
+		Subject:        getFormValue("subject", ""),
+		Description:    getFormValue("description", ""), // Map 'description' field from form to 'Description'
+		Tags:           getFormValueSlice("tags"),
 	}
 
 	// Validation
-	if ticketCreate.SubmitterEmail == "" || ticketCreate.Subject == "" || ticketCreate.Description == "" {
+	if ticketCreate.EndUserEmail == "" || ticketCreate.Subject == "" || ticketCreate.Description == "" {
 		logger.WarnContext(ctx, "Missing required form fields", "payload", ticketCreate)
 		return echo.NewHTTPError(http.StatusBadRequest, "Missing required ticket information (email, subject, description).")
 	}
@@ -73,10 +73,10 @@ func (h *Handler) CreateTicket(c echo.Context) (err error) { // Use named return
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid urgency value.")
 	}
 
-	emailToSend := ticketCreate.SubmitterEmail
+	emailToSend := ticketCreate.EndUserEmail
 
 	logger.DebugContext(ctx, "Ticket creation request received (multipart)",
-		"SubmitterEmail", emailToSend,
+		"EndUserEmail", emailToSend,
 		"subject", ticketCreate.Subject,
 		"tags", ticketCreate.Tags)
 
@@ -110,7 +110,7 @@ func (h *Handler) CreateTicket(c echo.Context) (err error) { // Use named return
 		ticketCreate.Subject, ticketCreate.Description, models.StatusUnassigned,
 		time.Now(), time.Now(),
 	).Scan(
-		&createdTicket.ID, &createdTicket.TicketNumber, &createdTicket.SubmitterEmail,
+		&createdTicket.ID, &createdTicket.TicketNumber, &createdTicket.EndUserEmail,
 		&createdTicket.IssueType, &createdTicket.Urgency, &createdTicket.Subject,
 		&createdTicket.Description, &createdTicket.Status, &createdTicket.AssignedToUserID,
 		&createdTicket.CreatedAt, &createdTicket.UpdatedAt, &createdTicket.ClosedAt,

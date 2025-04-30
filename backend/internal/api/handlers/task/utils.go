@@ -12,8 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/henrythedeveloper/it-ticket-system/internal/db"    // Corrected import path
@@ -344,77 +342,3 @@ func formatDueDate(dueDate *time.Time) string {
 	return dueDate.Format("Jan 02, 2006")
 }
 
-// --- Parsing Helpers ---
-
-// parseTaskStatus parses a string into a valid TaskStatus pointer, returning nil if invalid.
-func parseTaskStatus(statusStr string) *models.TaskStatus {
-	s := models.TaskStatus(statusStr)
-	switch s {
-	case models.TaskStatusOpen, models.TaskStatusInProgress, models.TaskStatusCompleted:
-		return &s
-	default:
-		return nil // Invalid or empty status
-	}
-}
-
-// parseAssigneeFilter handles "me", "unassigned", or a specific user ID string.
-func parseAssigneeFilter(assigneeStr, currentUserID string) *string {
-	if assigneeStr == "me" {
-		if currentUserID != "" {
-			return &currentUserID // Replace "me" with actual user ID
-		}
-		return nil // Cannot filter by "me" if user ID is unknown
-	}
-	if assigneeStr == "unassigned" || assigneeStr != "" {
-		// Return "unassigned" or the actual UUID string
-		return &assigneeStr
-	}
-	return nil // Empty or invalid assignee filter
-}
-
-// parseInt parses an integer from a string, returning a default value on error or empty string.
-func parseInt(valueStr string, defaultValue int) int {
-	if valueStr == "" {
-		return defaultValue
-	}
-	value, err := strconv.Atoi(valueStr)
-	if err != nil || value <= 0 { // Basic validation (e.g., page/limit > 0)
-		return defaultValue
-	}
-	return value
-}
-
-// parseStringPtr returns a pointer to the string if it's not empty, otherwise nil.
-func parseStringPtr(value string) *string {
-	if value == "" {
-		return nil
-	}
-	return &value
-}
-
-// parseBoolPtr parses a string ("true", "false") into a boolean pointer.
-func parseBoolPtr(valueStr string) *bool {
-	if valueStr == "" {
-		return nil
-	}
-	value, err := strconv.ParseBool(strings.ToLower(valueStr))
-	if err != nil {
-		return nil // Invalid boolean string
-	}
-	return &value
-}
-
-// parseDate parses a date string (e.g., "YYYY-MM-DD") into a time.Time pointer.
-func parseDate(dateStr string) *time.Time {
-	if dateStr == "" {
-		return nil
-	}
-	// Adjust the layout string based on the expected input format
-	layout := "2006-01-02"
-	t, err := time.Parse(layout, dateStr)
-	if err != nil {
-		slog.Warn("Failed to parse date string", "dateString", dateStr, "error", err)
-		return nil
-	}
-	return &t
-}

@@ -135,7 +135,7 @@ const TaskDetailPage: React.FC = () => {
           <Link to="/tasks" className="back-button">
             <ArrowLeft size={16} style={{ marginRight: '4px' }} /> Back to Tasks
           </Link>
-          <h1>{isEditing ? `Edit Task #${task?.id.substring(0,6)}` : `Task #${task?.id.substring(0,6)}`}</h1>
+          <h1>{isEditing ? `Edit Task #${task?.id.substring(0,6)}` : `Task #${task?.task_number}`}</h1>
         </div>
         <div className="header-right">
           {!isEditing && task && ( // Show Edit button only in view mode

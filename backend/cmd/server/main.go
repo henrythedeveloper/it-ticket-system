@@ -51,13 +51,6 @@ func main() {
 	defer database.Close() // Ensure DB pool is closed on exit
 	slog.Info("Database connection established")
 
-	// --- Run Database Migrations ---
-	// Migrations should run before the server starts accepting requests
-	err = db.RunMigrations(cfg.Database) // db.RunMigrations logs success/failure
-	if err != nil {
-		slog.Error("Failed to run database migrations. Exiting.", "error", err)
-		os.Exit(1)
-	}
 
 	// --- Initialize Email Service ---
 	emailService, err := email.NewService(cfg.Email, cfg.Server.PortalBaseURL)

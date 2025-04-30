@@ -68,7 +68,7 @@ export interface Ticket {
   urgency: TicketUrgency;
   issue_type?: string;
   tags?: Tag[];
-  submitter_email: string;
+  end_user_email: string;
   submitter?: Pick<User, 'id' | 'name' | 'email'> | null;
   assigned_to_user_id?: string | null;
   assignedTo?: Pick<User, 'id' | 'name'> | null;

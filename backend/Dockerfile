@@ -29,9 +29,6 @@ RUN apk --no-cache add ca-certificates tzdata
 # Copy the binary from the build stage
 COPY --from=build /app/helpdesk-api .
 
-# Copy migrations
-COPY --from=build /app/migrations ./migrations
-
 # Expose the port
 EXPOSE 8080
 

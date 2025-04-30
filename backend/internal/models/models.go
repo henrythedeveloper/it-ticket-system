@@ -78,7 +78,7 @@ const (
 type Ticket struct {
 	ID               string         `json:"id"`
 	TicketNumber     int32          `json:"ticket_number"`
-	SubmitterEmail   string         `json:"submitter_email"`
+	EndUserEmail   string         `json:"end_user_email"`
 	IssueType        string         `json:"issue_type,omitempty"`
 	Urgency          TicketUrgency  `json:"urgency"`
 	Subject          string         `json:"subject"`
@@ -97,7 +97,7 @@ type Ticket struct {
 }
 
 type TicketCreate struct {
-	SubmitterEmail string        `json:"submitter_email" validate:"required,email"`
+	EndUserEmail string        `json:"end_user_email" validate:"required,email"`
 	IssueType      string        `json:"issue_type" validate:"required"`
 	Urgency        TicketUrgency `json:"urgency" validate:"required,oneof=Low Medium High Critical"`
 	Subject        string        `json:"subject" validate:"required,min=5,max=200"`
@@ -159,21 +159,21 @@ type TaskUpdate struct {
 }
 
 type Task struct {
-	ID               string     `json:"id"`
-	TaskNumber       int32      `json:"task_number"`
-	Title            string     `json:"title"`
-	Description      *string    `json:"description,omitempty"`
-	Status           TaskStatus `json:"status"`
-	AssignedToUserID *string    `json:"assigned_to_user_id,omitempty"`
-	AssignedToUser   *User      `json:"assigned_to_user,omitempty"`
-	CreatedByUserID  string     `json:"created_by_user_id"`
-	CreatedByUser    *User      `json:"created_by_user,omitempty"`
-	DueDate          *time.Time `json:"due_date,omitempty"`
-	IsRecurring      bool       `json:"is_recurring"`
-	RecurrenceRule   *string    `json:"recurrence_rule,omitempty"`
-	CreatedAt        time.Time  `json:"created_at"`
-	UpdatedAt        time.Time  `json:"updated_at"`
-	CompletedAt      *time.Time `json:"completed_at,omitempty"`
+	ID               string       `json:"id"`
+	TaskNumber       int32        `json:"task_number"`
+	Title            string       `json:"title"`
+	Description      *string      `json:"description,omitempty"`
+	Status           TaskStatus   `json:"status"`
+	AssignedToUserID *string      `json:"assigned_to_user_id,omitempty"`
+	AssignedToUser   *User        `json:"assigned_to_user,omitempty"`
+	CreatedByUserID  string       `json:"created_by_user_id"`
+	CreatedByUser    *User        `json:"created_by_user,omitempty"`
+	DueDate          *time.Time   `json:"due_date,omitempty"`
+	IsRecurring      bool         `json:"is_recurring"`
+	RecurrenceRule   *string      `json:"recurrence_rule,omitempty"`
+	CreatedAt        time.Time    `json:"created_at"`
+	UpdatedAt        time.Time    `json:"updated_at"`
+	CompletedAt      *time.Time   `json:"completed_at,omitempty"`
 	Updates          []TaskUpdate `json:"updates,omitempty"`
 }
 
@@ -250,18 +250,18 @@ type PaginatedResponse struct {
 // These fields are not directly bound from JSON but used internally to build queries.
 // JSON tags are added for consistency documentation, though not strictly necessary here.
 type TicketFilter struct {
-	Status       *TicketStatus  `json:"status,omitempty"`
-	Urgency      *TicketUrgency `json:"urgency,omitempty"`
-	AssignedTo   *string        `json:"assigned_to,omitempty"` // Handles "me", "unassigned", or ID
-	SubmitterID  *string        `json:"submitter_id,omitempty"` // Changed from EndUserEmail for clarity
-	FromDate     *time.Time     `json:"from_date,omitempty"`
-	ToDate       *time.Time     `json:"to_date,omitempty"`
-	Tags         []string       `json:"tags,omitempty"`
-	Search       string         `json:"search,omitempty"`
-	Page         int            `json:"page,omitempty"`
-	Limit        int            `json:"limit,omitempty"`
-	SortBy       string         `json:"sort_by,omitempty"`
-	SortOrder    string         `json:"sort_order,omitempty"`
+	Status      *TicketStatus  `json:"status,omitempty"`
+	Urgency     *TicketUrgency `json:"urgency,omitempty"`
+	AssignedTo  *string        `json:"assigned_to,omitempty"`  // Handles "me", "unassigned", or ID
+	SubmitterID *string        `json:"submitter_id,omitempty"` // Changed from EndUserEmail for clarity
+	FromDate    *time.Time     `json:"from_date,omitempty"`
+	ToDate      *time.Time     `json:"to_date,omitempty"`
+	Tags        []string       `json:"tags,omitempty"`
+	Search      string         `json:"search,omitempty"`
+	Page        int            `json:"page,omitempty"`
+	Limit       int            `json:"limit,omitempty"`
+	SortBy      string         `json:"sort_by,omitempty"`
+	SortOrder   string         `json:"sort_order,omitempty"`
 }
 
 // TaskFilter represents potential query parameters for filtering the task list.
@@ -279,4 +279,3 @@ type TaskFilter struct {
 	SortBy      string      `json:"sort_by,omitempty"`
 	SortOrder   string      `json:"sort_order,omitempty"`
 }
-

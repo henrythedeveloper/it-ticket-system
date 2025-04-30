@@ -36,7 +36,7 @@ func scanTicketWithUser(row pgx.Row) (models.Ticket, error) {
 	var assignedUserCreatedAt, assignedUserUpdatedAt *time.Time
 
 	err := row.Scan(
-		&ticket.ID, &ticket.TicketNumber, &ticket.SubmitterEmail, &ticket.IssueType, &ticket.Urgency,
+		&ticket.ID, &ticket.TicketNumber, &ticket.EndUserEmail, &ticket.IssueType, &ticket.Urgency,
 		&ticket.Subject, &ticket.Description, &ticket.Status, &ticket.AssignedToUserID,
 		&ticket.CreatedAt, &ticket.UpdatedAt, &ticket.ClosedAt, &ticket.ResolutionNotes,
 		// Scan into nullable pointers for assigned user

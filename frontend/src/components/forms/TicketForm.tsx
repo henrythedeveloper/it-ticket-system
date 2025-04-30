@@ -30,7 +30,7 @@ interface TicketFormProps {
 // --- Form Input Data Structure ---
 interface PublicTicketFormInputs {
     submitterName: string;
-    submitterEmail: string;
+    endUserEmail: string;
     subject: string;
     description: string;
     urgency: TicketUrgency;
@@ -47,7 +47,7 @@ const TicketForm: React.FC<TicketFormProps> = ({
 }) => {
     // --- State ---
     const [formData, setFormData] = useState<PublicTicketFormInputs>({
-        submitterName: '', submitterEmail: '', subject: '', description: '',
+        submitterName: '', endUserEmail: '', subject: '', description: '',
         urgency: 'Medium', issueType: issueTypes[0] || '', tags: [],
         attachments: [],
     });
@@ -68,7 +68,7 @@ const TicketForm: React.FC<TicketFormProps> = ({
                 if (response?.data?.ticket_number !== undefined) {
                     onSubmitSuccess(response.data.ticket_number);
                     setFormData({
-                        submitterName: '', submitterEmail: '', subject: '', description: '',
+                        submitterName: '', endUserEmail: '', subject: '', description: '',
                         urgency: 'Medium', issueType: issueTypes[0] || '', tags: [], attachments: []
                     });
                     if (fileInputRef.current) {
@@ -162,7 +162,7 @@ const TicketForm: React.FC<TicketFormProps> = ({
         const submissionData = new FormData();
 
         submissionData.append('submitterName', formData.submitterName);
-        submissionData.append('submitterEmail', formData.submitterEmail);
+        submissionData.append('endUserEmail', formData.endUserEmail);
         submissionData.append('subject', formData.subject);
         submissionData.append('description', formData.description);
         submissionData.append('urgency', formData.urgency);
@@ -178,7 +178,7 @@ const TicketForm: React.FC<TicketFormProps> = ({
         // ** REMOVED the problematic logging loop that caused TS error **
         // for (let [key, value] of submissionData.entries()) { ... }
 
-        if (!submissionData.has('submitterEmail') || !submissionData.has('subject') || !submissionData.has('description')) {
+        if (!submissionData.has('endUserEmail') || !submissionData.has('subject') || !submissionData.has('description')) {
              console.error("[TicketForm] Error: Trying to submit FormData missing required fields.");
              return;
         }
@@ -202,8 +202,8 @@ const TicketForm: React.FC<TicketFormProps> = ({
             <div className="form-row">
                 <Input label="Your Name" id="submitterName" name="submitterName" type="text"
                     value={formData.submitterName} onChange={handleChange} required disabled={isLoading} />
-                <Input label="Your Email" id="submitterEmail" name="submitterEmail" type="email"
-                    value={formData.submitterEmail} onChange={handleChange} required disabled={isLoading} />
+                <Input label="Your Email" id="endUserEmail" name="endUserEmail" type="email"
+                    value={formData.endUserEmail} onChange={handleChange} required disabled={isLoading} />
             </div>
             <Input label="Subject" id="subject" name="subject" type="text"
                 value={formData.subject} onChange={handleChange} required disabled={isLoading}
