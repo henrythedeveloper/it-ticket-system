@@ -2,7 +2,7 @@
 // ==========================================================================
 // Handler function for updating existing tasks.
 // **REVISED**: Updated SQL query to use snake_case column names.
-// **REVISED AGAIN**: Corrected Scan target for ticket_id. Removed unused context import.
+
 // ==========================================================================
 
 package task
@@ -66,7 +66,6 @@ func (h *Handler) UpdateTask(c echo.Context) error {
 	}
 	if assignedToID, ok := input["assigned_to_user_id"].(string); ok { paramCount++; updates = append(updates, fmt.Sprintf("assigned_to_user_id = $%d", paramCount)); args = append(args, assignedToID) }
 	if dueDateStr, ok := input["due_date"].(string); ok { if dueDate := parseDate(dueDateStr); dueDate != nil { paramCount++; updates = append(updates, fmt.Sprintf("due_date = $%d", paramCount)); args = append(args, *dueDate) } }
-	// Add other updatable fields (is_recurring, recurrence_rule, ticket_id) similarly if needed
 
 	// Ensure at least one field is being updated besides updated_at
 	if len(updates) == 0 { logger.WarnContext(ctx, "No valid update fields provided"); return echo.NewHTTPError(http.StatusBadRequest, "No valid fields provided for update.") }
@@ -81,7 +80,7 @@ func (h *Handler) UpdateTask(c echo.Context) error {
         RETURNING
             id, task_number, title, description, status, assigned_to_user_id,
             created_by_user_id, due_date, is_recurring, recurrence_rule,
-            created_at, updated_at, completed_at, ticket_id
+            created_at, updated_at, completed_at
     `)
 
 	// --- 5. Execute Update Query ---
@@ -89,7 +88,6 @@ func (h *Handler) UpdateTask(c echo.Context) error {
 	logger.DebugContext(ctx, "Executing UpdateTask query", "query", finalQuery, "argsCount", len(args))
 
 	var updatedTask models.Task
-	// Scan ticket_id into update TaskNumber
 	err = h.db.Pool.QueryRow(ctx, finalQuery, args...).Scan(
 		&updatedTask.ID, &updatedTask.TaskNumber, &updatedTask.Title, &updatedTask.Description, &updatedTask.Status, &updatedTask.AssignedToUserID,
 		&updatedTask.CreatedByUserID, &updatedTask.DueDate, &updatedTask.IsRecurring, &updatedTask.RecurrenceRule,

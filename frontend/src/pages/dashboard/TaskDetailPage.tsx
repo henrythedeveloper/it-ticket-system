@@ -1,144 +1,148 @@
-// src/pages/dashboard/TaskDetailPage.tsx
-// ==========================================================================
-// Component representing the page for viewing or editing a single task.
-// Handles fetching task data and rendering either details or the TaskForm.
-// ==========================================================================
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Loader from '../../components/common/Loader';
 import Badge from '../../components/common/Badge';
 import Alert from '../../components/common/Alert';
 import Button from '../../components/common/Button';
-import TaskForm from '../../components/forms/TaskForm'; // Task editing form
-import Modal from '../../components/common/Modal'; // For delete confirmation
-import { useAuth } from '../../hooks/useAuth'; // To get assignable users potentially
-import { fetchTaskById, deleteTask } from '../../services/taskService'; // Task API
-import { fetchUsers } from '../../services/userService'; // User API (for assignee list)
-import { Task, User } from '../../types'; // Import types
-import { formatDateTime } from '../../utils/helpers'; // Date formatting
-import { ArrowLeft, Edit, Trash2 } from 'lucide-react'; // Icons
+import TaskForm from '../../components/forms/TaskForm';
+import Modal from '../../components/common/Modal';
+import { useAuth } from '../../hooks/useAuth';
+import { fetchTaskById, deleteTask } from '../../services/taskService';
+import { fetchUsers } from '../../services/userService';
+import { Task, User } from '../../types';
+import { formatDateTime } from '../../utils/helpers';
+import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
 
-// --- Component ---
-
-/**
- * Renders the Task Detail page, allowing viewing, editing, or deleting a task.
- */
 const TaskDetailPage: React.FC = () => {
-  // --- Hooks ---
-  const { taskId } = useParams<{ taskId: string }>(); // Get task ID from URL
+  const { taskId } = useParams<{ taskId?: string }>(); // Use optional taskId
   const navigate = useNavigate();
-  const { user } = useAuth(); // Get current user info
+  const { user } = useAuth();
 
-  // --- State ---
   const [task, setTask] = useState<Task | null>(null);
   const [assignableUsers, setAssignableUsers] = useState<Pick<User, 'id' | 'name'>[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  // Separate loading states
+  const [isLoadingTask, setIsLoadingTask] = useState<boolean>(!!taskId); // Only true initially if editing
+  const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState<boolean>(false); // Toggle edit mode
-  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false); // Delete confirmation modal
-  const [isDeleting, setIsDeleting] = useState<boolean>(false); // Loading state for delete action
+  const [isEditing, setIsEditing] = useState<boolean>(!taskId); // Start in edit mode if creating
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  const isCreateMode = !taskId;
 
   // --- Data Fetching ---
-  /**
-   * Fetches task details and assignable users.
-   * useCallback ensures the function identity is stable unless taskId changes.
-   */
-  const loadData = useCallback(async () => {
-    if (!taskId) {
-      setError("Task ID is missing.");
-      setIsLoading(false);
-      return;
-    }
-    // Don't refetch if editing
-    if (isEditing) {
-        setIsLoading(false); // Ensure loading is off if we were editing
+  const loadTaskDetails = useCallback(async () => {
+    if (!taskId) { // Only fetch if taskId exists
+        setIsLoadingTask(false);
         return;
     }
-
-    setIsLoading(true);
+    setIsLoadingTask(true);
     setError(null);
     try {
-      // Fetch task and users concurrently
-      const [taskData, usersData] = await Promise.all([
-        fetchTaskById(taskId),
-        fetchUsers({ role: 'Admin,Staff', limit: 500 }) // Fetch users for assignee dropdown
-      ]);
+      const taskData = await fetchTaskById(taskId);
       setTask(taskData);
-      setAssignableUsers(usersData.data.map(u => ({ id: u.id, name: u.name })));
     } catch (err: any) {
       console.error("Failed to load task details:", err);
       setError(err.response?.data?.message || err.message || 'Could not load task details.');
+      setTask(null); // Clear task on error
     } finally {
-      setIsLoading(false);
+      setIsLoadingTask(false);
     }
-  }, [taskId, isEditing]); // Depend on taskId and isEditing
+  }, [taskId]);
 
-  // Fetch data on initial mount and when taskId changes
+  const loadAssignableUsers = useCallback(async () => {
+    setIsLoadingUsers(true);
+    try {
+      const usersData = await fetchUsers({ role: 'Admin,Staff', limit: 500 });
+      setAssignableUsers(usersData.data.map(u => ({ id: u.id, name: u.name })));
+    } catch (err) {
+      console.error("Failed to load assignable users:", err);
+      // Optional: Set a specific error for user loading failure
+      // setError("Could not load users for assignment.");
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  }, []);
+
+  // --- Effects ---
   useEffect(() => {
-    loadData();
-  }, [loadData]); // Use the memoized loadData function
+    loadTaskDetails(); // Fetch task details if taskId is present
+  }, [loadTaskDetails]); // Rerun only if taskId changes
+
+  useEffect(() => {
+    loadAssignableUsers(); // Fetch assignable users on mount
+  }, [loadAssignableUsers]);
+
+  // Reset editing state if switching between create/edit mode via URL
+  useEffect(() => {
+      setIsEditing(isCreateMode);
+      if (isCreateMode) {
+          setTask(null); // Ensure task is null in create mode
+      }
+  }, [isCreateMode]);
+
 
   // --- Handlers ---
-  /**
-   * Handles successful save (create or update) from TaskForm.
-   * @param savedTask - The task data returned from the API.
-   */
   const handleSaveSuccess = (savedTask: Task) => {
-    setTask(savedTask); // Update local task state
-    setIsEditing(false); // Exit edit mode
-    // Optionally show a success message or rely on form's message
+    // If created, navigate to the new task's detail page
+    if (isCreateMode) {
+        navigate(`/tasks/${savedTask.id}`, { replace: true }); // Navigate to the newly created task
+    } else {
+        setTask(savedTask); // Update existing task state
+        setIsEditing(false); // Exit edit mode
+    }
   };
 
-  /**
-   * Handles cancellation of the edit form.
-   */
   const handleCancelEdit = () => {
-    setIsEditing(false);
-    // Optional: Refetch data if changes might have been discarded uncleanly
-    // loadData();
+    if (isCreateMode) {
+        navigate('/tasks'); // Go back to list if cancelling create
+    } else {
+        setIsEditing(false); // Exit edit mode
+        setError(null); // Clear potential errors from failed edit attempt
+        // Optionally reload task data to discard unsaved changes
+        // loadTaskDetails();
+    }
   };
 
-  /**
-   * Handles the delete task action.
-   */
   const handleDelete = async () => {
     if (!task) return;
     setIsDeleting(true);
     setError(null);
     try {
       await deleteTask(task.id);
-      setShowDeleteModal(false); // Close modal
-      navigate('/tasks'); // Navigate back to tasks list
+      setShowDeleteModal(false);
+      navigate('/tasks');
     } catch (err: any) {
       console.error("Failed to delete task:", err);
       setError(err.response?.data?.message || err.message || 'Could not delete task.');
-      setIsDeleting(false); // Stop delete loading state
-      // Keep modal open to show error within it, or close and show on page
-      // setShowDeleteModal(false);
+      setIsDeleting(false);
     }
   };
 
   // --- Render Logic ---
-  if (isLoading) return <Loader text="Loading task..." />;
-  // Show error if loading failed (and not in edit mode, as form might be visible)
-  if (error && !isEditing) return <Alert type="error" message={error} />;
-  // Show message if task is somehow null after loading without error
-  if (!task && !isEditing) return <Alert type="warning" message="Task data not found." />;
+  const isLoading = isLoadingTask || isLoadingUsers; // Overall loading state
+
+  if (isLoading) return <Loader text="Loading..." />;
+  // Display error only if not in create mode OR if it's a user loading error
+  if (error && !isCreateMode) return <Alert type="error" message={error} />;
+  // If editing and task data failed to load
+  if (!isCreateMode && !task) return <Alert type="warning" message="Task data not found." />;
 
   // --- Render ---
   return (
     <div className="task-detail-page">
-      {/* Page Header */}
+      {/* Page Header - Uses updated logic */}
       <div className="page-header">
         <div className="header-left">
           <Link to="/tasks" className="back-button">
             <ArrowLeft size={16} style={{ marginRight: '4px' }} /> Back to Tasks
           </Link>
-          <h1>{isEditing ? `Edit Task #${task?.id.substring(0,6)}` : `Task #${task?.task_number}`}</h1>
+          {/* Updated Title Logic */}
+          <h1>{isCreateMode ? 'Create New Task' : (isEditing ? `Edit Task #${task?.task_number}` : `Task #${task?.task_number}`)}</h1>
         </div>
         <div className="header-right">
-          {!isEditing && task && ( // Show Edit button only in view mode
+            {/* Show Edit button only in view mode */}
+          {!isCreateMode && !isEditing && task && (
             <Button variant="outline" onClick={() => setIsEditing(true)} leftIcon={<Edit size={16} />}>
               Edit Task
             </Button>
@@ -148,15 +152,16 @@ const TaskDetailPage: React.FC = () => {
 
       {/* Main Content Area (Form or Details) */}
       <div className="task-container">
-        {isEditing && task ? (
-          // --- Edit Mode: Render Form ---
+        {/* Show Form if creating OR editing */}
+        {(isCreateMode || isEditing) ? (
           <div className="task-form-container">
             <TaskForm
-              task={task}
+              task={task} // Pass null in create mode, task object in edit mode
               onSaveSuccess={handleSaveSuccess}
               onCancel={handleCancelEdit}
-              assignableUsers={assignableUsers}
-              ticketId={task.task_id} // Pass ticketId if available
+              assignableUsers={assignableUsers} // Pass the loaded users
+              // Pass ticketId if creating task from a ticket page (might need modification)
+              // ticketId={isCreateMode ? perhapsFromLocationState : task?.ticketId}
             />
           </div>
         ) : task ? (
@@ -167,12 +172,9 @@ const TaskDetailPage: React.FC = () => {
               <Badge type={task.status === 'In Progress' ? 'progress' : task.status.toLowerCase() as any}>
                 Status: {task.status}
               </Badge>
-              {/* Optional: Add status change buttons here if needed */}
             </div>
-
             {/* Task Title */}
-              <h2 className="task-title-detail">{task.title}</h2>
-
+            <h2 className="task-title-detail">{task.title}</h2>
             {/* Description Section */}
             <section className="detail-section">
               <h3>Description</h3>
@@ -180,17 +182,16 @@ const TaskDetailPage: React.FC = () => {
                 {task.description ? task.description : <span className="no-description">No description provided.</span>}
               </div>
             </section>
-
             {/* Metadata Section */}
             <section className="meta-section">
               <div className="meta-item">
                 <label className="meta-label">Assignee</label>
                 <span className="meta-value">{task.assignedTo?.name || 'Unassigned'}</span>
               </div>
-                <div className="meta-item">
+              <div className="meta-item">
                 <label className="meta-label">Due Date</label>
                 <span className={`meta-value ${task.due_date && new Date(task.due_date) < new Date() && task.status !== 'Completed' ? 'overdue' : ''}`}>
-                    {task.due_date ? formatDateTime(task.due_date, 'MMM d, yyyy') : 'Not set'}
+                  {task.due_date ? formatDateTime(task.due_date, 'MMM d, yyyy') : 'Not set'}
                 </span>
               </div>
               <div className="meta-item">
@@ -201,49 +202,40 @@ const TaskDetailPage: React.FC = () => {
                 <label className="meta-label">Created At</label>
                 <span className="meta-value">{formatDateTime(task.created_at)}</span>
               </div>
-                <div className="meta-item">
+              <div className="meta-item">
                 <label className="meta-label">Last Updated</label>
                 <span className="meta-value">{formatDateTime(task.updated_at)}</span>
               </div>
-                {task.task_id && (
+              {/* Display Related Ticket Link if task.task_id exists */}
+              {task.task_id && (
                   <div className="meta-item">
                     <label className="meta-label">Related Ticket</label>
+                    {/* Assuming ticketId is stored in task.task_id */}
                     <span className="meta-value">
-                      <Link to={`/tickets/${task.task_id}`}>#{task.task_id.substring(0, 6)}...</Link>
+                      <Link to={`/tickets/${task.task_id}`}>Ticket #{task.task_id.substring(0, 6)}...</Link>
                     </span>
                   </div>
                 )}
             </section>
-
             {/* Actions Section */}
             <div className="task-actions">
-              {/* Add assign to me button if applicable */}
-              {/* <Button variant="secondary">Assign to Me</Button> */}
               <Button variant="danger" onClick={() => setShowDeleteModal(true)} leftIcon={<Trash2 size={16} />}>
                 Delete Task
               </Button>
             </div>
           </div>
-        ) : null /* Should not happen if error/loading handled correctly */}
+        ) : null /* Fallback if task is null unexpectedly */}
       </div>
 
-        {/* Delete Confirmation Modal */}
-        <Modal
-          isOpen={showDeleteModal}
-          onClose={() => setShowDeleteModal(false)}
-          title="Confirm Deletion"
-        >
-          <p>Are you sure you want to delete this task? This action cannot be undone.</p>
-          {error && <Alert type="error" message={error} className="mt-4" />} {/* Show delete error in modal */}
-          <div className="form-actions mt-6"> {/* Style modal buttons */}
-            <Button variant="outline" onClick={() => setShowDeleteModal(false)} disabled={isDeleting}>
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={handleDelete} isLoading={isDeleting} disabled={isDeleting}>
-              {isDeleting ? 'Deleting...' : 'Delete Task'}
-            </Button>
-          </div>
-        </Modal>
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Confirm Deletion" >
+        <p>Are you sure you want to delete this task? This action cannot be undone.</p>
+        {error && <Alert type="error" message={error} className="mt-4" />}
+        <div className="form-actions mt-6">
+          <Button variant="outline" onClick={() => setShowDeleteModal(false)} disabled={isDeleting}> Cancel </Button>
+          <Button variant="danger" onClick={handleDelete} isLoading={isDeleting} disabled={isDeleting}> {isDeleting ? 'Deleting...' : 'Delete Task'} </Button>
+        </div>
+      </Modal>
     </div>
   );
 };

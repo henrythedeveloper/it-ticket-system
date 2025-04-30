@@ -1,21 +1,19 @@
 // backend/internal/api/handlers/task/create.go
 // ==========================================================================
 // Handler function for creating new tasks.
-// **REVISED**: Updated SQL query to use snake_case column names.
-// **REVISED AGAIN**: Fixed imports and validation call. Corrected Scan target for ticket_id.
+// **REVISED**: Removed the extra input.TicketID argument from the INSERT query.
 // ==========================================================================
 
 package task
 
 import (
-	// "context" // Removed unused import
-	"fmt"     // Added missing import
+	"fmt"
 	"log/slog"
 	"net/http"
-	"time"
 	"strings"
+	"time"
 
-	"github.com/go-playground/validator/v10" // Added missing import
+	"github.com/go-playground/validator/v10"
 	"github.com/henrythedeveloper/it-ticket-system/internal/api/middleware/auth"
 	"github.com/henrythedeveloper/it-ticket-system/internal/models"
 	"github.com/labstack/echo/v4"
@@ -34,14 +32,12 @@ func (h *Handler) CreateTask(c echo.Context) error {
 	var input models.TaskCreate
 	if err := c.Bind(&input); err != nil { logger.WarnContext(ctx, "Failed to bind request body", "error", err); return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body: "+err.Error()) }
 	// Use the validator instance from the handler
-	if err := h.validate.StructCtx(ctx, input); err != nil { // Use StructCtx for context-aware validation if needed
+	if err := h.validate.StructCtx(ctx, input); err != nil {
 		logger.WarnContext(ctx, "Input validation failed", "error", err)
-		// Improve validation error response
 		validationErrors, ok := err.(validator.ValidationErrors)
 		if !ok {
 			return echo.NewHTTPError(http.StatusBadRequest, "Validation error: "+err.Error())
 		}
-		// Format validation errors nicely (example)
 		var errorMsgs []string
 		for _, fieldErr := range validationErrors {
 			errorMsgs = append(errorMsgs, fmt.Sprintf("Field '%s' failed validation on the '%s' tag", fieldErr.Field(), fieldErr.Tag()))
@@ -49,32 +45,44 @@ func (h *Handler) CreateTask(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Validation failed: "+strings.Join(errorMsgs, "; "))
 	}
 
-
 	// --- 3. Insert Task into Database ---
 	var createdTask models.Task
 	// Use snake_case column names in INSERT and RETURNING
 	// Ensure RETURNING list matches Scan targets
+	// ** VERIFY THIS SECTION IS CORRECT IN YOUR FILE **
 	err = h.db.Pool.QueryRow(ctx, `
         INSERT INTO tasks (
             title, description, status, assigned_to_user_id, created_by_user_id,
-            due_date, is_recurring, recurrence_rule, created_at, updated_at, ticket_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            due_date, is_recurring, recurrence_rule, created_at, updated_at -- 10 columns
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) -- Exactly 10 placeholders
         RETURNING
             id, task_number, title, description, status, assigned_to_user_id,
             created_by_user_id, due_date, is_recurring, recurrence_rule,
-            created_at, updated_at, completed_at, ticket_id
+            created_at, updated_at, completed_at -- Scan requires matching columns
         `,
-		input.Title, input.Description, models.TaskStatusOpen, input.AssignedToID, userID,
-		input.DueDate, input.IsRecurring, input.RecurrenceRule, time.Now(), time.Now(), input.TicketID,
+		input.Title,          // $1
+        input.Description,    // $2
+        models.TaskStatusOpen,// $3 Status set here
+        input.AssignedToID,   // $4 Nullable UUID
+        userID,               // $5 Creator ID (Required)
+        input.DueDate,        // $6 Nullable Timestamp
+        input.IsRecurring,    // $7 Boolean
+        input.RecurrenceRule, // $8 Nullable String
+        time.Now(),           // $9 Created At timestamp
+        time.Now(),           // $10 Updated At timestamp
+        // REMOVED: input.TicketID - Make sure it's gone!
 	).Scan(
 		&createdTask.ID, &createdTask.TaskNumber, &createdTask.Title, &createdTask.Description, &createdTask.Status, &createdTask.AssignedToUserID,
 		&createdTask.CreatedByUserID, &createdTask.DueDate, &createdTask.IsRecurring, &createdTask.RecurrenceRule,
-		&createdTask.CreatedAt, &createdTask.UpdatedAt, &createdTask.CompletedAt, &createdTask.TaskNumber, // Correctly scan into TicketID
+		&createdTask.CreatedAt, &createdTask.UpdatedAt, &createdTask.CompletedAt, // Scan targets match RETURNING
 	)
-	if err != nil { logger.ErrorContext(ctx, "Failed to insert task into database", "error", err); return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to create task.") }
+	if err != nil {
+		logger.ErrorContext(ctx, "Failed to insert task into database", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to create task.")
+	}
 
 	// --- 4. Fetch Associated User Details (Optional, for response) ---
-	// Fetch AssignedToUser and CreatedByUser details if needed
+	// TODO: Fetch AssignedToUser and CreatedByUser details if needed for the response
 
 	logger.InfoContext(ctx, "Task created successfully", "taskUUID", createdTask.ID, "taskNumber", createdTask.TaskNumber)
 
@@ -85,4 +93,3 @@ func (h *Handler) CreateTask(c echo.Context) error {
 		Data:    createdTask,
 	})
 }
-

@@ -276,6 +276,71 @@
   }
 }
 
+.recurrence-fieldset {
+  border: 1px solid var(--border-color);
+  border-radius: $border-radius;
+  padding: $spacing-4 $spacing-5 $spacing-5; // Adjust padding
+  margin-top: $spacing-4;
+  margin-bottom: $spacing-4;
+
+  legend {
+    padding: 0 $spacing-2;
+    font-weight: $font-weight-medium;
+    color: var(--text-secondary);
+    font-size: $font-size-sm;
+  }
+
+  // Container for frequency/interval selects/inputs
+  .recurrence-controls {
+    margin-bottom: $spacing-4; // Space before weekly/monthly options
+     align-items: flex-end; // Align interval input label better
+
+     .recurrence-frequency { flex-basis: 50%; flex-grow: 1; } // Allow frequency to take space
+     .recurrence-interval { flex-basis: 40%; flex-grow: 1; max-width: 150px; } // Limit interval width
+  }
+
+  // Container for day buttons
+  .day-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    margin-top: $spacing-2; // Space below label
+
+    .day-button {
+      @include mixins.button-base; // Use base button style
+      padding: $spacing-2 $spacing-3;
+      min-width: 50px; // Ensure buttons have some width
+      font-size: $font-size-sm;
+      border: 1px solid var(--border-color);
+      background-color: var(--surface-alt-bg);
+      color: var(--text-secondary);
+
+      &:hover:not(:disabled) {
+        border-color: var(--border-color-strong);
+        background-color: var(--surface-bg);
+      }
+
+      &.selected {
+        background-color: var(--primary);
+        border-color: var(--primary);
+        color: var(--text-inverted);
+        &:hover:not(:disabled) {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+      }
+    }
+  }
+
+  // Container for monthly options
+  .recurrence-monthly-options {
+    margin-top: $spacing-4;
+    .recurrence-day-month {
+        max-width: 200px; // Limit width of day input
+    }
+  }
+}
+
 // Responsive adjustments
 @media (max-width: $breakpoint-sm) { // Trigger earlier for button wrapping
   .form-actions {

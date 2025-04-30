@@ -107,7 +107,7 @@ func (h *Handler) GetAllTasks(c echo.Context) error {
 		var createdByUserIDCol, createdByUserName, createdByUserEmail, createdByUserRole *string
 		var createdByUserCreatedAt, createdByUserUpdatedAt *time.Time
 
-		// Scan ticket_id into task.TaskNumber
+		// Scan into task.TaskNumber
 		scanErr := rows.Scan(
 			&task.ID, &task.TaskNumber, &task.Title, &task.Description, &task.Status,
 			&task.AssignedToUserID, &task.CreatedByUserID, &task.DueDate, &task.IsRecurring,
@@ -144,44 +144,39 @@ func (h *Handler) GetTaskByID(c echo.Context) error {
 
 	if taskID == "" { logger.WarnContext(ctx, "Missing task ID in request path"); return echo.NewHTTPError(http.StatusBadRequest, "Missing task ID.") }
 
-	var task models.Task
-	var assignedUser models.User
-	var createdByUser models.User
-	var assignedUserIDCol, assignedUserName, assignedUserEmail, assignedUserRole *string
-	var assignedUserCreatedAt, assignedUserUpdatedAt *time.Time
-	var createdByUserIDCol, createdByUserName, createdByUserEmail, createdByUserRole *string
-	var createdByUserCreatedAt, createdByUserUpdatedAt *time.Time
-
-	err := h.db.Pool.QueryRow(ctx, `
+	// Use the single query with joins
+	row := h.db.Pool.QueryRow(ctx, `
         SELECT
             t.id, t.task_number, t.title, t.description, t.status,
             t.assigned_to_user_id, t.created_by_user_id, t.due_date, t.is_recurring,
-            t.recurrence_rule, t.created_at, t.updated_at, t.completed_at, t.task_number,
-            a.id, a.name, a.email, a.role, a.created_at, a.updated_at,
-            cb.id, cb.name, cb.email, cb.role, cb.created_at, cb.updated_at
+            t.recurrence_rule, t.created_at, t.updated_at, t.completed_at,
+            a.id as assigned_user_id_col, a.name as assigned_user_name, a.email as assigned_user_email,
+            a.role as assigned_user_role, a.created_at as assigned_user_created_at, a.updated_at as assigned_user_updated_at,
+            cb.id as created_by_user_id_col, cb.name as created_by_user_name, cb.email as created_by_user_email,
+            cb.role as created_by_user_role, cb.created_at as created_by_user_created_at, cb.updated_at as created_by_user_updated_at
         FROM tasks t
         LEFT JOIN users a ON t.assigned_to_user_id = a.id
         LEFT JOIN users cb ON t.created_by_user_id = cb.id
         WHERE t.id = $1
-    `, taskID).Scan(
-		&task.ID, &task.TaskNumber, &task.Title, &task.Description, &task.Status,
-		&task.AssignedToUserID, &task.CreatedByUserID, &task.DueDate, &task.IsRecurring,
-		&task.RecurrenceRule, &task.CreatedAt, &task.UpdatedAt, &task.CompletedAt, &task.TaskNumber, 
-		&assignedUserIDCol, &assignedUserName, &assignedUserEmail, &assignedUserRole,
-		&assignedUserCreatedAt, &assignedUserUpdatedAt,
-		&createdByUserIDCol, &createdByUserName, &createdByUserEmail, &createdByUserRole,
-		&createdByUserCreatedAt, &createdByUserUpdatedAt,
-	)
+    `, taskID)
 
+	// Use the corrected scan utility function
+	task, err := scanTaskWithUsers(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) { logger.WarnContext(ctx, "Task not found"); return echo.NewHTTPError(http.StatusNotFound, "Task not found.") }
-		logger.ErrorContext(ctx, "Failed to query task by ID", "error", err); return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve task details.")
+		logger.ErrorContext(ctx, "Failed to scan task details", "error", err); return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve task details.")
 	}
 
-	if task.AssignedToUserID != nil && assignedUserIDCol != nil { assignedUser = models.User{ ID: *assignedUserIDCol, Name: *assignedUserName, Email: *assignedUserEmail, Role: models.UserRole(*assignedUserRole), CreatedAt: *assignedUserCreatedAt, UpdatedAt: *assignedUserUpdatedAt, }; task.AssignedToUser = &assignedUser }
-	if createdByUserIDCol != nil { createdByUser = models.User{ ID: *createdByUserIDCol, Name: *createdByUserName, Email: *createdByUserEmail, Role: models.UserRole(*createdByUserRole), CreatedAt: *createdByUserCreatedAt, UpdatedAt: *createdByUserUpdatedAt, }; task.CreatedByUser = &createdByUser }
 
-	// TODO: Fetch related task updates if needed
+	// Fetch related task updates if needed (could be concurrent)
+	updates, updatesErr := getTaskUpdates(ctx, h.db, taskID)
+	if updatesErr != nil {
+		logger.ErrorContext(ctx, "Failed to fetch task updates", "error", updatesErr)
+		// Decide whether to return partial data or an error
+		// return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve task updates.")
+	}
+	task.Updates = updates // Assign updates even if there was an error fetching them (might be nil)
+
 
 	// Log final data before sending
 	jsonData, jsonErr := json.MarshalIndent(task, "", "  ")
@@ -195,6 +190,44 @@ func (h *Handler) GetTaskByID(c echo.Context) error {
 
 // --- Helper Functions (Parsing Query Params) ---
 // Keep helpers here as they are specific to task query params
+
+
+// Helper to scan row without total_count (fallback)
+func scanTaskWithUsersNoCount(row pgx.Row) (models.Task, error) {
+	var task models.Task
+	var assignedUser models.User
+	var createdByUser models.User
+	var assignedUserIDCol, assignedUserName, assignedUserEmail, assignedUserRole *string
+	var assignedUserCreatedAt, assignedUserUpdatedAt *time.Time
+	var createdByUserIDCol, createdByUserName, createdByUserEmail, createdByUserRole *string
+	var createdByUserCreatedAt, createdByUserUpdatedAt *time.Time
+
+	scanErr := row.Scan(
+		&task.ID, &task.TaskNumber, &task.Title, &task.Description, &task.Status,
+		&task.AssignedToUserID, &task.CreatedByUserID, &task.DueDate, &task.IsRecurring,
+		&task.RecurrenceRule, &task.CreatedAt, &task.UpdatedAt, &task.CompletedAt,
+		&assignedUserIDCol, &assignedUserName, &assignedUserEmail, &assignedUserRole,
+		&assignedUserCreatedAt, &assignedUserUpdatedAt,
+		&createdByUserIDCol, &createdByUserName, &createdByUserEmail, &createdByUserRole,
+		&createdByUserCreatedAt, &createdByUserUpdatedAt,
+	)
+	if scanErr != nil { return task, scanErr }
+
+	if task.AssignedToUserID != nil && assignedUserIDCol != nil { assignedUser = models.User{ ID: *assignedUserIDCol, Name: *assignedUserName, Email: *assignedUserEmail, Role: models.UserRole(*assignedUserRole), CreatedAt: *assignedUserCreatedAt, UpdatedAt: *assignedUserUpdatedAt, }; task.AssignedToUser = &assignedUser }
+	if createdByUserIDCol != nil { createdByUser = models.User{ ID: *createdByUserIDCol, Name: *createdByUserName, Email: *createdByUserEmail, Role: models.UserRole(*createdByUserRole), CreatedAt: *createdByUserCreatedAt, UpdatedAt: *createdByUserUpdatedAt, }; task.CreatedByUser = &createdByUser }
+
+	return task, nil
+}
+
+// Helper to build the COUNT query separately
+func buildCountQuery(whereClauses []string, args []interface{}) (string, []interface{}) {
+	query := "SELECT COUNT(*) FROM tasks t"
+	if len(whereClauses) > 1 {
+		query += " WHERE " + strings.Join(whereClauses[1:], " AND ") // Skip the dummy '1=1'
+	}
+	return query, args
+}
+
 
 // parseTaskStatus validates the task status string and returns a pointer or nil.
 func parseTaskStatus(statusStr string) *models.TaskStatus {
