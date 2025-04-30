@@ -2,11 +2,10 @@
 // ==========================================================================
 // Styles for the main application layout (header, sidebar, content area)
 // used for authenticated users.
-// **REVISED: Ensured all colors use CSS variables.**
+// **REVISED**: Moved sidebar styles to _Sidebar.scss.
 // ==========================================================================
 
 @use '../variables' as *;
-// No need for mixins if base classes (.btn) are styled globally
 
 // Main layout container
 .main-layout {
@@ -22,7 +21,6 @@
       width: calc(100% - #{$sidebar-width});
       transition: margin-left $transition-medium, width $transition-medium;
     }
-    // Sidebar itself doesn't change width here, only content margin
   }
 
   // Styles when the sidebar is closed (collapsed)
@@ -32,23 +30,13 @@
       width: calc(100% - #{$sidebar-collapsed-width});
       transition: margin-left $transition-medium, width $transition-medium;
     }
-
-    .sidebar {
-      width: $sidebar-collapsed-width; // Collapse sidebar width
-
-      // Adjust navigation links for collapsed state
-      .sidebar-nav ul li a {
-        justify-content: center; // Center icon
-        span { display: none; } // Hide text label
-        .icon { margin-right: 0; } // Remove icon margin
-      }
-    }
+    // Note: .sidebar styles for collapsed state are now in _Sidebar.scss
   }
 }
 
 // --- Header Styles ---
 .header {
-  background-color: var(--surface-tonal-1); // Use tonal surface for header
+  background-color: var(--surface-tonal-1);
   color: var(--text-primary);
   box-shadow: $shadow;
   height: $header-height;
@@ -56,125 +44,54 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 $spacing-4;
-  position: fixed; // Fixed position at the top
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  z-index: $z-index-fixed; // Ensure header stays on top
-  border-bottom: 1px solid var(--surface-tonal-2); // Use tonal surface for border
+  z-index: $z-index-fixed;
+  border-bottom: 1px solid var(--surface-tonal-2);
   transition: background-color $transition-medium, color $transition-medium, border-color $transition-medium;
 
-  // Left side of the header (toggle, logo)
   .header-left {
     display: flex;
     align-items: center;
 
-    // Sidebar toggle button (hamburger icon)
     .sidebar-toggle {
       background: none; border: none; cursor: pointer;
       display: flex; flex-direction: column; justify-content: center; align-items: center;
       padding: $spacing-2; margin-right: $spacing-4;
-      span { // Hamburger lines
-        background-color: var(--text-secondary); display: block; // Use CSS var
+      span {
+        background-color: var(--text-secondary); display: block;
         height: 2px; width: 22px; margin: 2px 0;
         transition: all $transition-fast;
       }
-      &:hover span { background-color: var(--primary); } // Use CSS var
+      &:hover span { background-color: var(--primary); }
     }
-    // Logo text
     .logo {
-      color: var(--primary); font-size: $font-size-xl; // Use CSS var
-      font-weight: $font-weight-bold; margin: 0;
+      color: var(--primary); font-size: $font-size-xl;
+      font-weight: $font-weight-bold; margin: 0; text-decoration: none; // Added text-decoration none
     }
   }
 
-  // Right side of the header (theme toggle, user info, dropdown)
   .header-right {
     display: flex; align-items: center;
 
-    // User info display
     .user-info {
       display: flex; flex-direction: column; align-items: flex-end;
       margin-right: $spacing-3;
-      .user-name { font-weight: $font-weight-medium; color: var(--text-primary); } // Use CSS var
-      .user-role { color: var(--text-muted); font-size: $font-size-xs; } // Use CSS var
+      .user-name { font-weight: $font-weight-medium; color: var(--text-primary); }
+      .user-role { color: var(--text-muted); font-size: $font-size-xs; }
     }
 
-    // Theme toggle button
     .theme-toggle-header {
-        background: none; border: none; color: var(--text-secondary); // Use CSS var
+        background: none; border: none; color: var(--text-secondary);
         cursor: pointer; font-size: $font-size-xl; padding: $spacing-2;
         margin-right: $spacing-2; transition: color $transition-fast;
-        &:hover { color: var(--text-primary); } // Use CSS var
-        &:focus { outline: none; box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.4); } // Use primary RGB var
+        &:hover { color: var(--text-primary); }
+        &:focus { outline: none; box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.4); }
     }
 
-    // User dropdown menu
-    .dropdown {
-      position: relative;
-      // Dropdown toggle button (can be an icon)
-      .dropdown-toggle {
-          background: none; border: none; cursor: pointer;
-          padding: $spacing-2; color: var(--text-secondary); // Use CSS var
-          font-size: $font-size-lg;
-          &:hover { color: var(--text-primary); } // Use CSS var
-      }
-      // Dropdown menu content
-      .dropdown-menu {
-        position: absolute; top: calc(100% + #{$spacing-1}); right: 0;
-        background-color: var(--surface); border-radius: $border-radius;
-        box-shadow: $shadow-lg; min-width: 180px; padding: $spacing-2 0;
-        display: none; // Hidden by default, shown on hover/click
-        flex-direction: column; z-index: $z-index-dropdown;
-        border: 1px solid var(--surface-tonal-2);
-        // Menu items (links or buttons)
-        a, button {
-          display: block; padding: $spacing-2 $spacing-4; text-decoration: none;
-          color: var(--text-secondary); text-align: left; background: none; // Use CSS var
-          border: none; cursor: pointer; width: 100%; font-size: $font-size-sm;
-          transition: background-color $transition-fast, color $transition-fast;
-          &:hover { background-color: var(--surface-tonal-1); color: var(--primary); }
-        }
-      }
-      // Show menu on hover (simple CSS approach)
-      &:hover .dropdown-menu { display: flex; }
-    }
-  }
-}
-
-// --- Sidebar Styles ---
-.sidebar {
-  background-color: var(--surface-tonal); // Use tonal surface for sidebar
-  width: $sidebar-width; height: 100vh; position: fixed;
-  top: 0; left: 0; z-index: $z-index-fixed - 1; // Below header
-  padding-top: $header-height; // Account for fixed header
-  transition: width $transition-medium, background-color $transition-medium;
-  overflow-y: auto; // Allow scrolling if content exceeds height
-  border-right: 1px solid var(--surface-tonal-2);
-
-  // Navigation list within sidebar
-  .sidebar-nav {
-    padding: $spacing-4 0;
-    ul { list-style: none; padding: 0; margin: 0;
-      li { margin-bottom: $spacing-1;
-        // Navigation links
-        a {
-          display: flex; align-items: center; padding: $spacing-3 $spacing-4;
-          color: var(--sidebar-text, var(--text-muted)); // Use CSS var (fallback to muted)
-          text-decoration: none;
-          transition: background-color $transition-fast, color $transition-fast, border-color $transition-fast;
-          border-left: 3px solid transparent; // For active state indicator
-          .icon { margin-right: $spacing-3; font-size: $font-size-lg; transition: margin $transition-medium; }
-          span { transition: opacity $transition-fast; opacity: 1; } // Text label
-          // Active/hover state
-          &:hover, &.active {
-            background-color: var(--surface-tonal-2);
-            color: var(--primary);
-            border-left-color: var(--primary);
-          }
-        }
-      }
-    }
+    // Dropdown styles are now in _Dropdown.scss
   }
 }
 
@@ -184,24 +101,12 @@
   min-height: calc(100vh - #{$header-height}); // Ensure footer is pushed down
   padding: $spacing-6;
   background-color: var(--surface-tonal); // Use tonal surface for main content
-  // Transitions handled by sidebar state classes
   transition: margin-left $transition-medium, width $transition-medium, background-color $transition-medium;
 }
 
 // --- Responsive Adjustments ---
 @media (max-width: $breakpoint-md) {
-  .main-layout {
-    // Sidebar behavior on smaller screens (overlay example)
-    &.sidebar-open .sidebar { transform: translateX(0); box-shadow: $shadow-lg; }
-    &.sidebar-closed .sidebar { transform: translateX(-100%); }
-    // Adjust content margin only if sidebar pushes content (not overlay)
-    // &.sidebar-closed .main-content { margin-left: 0; width: 100%; }
-  }
-  .sidebar {
-    transform: translateX(-100%); // Hidden by default
-    transition: transform $transition-medium;
-    z-index: $z-index-fixed + 5; // Ensure sidebar is above content if it overlays
-  }
+  // Removed sidebar transform rules - handled in _Sidebar.scss now
   .main-content {
     margin-left: 0 !important; // Content takes full width
     width: 100% !important;
@@ -213,3 +118,4 @@
       .header-right .user-info { display: none; } // Hide user text info
     }
 }
+

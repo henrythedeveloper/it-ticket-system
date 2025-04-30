@@ -56,7 +56,7 @@ export const fetchTickets = async (params: FetchTicketsParams = {}): Promise<Pag
             }));
         } else {
             // Handle case where response.data or response.data.data is not as expected
-            response.data = { ...response.data, data: [], total: 0, totalPages: 0 }; // Provide default empty structure
+            response.data = { ...response.data, data: [], total: 0, total_pages: 0 }; // Provide default empty structure
         }
         return response.data;
     } catch (error) {

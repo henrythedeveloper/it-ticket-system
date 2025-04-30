@@ -102,7 +102,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
         title: task.title || '',
         description: task.description || '',
         status: task.status || 'Open',
-        dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
+        dueDate: task.due_date ? task.due_date.split('T')[0] : '',
         assignedToId: task.assignedTo?.id || '',
         });
     } else {

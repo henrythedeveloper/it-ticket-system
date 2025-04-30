@@ -1,298 +1,162 @@
 // src/types/index.ts
 // ==========================================================================
 // Centralized type definitions for the application.
-// Added ticket_number to Ticket interface.
-// REVISED: Defined Tag interface and updated Ticket.tags type.
-// REVISED AGAIN: Changed Ticket.body to Ticket.description and
-//                Ticket.endUserEmail to Ticket.submitterEmail to match backend JSON tags.
+// **REVISED**: Added is_system_update to TicketUpdate interface.
 // ==========================================================================
 
-import { ReactNode } from 'react'; // Added for Context types
+import { ReactNode } from 'react';
 
-// --------------------------------------------------------------------------
-// Authentication & User Types
-// --------------------------------------------------------------------------
-
-/**
- * Represents the structure of a user object.
- */
+// --- User & Auth ---
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'Admin' | 'Staff' | 'User'; // Define specific roles
-  createdAt: string; // ISO date string
-  updatedAt: string; // ISO date string
+  role: 'Admin' | 'Staff' | 'User';
+  created_at: string;
+  updated_at: string;
 }
-
-/**
- * Represents the authentication state, including the user and token.
- */
 export interface AuthState {
   user: User | null;
   token: string | null;
-  isAuthenticated: boolean;
 }
-
-/**
- * Represents the context value provided by AuthContext.
- */
-export interface AuthContextType extends AuthState {
+export interface AuthContextType extends Omit<AuthState, 'isAuthenticated'> {
   login: (token: string, user: User) => void;
   logout: () => void;
   setUser: (user: User | null) => void;
-  loading: boolean; // Indicates if auth state is being loaded/verified
+  loading: boolean;
+  isAuthenticated: boolean;
 }
 
-// --------------------------------------------------------------------------
-// Tag Type
-// --------------------------------------------------------------------------
-
-/**
- * Represents a tag object (used for categorizing tickets).
- */
+// --- Tag ---
 export interface Tag {
   id: string;
   name: string;
-  createdAt: string; // ISO date string
+  created_at: string;
 }
 
-// --------------------------------------------------------------------------
-// Ticket Types
-// --------------------------------------------------------------------------
-
-/**
- * Represents the possible statuses for a ticket.
- */
+// --- Ticket ---
 export type TicketStatus = 'Unassigned' | 'Assigned' | 'In Progress' | 'Closed';
-
-/**
- * Represents the possible urgency levels for a ticket.
- */
 export type TicketUrgency = 'Low' | 'Medium' | 'High' | 'Critical';
 
-/**
- * Represents a comment or update on a ticket.
- */
 export interface TicketUpdate {
   id: string;
-  ticketId: string; // Added ticketId for context
-  content: string;
-  author?: Pick<User, 'id' | 'name'> | null;
-  User?: Pick<User, 'id' | 'name'> | null; 
-  createdAt: string; // ISO date string
-  isSystemUpdate?: boolean; // Flag for system-generated updates (e.g., status change)
-  isInternalNote?: boolean; // Flag for internal staff notes
+  ticket_id: string;
+  content: string; // Changed from comment for consistency? Check backend model. Assume content based on error.
+  author?: Pick<User, 'id' | 'name'> | null; // Keep camelCase for nested user object?
+  user_id?: string | null;
+  created_at: string;
+  is_internal_note?: boolean; // Use snake_case
+  is_system_update?: boolean; // <-- Added this field
 }
 
-/**
- * Represents a file attachment associated with a ticket.
- */
 export interface TicketAttachment {
   id: string;
   filename: string;
   mime_type: string;
-  size: number; // Size in bytes
-  url: string; // URL to access/download the file
-  uploaded_at: string; // ISO date string
+  size: number;
+  url: string;
+  uploaded_at: string;
+  storage_path?: string;
 }
 
-/**
- * Represents the main structure of a ticket object.
- * Added ticket_number field.
- * Changed tags type from string[] to Tag[].
- * Changed body to description to match backend JSON tag.
- * Changed endUserEmail to submitterEmail to match backend JSON tag.
- */
 export interface Ticket {
   id: string;
-  ticket_number: number; // User-facing sequential number
+  ticket_number: number;
   subject: string;
-  // FIX: Changed from 'body' to 'description' to match backend JSON tag `json:"description"`
-  description: string; // Detailed description of the issue
+  description: string;
   status: TicketStatus;
   urgency: TicketUrgency;
-  issueType?: string; // Optional issue type/category
-  tags?: Tag[]; // Array of associated tag objects
-  // FIX: Changed from 'endUserEmail' to 'submitterEmail' to match backend JSON tag `json:"submitterEmail"`
-  submitterEmail: string; // Email of the person who submitted the ticket
-  // Consider adding a submitter object if backend provides it consistently
-  submitter?: Pick<User, 'id' | 'name' | 'email'> | null; // Submitter info (assuming backend provides this structure)
-  assignedTo?: Pick<User, 'id' | 'name'> | null; // Assigned staff member
-  createdAt: string; // ISO date string
-  updatedAt: string; // ISO date string
-  closedAt?: string | null; // ISO date string when closed
-  resolutionNotes?: string | null; // Notes added upon closing the ticket (nullable)
-  updates?: TicketUpdate[]; // Array of comments/updates (potentially loaded separately)
-  attachments?: TicketAttachment[]; // Array of attachments (potentially loaded separately)
+  issue_type?: string;
+  tags?: Tag[];
+  submitter_email: string;
+  submitter?: Pick<User, 'id' | 'name' | 'email'> | null;
+  assigned_to_user_id?: string | null;
+  assignedTo?: Pick<User, 'id' | 'name'> | null;
+  created_at: string;
+  updated_at: string;
+  closed_at?: string | null;
+  resolution_notes?: string | null;
+  updates?: TicketUpdate[];
+  attachments?: TicketAttachment[];
 }
 
-// --------------------------------------------------------------------------
-// Task Types
-// --------------------------------------------------------------------------
-
-/**
- * Represents the possible statuses for a task.
- */
+// --- Task ---
 export type TaskStatus = 'Open' | 'In Progress' | 'Completed';
 
-/**
- * Represents the structure of a task object.
- */
-export interface Task {
+// Added TaskUpdate interface
+export interface TaskUpdate {
   id: string;
-  title: string;
-  description?: string; // Optional description
-  status: TaskStatus;
-  dueDate?: string | null; // Optional due date (ISO date string)
-  assignedTo?: Pick<User, 'id' | 'name'> | null; // Assigned staff member
-  ticketId?: string | null; // Optional associated ticket ID
-  createdBy?: Pick<User, 'id' | 'name'> | null; // User who created the task
-  createdAt: string; // ISO date string
-  updatedAt: string; // ISO date string
-  completedAt?: string | null; // ISO date string when completed
+  task_id: string;
+  user_id?: string | null;
+  author?: Pick<User, 'id' | 'name'> | null; // Keep camelCase for nested user?
+  comment: string; // Task updates might use 'comment' field? Check backend
+  created_at: string;
 }
 
-// --------------------------------------------------------------------------
-// Settings Types (Consolidated)
-// --------------------------------------------------------------------------
 
-/**
- * Defines the structure for notification settings.
- */
+export interface Task {
+  id: string;
+  task_number: number;
+  title: string;
+  description?: string;
+  status: TaskStatus;
+  due_date?: string | null;
+  assigned_to_user_id?: string | null;
+  assignedTo?: Pick<User, 'id' | 'name'> | null;
+  task_id?: string | null;
+  created_by_user_id?: string;
+  createdBy?: Pick<User, 'id' | 'name'> | null;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string | null;
+  is_recurring?: boolean;
+  recurrence_rule?: string | null;
+  updates?: TaskUpdate[]; // Use TaskUpdate type
+}
+
+// --- Settings ---
 export interface NotificationSettings {
     emailOnNewTicket: boolean;
     emailOnAssignment: boolean;
     emailOnUpdate: boolean;
 }
-
-/**
- * Defines the structure for ticket-related settings.
- */
 export interface TicketSettings {
     defaultUrgency: 'Low' | 'Medium' | 'High';
     allowPublicSubmission: boolean;
-    issueTypes: string[]; // List of available issue types/categories
+    issueTypes: string[];
 }
-
-/**
- * Defines the overall application settings structure.
- */
 export interface AppSettings {
     notifications: NotificationSettings;
     tickets: TicketSettings;
-    // Add other setting categories as needed
 }
 
-
-// --------------------------------------------------------------------------
-// API Response Types (Examples)
-// --------------------------------------------------------------------------
-
-/**
- * Generic structure for API responses.
- * It indicates success/failure and includes optional data, message, or error details.
- */
+// --- API Responses ---
 export interface APIResponse<T> {
-	success: boolean;       // True if the request was successful, false otherwise
-	message?: string;      // Optional message (e.g., "User created successfully")
-	data?: T;              // Optional data payload (generic type T)
-	error?: string;        // Optional error message if success is false
+	success: boolean;
+	message?: string;
+	data?: T;
+	error?: string;
 }
-
-/**
- * Generic structure for paginated API responses.
- */
 export interface PaginatedResponse<T> {
   data: T[];
   total: number;
   page: number;
   limit: number;
-  totalPages: number;
+  total_pages: number;
+  hasMore?: boolean;
 }
-
-/**
- * Example: Response structure for fetching tickets.
- */
 export type TicketsResponse = PaginatedResponse<Ticket>;
+export type SingleTicketResponse = Ticket;
 
-/**
- * Example: Response structure for fetching a single ticket.
- */
-export type SingleTicketResponse = Ticket; // Assuming full details are returned
+// --- Forms ---
+export interface LoginFormInputs { email: string; password?: string; }
+export interface TicketFormInputs { subject: string; description: string; urgency: TicketUrgency; issueType?: string; tags?: string[]; }
+export interface TicketCommentFormInputs { content: string; isInternalNote?: boolean; }
+export interface TicketStatusFormInputs { status: TicketStatus; assignedToId?: string | null; resolutionNotes?: string; }
 
-// --------------------------------------------------------------------------
-// UI State & Context Types
-// --------------------------------------------------------------------------
+// --- UI Context ---
+export interface ThemeState { theme: 'light' | 'dark'; }
+export interface ThemeContextType extends ThemeState { toggleTheme: () => void; }
+export interface SidebarState { isOpen: boolean; }
+export interface SidebarContextType extends SidebarState { toggleSidebar: () => void; openSidebar: () => void; closeSidebar: () => void; }
 
-/**
- * Represents the state for the theme context.
- */
-export interface ThemeState {
-  theme: 'light' | 'dark';
-}
-
-/**
- * Represents the context value provided by ThemeContext.
- */
-export interface ThemeContextType extends ThemeState {
-  toggleTheme: () => void;
-}
-
-/**
- * Represents the state for the sidebar context.
- */
-export interface SidebarState {
-  isOpen: boolean;
-}
-
-/**
- * Represents the context value provided by SidebarContext.
- */
-export interface SidebarContextType extends SidebarState {
-  toggleSidebar: () => void;
-  openSidebar: () => void;
-  closeSidebar: () => void;
-}
-
-// --------------------------------------------------------------------------
-// Form Data Types (Examples)
-// --------------------------------------------------------------------------
-
-/**
- * Data structure for the login form.
- */
-export interface LoginFormInputs {
-  email: string;
-  password?: string; // Optional if using passwordless or SSO in future
-}
-
-/**
- * Data structure for creating/editing a ticket.
- */
-export interface TicketFormInputs {
-  subject: string;
-  description: string; // Frontend often uses 'description'
-  urgency: TicketUrgency;
-  issueType?: string;
-  tags?: string[]; // Form might still handle tags as strings initially
-  // Submitter info usually comes from context or backend
-  // Status and AssignedTo are typically handled separately
-}
-
-/**
- * Data structure for adding a comment/update to a ticket.
- */
-export interface TicketCommentFormInputs {
-  content: string;
-  isInternalNote?: boolean;
-}
-
-/**
- * Data structure for updating ticket status/assignment.
- */
-export interface TicketStatusFormInputs {
-    status: TicketStatus;
-    assignedToId?: string | null; // ID of the user to assign to
-    resolutionNotes?: string; // Required if closing
-}

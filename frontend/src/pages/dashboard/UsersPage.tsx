@@ -87,7 +87,7 @@ const UsersPage: React.FC = () => {
       const response = await fetchUsers(params);
       setUsers(response.data);
       setTotalUsers(response.total);
-      setTotalPages(response.totalPages);
+      setTotalPages(response.total_pages);
     } catch (err: any) {
       console.error("Failed to load users:", err);
       setError(err.response?.data?.message || err.message || 'Could not load users.');
@@ -181,7 +181,7 @@ const UsersPage: React.FC = () => {
     { key: 'name', header: 'Name' },
     { key: 'email', header: 'Email' },
     { key: 'role', header: 'Role', render: (item) => <Badge type={item.role.toLowerCase() as any}>{item.role}</Badge> },
-    { key: 'createdAt', header: 'Created', render: (item) => formatDate(item.createdAt) },
+    { key: 'createdAt', header: 'Created', render: (item) => formatDate(item.created_at) },
     { key: 'actions', header: 'Actions', render: (item) => (
         <div className='actions-cell-content' style={{ display: 'flex', gap: '0.5rem' }}>
             <Link to={`/users/edit/${item.id}`}>

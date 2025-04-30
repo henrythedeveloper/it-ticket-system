@@ -55,16 +55,16 @@ func (h *Handler) CreateTicket(c echo.Context) (err error) { // Use named return
 	}
 
 	ticketCreate := models.TicketCreate{
-		EndUserEmail: getFormValue("submitterEmail", ""),
+		SubmitterEmail: getFormValue("submitter_email", ""),
 		IssueType:    getFormValue("issueType", ""),
 		Urgency:      models.TicketUrgency(getFormValue("urgency", string(models.UrgencyMedium))), // Default urgency
 		Subject:      getFormValue("subject", ""),
-		Body:         getFormValue("description", ""), // Map 'description' field from form to 'Body'
+		Description:         getFormValue("description", ""), // Map 'description' field from form to 'Description'
 		Tags:         getFormValueSlice("tags"),
 	}
 
 	// Validation
-	if ticketCreate.EndUserEmail == "" || ticketCreate.Subject == "" || ticketCreate.Body == "" {
+	if ticketCreate.SubmitterEmail == "" || ticketCreate.Subject == "" || ticketCreate.Description == "" {
 		logger.WarnContext(ctx, "Missing required form fields", "payload", ticketCreate)
 		return echo.NewHTTPError(http.StatusBadRequest, "Missing required ticket information (email, subject, description).")
 	}
@@ -73,10 +73,10 @@ func (h *Handler) CreateTicket(c echo.Context) (err error) { // Use named return
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid urgency value.")
 	}
 
-	emailToSend := ticketCreate.EndUserEmail
+	emailToSend := ticketCreate.SubmitterEmail
 
 	logger.DebugContext(ctx, "Ticket creation request received (multipart)",
-		"endUserEmail", emailToSend,
+		"SubmitterEmail", emailToSend,
 		"subject", ticketCreate.Subject,
 		"tags", ticketCreate.Tags)
 
@@ -99,20 +99,20 @@ func (h *Handler) CreateTicket(c echo.Context) (err error) { // Use named return
 	var createdTicket models.Ticket
 	err = tx.QueryRow(ctx, `
         INSERT INTO tickets (
-            end_user_email, issue_type, urgency, subject, body,
+            end_user_email, issue_type, urgency, subject, Description,
             status, created_at, updated_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING id, ticket_number, end_user_email, issue_type, urgency, subject, body,
+        RETURNING id, ticket_number, end_user_email, issue_type, urgency, subject, Description,
                   status, assigned_to_user_id, created_at, updated_at, closed_at,
                   resolution_notes
         `,
 		emailToSend, ticketCreate.IssueType, ticketCreate.Urgency,
-		ticketCreate.Subject, ticketCreate.Body, models.StatusUnassigned,
+		ticketCreate.Subject, ticketCreate.Description, models.StatusUnassigned,
 		time.Now(), time.Now(),
 	).Scan(
-		&createdTicket.ID, &createdTicket.TicketNumber, &createdTicket.EndUserEmail,
+		&createdTicket.ID, &createdTicket.TicketNumber, &createdTicket.SubmitterEmail,
 		&createdTicket.IssueType, &createdTicket.Urgency, &createdTicket.Subject,
-		&createdTicket.Body, &createdTicket.Status, &createdTicket.AssignedToUserID,
+		&createdTicket.Description, &createdTicket.Status, &createdTicket.AssignedToUserID,
 		&createdTicket.CreatedAt, &createdTicket.UpdatedAt, &createdTicket.ClosedAt,
 		&createdTicket.ResolutionNotes,
 	)

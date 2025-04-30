@@ -87,7 +87,7 @@ const TicketsPage: React.FC = () => {
       }));
       setTickets(ticketsWithEnsuredTags);
       setTotalTickets(response.total);
-      setTotalPages(response.totalPages);
+      setTotalPages(response.total_pages);
     } catch (err: any) {
       console.error("Failed to load tickets:", err);
       setError(err.response?.data?.message || err.message || 'Could not load tickets.');
@@ -168,7 +168,7 @@ const TicketsPage: React.FC = () => {
     { key: 'subject', header: 'Subject', render: (item) => <Link to={`/tickets/${item.id}`}>{item.subject}</Link>, cellClassName: 'subject-cell' },
     { key: 'status', header: 'Status', render: (item) => <Badge type={item.status.toLowerCase() as any}>{item.status}</Badge> },
     { key: 'urgency', header: 'Urgency', render: (item) => <Badge type={item.urgency.toLowerCase() as any}>{item.urgency}</Badge> },
-    { key: 'createdAt', header: 'Created', render: (item) => formatDate(item.createdAt) },
+    { key: 'createdAt', header: 'Created', render: (item) => formatDate(item.created_at) },
     { key: 'assignedTo', header: 'Assignee', render: (item) => item.assignedTo?.name || '-' },
     { key: 'tags', header: 'Tags', render: (item) => (
         // FIX: Check item.tags exists and is an array before mapping
@@ -180,7 +180,7 @@ const TicketsPage: React.FC = () => {
           : <span className='no-tags'>-</span>
       ), cellClassName: 'tags-cell'
     },
-    { key: 'updatedAt', header: 'Last Update', render: (item) => formatDate(item.updatedAt) },
+    { key: 'updatedAt', header: 'Last Update', render: (item) => formatDate(item.updated_at) },
   ];
 
   const filtersActive = !!currentStatus || !!currentUrgency || !!currentAssignee || !!currentSearch || currentTags.length > 0;
@@ -238,7 +238,7 @@ const TicketsPage: React.FC = () => {
                 columns={ticketColumns}
                 data={tickets}
                 tableClassName="tickets-table"
-                onRowClick={(ticket) => navigate(`/tickets/${ticket.id}`)}
+                onRowClick={(ticket) => navigate(`/tickets/${ticket.ticket_number}`)}
               />
             </div>
             <Pagination

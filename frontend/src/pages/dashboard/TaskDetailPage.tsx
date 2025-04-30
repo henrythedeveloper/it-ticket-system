@@ -156,7 +156,7 @@ const TaskDetailPage: React.FC = () => {
               onSaveSuccess={handleSaveSuccess}
               onCancel={handleCancelEdit}
               assignableUsers={assignableUsers}
-              ticketId={task.ticketId} // Pass ticketId if available
+              ticketId={task.task_id} // Pass ticketId if available
             />
           </div>
         ) : task ? (
@@ -189,8 +189,8 @@ const TaskDetailPage: React.FC = () => {
               </div>
                 <div className="meta-item">
                 <label className="meta-label">Due Date</label>
-                <span className={`meta-value ${task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'Completed' ? 'overdue' : ''}`}>
-                    {task.dueDate ? formatDateTime(task.dueDate, 'MMM d, yyyy') : 'Not set'}
+                <span className={`meta-value ${task.due_date && new Date(task.due_date) < new Date() && task.status !== 'Completed' ? 'overdue' : ''}`}>
+                    {task.due_date ? formatDateTime(task.due_date, 'MMM d, yyyy') : 'Not set'}
                 </span>
               </div>
               <div className="meta-item">
@@ -199,17 +199,17 @@ const TaskDetailPage: React.FC = () => {
               </div>
               <div className="meta-item">
                 <label className="meta-label">Created At</label>
-                <span className="meta-value">{formatDateTime(task.createdAt)}</span>
+                <span className="meta-value">{formatDateTime(task.created_at)}</span>
               </div>
                 <div className="meta-item">
                 <label className="meta-label">Last Updated</label>
-                <span className="meta-value">{formatDateTime(task.updatedAt)}</span>
+                <span className="meta-value">{formatDateTime(task.updated_at)}</span>
               </div>
-                {task.ticketId && (
+                {task.task_id && (
                   <div className="meta-item">
                     <label className="meta-label">Related Ticket</label>
                     <span className="meta-value">
-                      <Link to={`/tickets/${task.ticketId}`}>#{task.ticketId.substring(0, 6)}...</Link>
+                      <Link to={`/tickets/${task.task_id}`}>#{task.task_id.substring(0, 6)}...</Link>
                     </span>
                   </div>
                 )}

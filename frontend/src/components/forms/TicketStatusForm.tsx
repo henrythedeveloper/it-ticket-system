@@ -55,7 +55,7 @@ const TicketStatusForm: React.FC<TicketStatusFormProps> = ({
     const [formData, setFormData] = useState<StatusFormInputs>({
     status: ticket.status || 'Unassigned',
     assignedToId: ticket.assignedTo?.id || '',
-    resolutionNotes: ticket.resolutionNotes || '',
+    resolutionNotes: ticket.resolution_notes || '',
     });
 
     // --- Custom Hook for Submission ---
@@ -88,7 +88,7 @@ const TicketStatusForm: React.FC<TicketStatusFormProps> = ({
     setFormData({
         status: ticket.status || 'Unassigned',
         assignedToId: ticket.assignedTo?.id || '',
-        resolutionNotes: ticket.resolutionNotes || '',
+        resolutionNotes: ticket.resolution_notes || '',
     });
     clearError(); // Clear errors when ticket changes
     // eslint-disable-next-line react-hooks/exhaustive-deps

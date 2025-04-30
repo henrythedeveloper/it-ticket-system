@@ -114,7 +114,7 @@ const TicketDetailPage: React.FC = () => {
       setTicket(prevTicket => {
           if (!prevTicket) return null;
           const currentUpdates = Array.isArray(prevTicket.updates) ? prevTicket.updates : [];
-           const updatedUpdates = [newUpdate, ...currentUpdates].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+           const updatedUpdates = [newUpdate, ...currentUpdates].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
           return {
               ...prevTicket,
               updates: updatedUpdates
@@ -190,7 +190,7 @@ const TicketDetailPage: React.FC = () => {
   }
 
   const sortedUpdates = Array.isArray(ticket.updates)
-      ? ticket.updates.slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      ? ticket.updates.slice().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       : [];
 
   // --- Render ---
@@ -301,10 +301,10 @@ const TicketDetailPage: React.FC = () => {
             </section>
 
             {/* Resolution Notes Section */}
-            {ticket.status === 'Closed' && ticket.resolutionNotes && (
+            {ticket.status === 'Closed' && ticket.resolution_notes && (
                 <section className="resolution-notes">
                     <h3>Resolution Notes</h3>
-                    <p>{ticket.resolutionNotes}</p>
+                    <p>{ticket.resolution_notes}</p>
                 </section>
             )}
           </Card>
@@ -333,13 +333,13 @@ const TicketDetailPage: React.FC = () => {
             <div className="updates-timeline">
               {sortedUpdates.length > 0 ? (
                 sortedUpdates.map(update => (
-                  <div key={update.id} className={`update-item ${update.isSystemUpdate ? 'system-update' : ''} ${update.isInternalNote ? 'internal-note' : ''}`}>
+                  <div key={update.id} className={`update-item ${update.is_system_update ? 'system-update' : ''} ${update.is_internal_note ? 'internal-note' : ''}`}>
                     <div className="update-header">
                       <span className="update-author">
                           <strong>{update.author?.name || 'System'}</strong>
-                          {update.isInternalNote && <Badge type='secondary' className="internal-badge">Internal</Badge>}
+                          {update.is_internal_note && <Badge type='secondary' className="internal-badge">Internal</Badge>}
                       </span>
-                      <span className="update-time">{formatDateTime(update.createdAt)}</span>
+                      <span className="update-time">{formatDateTime(update.created_at)}</span>
                     </div>
                     <div className="update-content">{update.content}</div>
                   </div>
@@ -370,7 +370,7 @@ const TicketDetailPage: React.FC = () => {
             </div>
               <div className="info-group">
               <label>Issue Type:</label>
-              <span>{ticket.issueType || '-'}</span>
+              <span>{ticket.issue_type || '-'}</span>
             </div>
             {ticket.submitter && (
                 <div className="info-group">
@@ -380,16 +380,16 @@ const TicketDetailPage: React.FC = () => {
             )}
             <div className="info-group">
               <label>Created:</label>
-              <span>{formatDateTime(ticket.createdAt)}</span>
+              <span>{formatDateTime(ticket.created_at)}</span>
             </div>
             <div className="info-group">
               <label>Last Updated:</label>
-              <span>{formatDateTime(ticket.updatedAt)}</span>
+              <span>{formatDateTime(ticket.updated_at)}</span>
             </div>
-              {ticket.closedAt && (
+              {ticket.closed_at && (
                 <div className="info-group">
                     <label>Closed:</label>
-                    <span>{formatDateTime(ticket.closedAt)}</span>
+                    <span>{formatDateTime(ticket.closed_at)}</span>
                 </div>
               )}
           </Card>

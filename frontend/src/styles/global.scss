@@ -16,6 +16,9 @@
 @use './components/forms';
 @use './components/tickets/TicketCard';
 @use './components/common/modal';
+@use './components/common/Dropdown';
+@use './components/common/Pagination';
+@use './components/common/Sidebar';
 
 // Import layout styles
 @use './layouts/AuthLayout';

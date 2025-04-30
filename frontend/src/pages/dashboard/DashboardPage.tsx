@@ -2,7 +2,7 @@
 // ==========================================================================
 // Component representing the main dashboard view for authenticated users.
 // Displays key statistics, recent tickets, assigned tickets, tasks, etc.
-// **REVISED**: Added stricter check for user and user.name before access.
+// **REVISED**: Use correct snake_case properties (created_at, due_date) in table columns.
 // ==========================================================================
 
 import React, { useState, useEffect } from 'react';
@@ -30,29 +30,26 @@ interface DashboardStats {
 // --- Component ---
 const DashboardPage: React.FC = () => {
   // --- Hooks ---
-  const { user, loading: authLoading } = useAuth(); // Get user info and auth loading state
+  const { user, loading: authLoading } = useAuth();
 
   // --- State ---
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentTickets, setRecentTickets] = useState<Ticket[]>([]);
   const [myTickets, setMyTickets] = useState<Ticket[]>([]);
   const [myTasks, setTasks] = useState<Task[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true); // Separate loading state for dashboard data
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   // --- Data Fetching ---
   useEffect(() => {
     const loadDashboardData = async () => {
-      // Ensure user object is fully loaded before proceeding
       if (!user || !user.id) {
-          console.warn("[DashboardPage] User data not ready for fetching dashboard stats.");
-          setIsLoading(false); // Stop loading if user isn't ready
+          console.warn("[DashboardPage] User data not available yet for fetching dashboard stats.");
+          setIsLoading(false);
           return;
       }
-
       setIsLoading(true);
       setError(null);
-
       try {
         const [
           unassignedTicketsPromise,
@@ -65,7 +62,7 @@ const DashboardPage: React.FC = () => {
           fetchTickets({ assigneeId: user.id, status: 'Assigned', limit: 5 }),
           fetchTickets({ assigneeId: user.id, status: 'In Progress', limit: 5 }),
           fetchTickets({ submitterId: user.id, status: 'Open,Assigned,In Progress', limit: 5 }),
-          fetchTasks({ assigneeId: user.id, status: 'Open,In Progress', limit: 5, sortBy: 'dueDate', sortOrder: 'asc' })
+          fetchTasks({ assigneeId: user.id, status: 'Open,In Progress', limit: 5, sortBy: 'dueDate', sortOrder: 'asc' }) // Note: sortBy uses camelCase for API param
         ]);
 
         // Process Results (Stats Calculation)
@@ -78,16 +75,23 @@ const DashboardPage: React.FC = () => {
         setStats(calculatedStats);
 
         // Set ticket/task lists
-        setRecentTickets(unassignedTicketsPromise.status === 'fulfilled' ? unassignedTicketsPromise.value.data : []);
-        setMyTickets(assignedTicketsPromise.status === 'fulfilled' ? assignedTicketsPromise.value.data : []);
-        setTasks(myTasksPromise.status === 'fulfilled' ? myTasksPromise.value.data : []);
+        const recent = unassignedTicketsPromise.status === 'fulfilled' ? unassignedTicketsPromise.value.data : [];
+        const assigned = assignedTicketsPromise.status === 'fulfilled' ? assignedTicketsPromise.value.data : [];
+        const tasksData = myTasksPromise.status === 'fulfilled' ? myTasksPromise.value.data : [];
+
+        setRecentTickets(recent);
+        setMyTickets(assigned);
+        setTasks(tasksData);
+
+        console.log("[DashboardPage] Raw recentTickets data:", recent);
+        console.log("[DashboardPage] Raw myTickets data:", assigned);
+
 
         const failedPromises = [unassignedTicketsPromise, assignedTicketsPromise, inProgressTicketsPromise, myOpenTicketsPromise, myTasksPromise].filter(p => p.status === 'rejected');
         if (failedPromises.length > 0) {
             console.error("Some dashboard data failed to load:", failedPromises);
             setError("Could not load all dashboard data.");
         }
-
       } catch (err: any) {
         console.error("Failed to load dashboard data:", err);
         setError(err.message || 'An error occurred while loading dashboard data.');
@@ -95,45 +99,45 @@ const DashboardPage: React.FC = () => {
         setIsLoading(false);
       }
     };
-
-    // Trigger fetch only when auth loading is done AND user object is available
     if (!authLoading && user) {
         loadDashboardData();
     } else if (!authLoading && !user) {
-        // If auth is done loading but there's no user (e.g., token invalid)
-        setIsLoading(false); // Stop dashboard loading
-        setError("User session not found. Please log in."); // Optional: Set an error
+        setIsLoading(false);
+        // setError("User session not found. Please log in.");
     }
-    // If authLoading is true, we wait for it to finish
-  }, [user, authLoading]); // Depend on user and authLoading
+  }, [user, authLoading]);
 
   // --- Table Columns ---
   const ticketColumns: TableColumn<Ticket>[] = [
-    { key: 'id', header: 'ID', render: (item) => <Link to={`/tickets/${item.id}`}>#{item.id.substring(0, 6)}...</Link> },
+    { key: 'ticket_number', header: '#', render: (item) => <Link to={`/tickets/${item.id}`}>#{item.ticket_number}</Link> },
     { key: 'subject', header: 'Subject', render: (item) => <Link to={`/tickets/${item.id}`}>{truncateString(item.subject, 40)}</Link> },
     { key: 'status', header: 'Status', render: (item) => <Badge type={item.status.toLowerCase() as any}>{item.status}</Badge> },
     { key: 'urgency', header: 'Urgency', render: (item) => <Badge type={item.urgency.toLowerCase() as any}>{item.urgency}</Badge> },
-    { key: 'createdAt', header: 'Created', render: (item) => formatDate(item.createdAt) },
+    // ** FIX: Use item.created_at **
+    { key: 'created_at', header: 'Created', render: (item) => {
+        console.log(`[DashboardPage] Formatting date for ticket #${item.ticket_number}:`, item.created_at); // Log snake_case
+        const formatted = formatDate(item.created_at); // Pass snake_case to function
+        console.log(`[DashboardPage] -> Formatted date:`, formatted);
+        return formatted;
+      }
+    },
   ];
 
   const taskColumns: TableColumn<Task>[] = [
-      { key: 'title', header: 'Task', render: (item) => <Link to={`/tasks/${item.id}`}>{truncateString(item.title, 50)}</Link> },
-      { key: 'status', header: 'Status', render: (item) => <Badge type={item.status === 'In Progress' ? 'progress' : item.status.toLowerCase() as any}>{item.status}</Badge> },
-      { key: 'dueDate', header: 'Due Date', render: (item) => item.dueDate ? formatDate(item.dueDate) : 'N/A' },
+       { key: 'task_number', header: '#', render: (item) => item.task_number },
+       { key: 'title', header: 'Task', render: (item) => <Link to={`/tasks/${item.id}`}>{truncateString(item.title, 50)}</Link> },
+       { key: 'status', header: 'Status', render: (item) => <Badge type={item.status === 'In Progress' ? 'progress' : item.status.toLowerCase() as any}>{item.status}</Badge> },
+       // ** FIX: Use item.due_date **
+       { key: 'due_date', header: 'Due Date', render: (item) => item.due_date ? formatDate(item.due_date) : 'N/A' },
     ];
 
   // --- Render ---
-  // Show loader if either auth check OR dashboard data fetch is in progress
   if (authLoading || isLoading) {
     return <Loader text="Loading dashboard..." />;
   }
-
-  // Show error if dashboard data fetch failed
   if (error) {
     return <Alert type="error" message={error} />;
   }
-
-  // If not loading and no error, but stats are still null (could happen if user became null just before fetch)
   if (!stats) {
       return <Alert type="info" message="No dashboard data to display." />;
   }
@@ -143,12 +147,11 @@ const DashboardPage: React.FC = () => {
       {/* Page Header */}
       <div className="page-header">
         <h1>Dashboard</h1>
-        {/* ** Stricter check: Ensure user AND user.name exist ** */}
         {user && user.name && <p>Welcome back, {user.name}!</p>}
       </div>
 
       {/* Dashboard Content */}
-      <> {/* Fragment is fine here as stats check is done above */}
+      <>
           {/* Statistics Cards */}
           <section className="stats-cards">
             <Link to="/tickets?status=Unassigned" className="stats-card">
