@@ -1,23 +1,25 @@
 // src/styles/components/common/_Sidebar.scss
 // ==========================================================================
 // Styles for the Sidebar component.
+// **REVISED**: Use flexbox on the link element for centering icons in collapsed state.
 // ==========================================================================
 
 @use '../../variables' as *; // Use variables
 
 // --- Sidebar Styles ---
 .sidebar {
-  background-color: var(--sidebar-bg, var(--surface-tonal)); // Use specific var or fallback
-  width: $sidebar-width;
-  height: 100vh; // Full viewport height
-  position: fixed; // Fixed position
+  background-color: var(--sidebar-bg, var(--surface-tonal));
+  width: $sidebar-width; // Default width (desktop open)
+  height: 100vh;
+  position: fixed;
   top: 0;
   left: 0;
-  z-index: $z-index-fixed - 1; // Below header but above content scroll
-  padding-top: $header-height; // Account for fixed header
-  transition: width $transition-medium, transform $transition-medium, background-color $transition-medium, border-color $transition-medium; // Added transform
-  overflow-y: auto; // Allow scrolling if content exceeds height
-  border-right: 1px solid var(--border-color); // Use CSS var for border
+  z-index: $z-index-fixed - 1;
+  padding-top: $header-height;
+  transition: width $transition-medium, transform $transition-medium, background-color $transition-medium, border-color $transition-medium;
+  overflow-y: auto;
+  border-right: 1px solid var(--border-color);
+  transform: none; // Default transform state for desktop
 
   // Navigation list within sidebar
   .sidebar-nav {
@@ -28,78 +30,121 @@
       margin: 0;
       li {
         margin-bottom: $spacing-1;
-        // Navigation links
         a {
-          display: flex;
+          display: flex; // Default display is flex
           align-items: center;
           padding: $spacing-3 $spacing-4;
-          color: var(--sidebar-text, var(--text-muted)); // Use specific var or fallback
+          color: var(--sidebar-text, var(--text-muted));
           text-decoration: none;
-          font-weight: $font-weight-medium; // Added for better readability
-          transition: background-color $transition-fast, color $transition-fast, border-color $transition-fast;
-          border-left: 3px solid transparent; // For active state indicator
+          font-weight: $font-weight-medium;
+          transition: background-color $transition-fast, color $transition-fast, border-color $transition-fast, padding $transition-medium, justify-content $transition-medium; // Added justify-content to transition
+          border-left: 3px solid transparent;
+          overflow: hidden;
+          width: 100%;
 
           .icon {
             margin-right: $spacing-3;
-            font-size: $font-size-lg; // Slightly smaller icon
-            width: 20px; // Ensure consistent icon alignment
-            text-align: center; // Center icon if needed
-            flex-shrink: 0; // Prevent icon shrinking
-            transition: margin $transition-medium;
-          }
-          span { // Text label
-            transition: opacity $transition-fast;
+            font-size: $font-size-lg;
+            width: 20px;
+            text-align: center;
+            flex-shrink: 0;
+            transition: margin $transition-medium, opacity $transition-fast, visibility $transition-fast, width $transition-medium;
             opacity: 1;
-            white-space: nowrap; // Prevent text wrapping
+            visibility: visible;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+          }
+          span { // The text label
+            transition: opacity $transition-fast, visibility $transition-fast, width $transition-medium, margin-left $transition-fast; // Added margin-left
+            opacity: 1;
+            visibility: visible;
+            white-space: nowrap;
+            width: auto;
+            margin-left: 0; // Default margin
           }
 
-          // Active/hover state
           &:hover,
-          &.active { // &.active is added by NavLink
-            background-color: rgba(var(--primary-rgb), 0.1); // Use primary alpha background
+          &.active {
+            background-color: rgba(var(--primary-rgb), 0.1);
             color: var(--primary);
             border-left-color: var(--primary);
           }
-           &:focus-visible { // Add focus state for keyboard navigation
+           &:focus-visible {
                outline: none;
-               box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.5); // Use inset accent shadow
+               box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.5);
            }
         }
       }
     }
   }
 
-  // Styles specific to collapsed state (applied by .sidebar-closed on layout)
-  .main-layout.sidebar-closed & { // Target sidebar when layout has .sidebar-closed
-      width: $sidebar-collapsed-width; // Collapse sidebar width
+  // --- Desktop Collapsed State ---
+  @media (min-width: ($breakpoint-md + 1px)) {
+    .main-layout.sidebar-closed & {
+        width: $sidebar-collapsed-width;
 
-      .sidebar-nav ul li a {
-        justify-content: center; // Center icon
-        padding: $spacing-3 $spacing-2; // Adjust padding for smaller width
-        span { display: none; } // Hide text label
-        .icon { margin-right: 0; } // Remove icon margin
-      }
-  }
+        .sidebar-nav ul li a {
+          // Keep display: flex
+          display: flex;
+          // Center content horizontally
+          justify-content: center;
+          // Vertical alignment is handled by default align-items: center
+          align-items: center;
+          // Adjust padding for icon-only view
+          padding: $spacing-3 0; // Vertical padding, zero horizontal
 
-   // Mobile specific styles (applied by .mobile-open on sidebar itself)
+          .icon + span { // Hide only the label span, not the icon
+            display: none;
+            opacity: 0;
+            visibility: hidden;
+            width: 0;
+            margin-left: -$spacing-3; // Avoid layout shift during transition (match icon margin)
+          }
+
+          .icon { // Style the icon span
+            margin-right: 0; // Remove margin when collapsed
+            // Ensure icon is visible (redundant but safe)
+            opacity: 1;
+            visibility: visible;
+            width: auto; // Let the icon determine its width
+          }
+        }
+    }
+  } // --- End Desktop Collapsed State Media Query ---
+
+
+   // --- Mobile specific styles ---
    @media (max-width: $breakpoint-md) {
-      transform: translateX(-100%); // Hidden by default
-      transition: transform $transition-medium;
-      z-index: $z-index-fixed + 5; // Ensure sidebar is above content if it overlays
-      width: 280px; // Fixed width for mobile overlay
+      transform: translateX(-100%);
+      z-index: $z-index-fixed + 5;
+      width: 280px;
 
       &.mobile-open {
           transform: translateX(0);
           box-shadow: $shadow-lg;
       }
 
-       // Ensure text is visible in mobile overlay mode regardless of main layout class
+       // Ensure text is visible in mobile overlay mode
        .sidebar-nav ul li a {
-           justify-content: flex-start; // Align items normally
-           span { display: inline; } // Show text label
-           .icon { margin-right: $spacing-3; } // Restore icon margin
+           display: flex;
+           justify-content: flex-start; // Reset justification for mobile
+           padding: $spacing-3 $spacing-4; // Reset padding
+           text-align: left;
+           span {
+             display: inline; // Ensure text is displayed
+             opacity: 1;
+             visibility: visible;
+             width: auto;
+             margin-left: 0; // Reset margin
+            }
+           .icon {
+             margin-right: $spacing-3; // Restore margin
+             opacity: 1;
+             visibility: visible;
+             width: 20px; // Restore fixed width if needed
+            }
        }
    }
 
 } // End .sidebar
-

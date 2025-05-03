@@ -1,0 +1,156 @@
+// src/styles/components/notifications/_NotificationBell.scss
+// ==========================================================================
+// Styling for the notification bell component and dropdown
+// ==========================================================================
+
+@use '../../variables' as *;
+@use '../../mixins' as *;
+
+.notification-bell-container {
+  position: relative;
+  display: inline-block;
+
+  .notification-bell {
+    position: relative;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    padding: $spacing-2;
+    border-radius: $border-radius;
+    cursor: pointer;
+    transition: background-color $transition-fast, color $transition-fast;
+
+    &:hover {
+      background-color: var(--surface-tonal-2);
+    }
+
+    &.has-notifications {
+      color: var(--primary);
+      animation: pulse 2s infinite;
+    }
+
+    .notification-badge {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background-color: var(--error);
+      color: var(--text-inverted);
+      font-size: $font-size-xs;
+      font-weight: $font-weight-bold;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px;
+    }
+  }
+
+  .notification-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 320px;
+    max-width: 90vw;
+    background-color: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: $border-radius-md;
+    box-shadow: $shadow-lg;
+    z-index: $z-index-dropdown;
+    overflow: hidden;
+
+    .notification-header {
+      padding: $spacing-3;
+      background-color: var(--surface-tonal-1);
+      border-bottom: 1px solid var(--border-color);
+
+      h3 {
+        margin: 0;
+        font-size: $font-size-base;
+        font-weight: $font-weight-semibold;
+        color: var(--text-primary);
+      }
+    }
+
+    .notification-content {
+      max-height: 400px;
+      overflow-y: auto;
+
+      .no-notifications {
+        padding: $spacing-4;
+        text-align: center;
+        color: var(--text-muted);
+        font-style: italic;
+      }
+
+      .notification-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+
+        .notification-item {
+          padding: $spacing-3;
+          border-bottom: 1px solid var(--border-color);
+          cursor: pointer;
+          transition: background-color $transition-fast;
+
+          &:hover {
+            background-color: var(--surface-tonal-1);
+          }
+
+          &.unread {
+            background-color: rgba(var(--primary-rgb), 0.05);
+
+            &:hover {
+              background-color: rgba(var(--primary-rgb), 0.1);
+            }
+
+            .notification-message {
+              font-weight: $font-weight-medium;
+            }
+          }
+
+          .notification-message {
+            margin-bottom: $spacing-1;
+            color: var(--text-primary);
+            font-size: $font-size-sm;
+          }
+
+          .notification-time {
+            font-size: $font-size-xs;
+            color: var(--text-muted);
+          }
+        }
+      }
+    }
+
+    .notification-footer {
+      padding: $spacing-2;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+
+      .mark-all-read {
+        background: none;
+        border: none;
+        color: var(--primary);
+        font-size: $font-size-sm;
+        padding: $spacing-1 $spacing-2;
+        cursor: pointer;
+        transition: color $transition-fast;
+
+        &:hover {
+          color: var(--primary-dark);
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}

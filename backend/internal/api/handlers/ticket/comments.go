@@ -1,16 +1,23 @@
 // backend/internal/api/handlers/ticket/comments.go
 // ==========================================================================
 // Handler function for adding comments or updates to a ticket.
+// **REVISED**: Added validation to prevent empty comments.
+// **REVISED AGAIN**: Added entry logging and raw body logging to debug 400 errors.
+// **REVISED AGAIN**: Explicitly bind as JSON.
+// **REVISED AGAIN**: Reverted c.Bind to single argument syntax.
 // ==========================================================================
 
 package ticket
 
 import (
+	"bytes" // Import bytes for reading raw body
 	"context"
 	"errors"
 	"fmt"
+	"io" // Import io for ReadAll
 	"log/slog"
 	"net/http"
+	"strings" // Import strings package for TrimSpace
 	"time"
 
 	"github.com/henrythedeveloper/it-ticket-system/internal/api/middleware/auth" // Auth helpers
@@ -32,10 +39,14 @@ import (
 //
 // Returns:
 //   - JSON response with the newly created TicketUpdate object or an error response.
-func (h *Handler) AddTicketComment(c echo.Context) error {
+func (h *Handler) AddTicketComment(c echo.Context) (err error) { // Use named return for defer rollback check
 	ctx := c.Request().Context()
 	ticketID := c.Param("id")
 	logger := slog.With("handler", "AddTicketComment", "ticketUUID", ticketID)
+
+	// *** ADDED: Entry log ***
+	logger.DebugContext(ctx, "AddTicketComment handler invoked.")
+	// *** END ADDED LOG ***
 
 	// --- 1. Input Validation & Binding ---
 	if ticketID == "" {
@@ -43,12 +54,36 @@ func (h *Handler) AddTicketComment(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Missing ticket ID.")
 	}
 
+	// *** ADDED: Log raw request body BEFORE binding ***
+	var rawBodyBytes []byte
+	if c.Request().Body != nil {
+		rawBodyBytes, _ = io.ReadAll(c.Request().Body)
+		// Restore the body so it can be read again by Bind
+		c.Request().Body = io.NopCloser(bytes.NewBuffer(rawBodyBytes))
+		logger.DebugContext(ctx, "Raw request body received", "rawBody", string(rawBodyBytes))
+	} else {
+		logger.WarnContext(ctx, "Request body is nil before binding")
+	}
+	// *** END ADDED LOG ***
+
 	var commentCreate models.TicketUpdateCreate
-	if err := c.Bind(&commentCreate); err != nil {
-		logger.WarnContext(ctx, "Failed to bind request body", "error", err)
+	// *** REVERTED: Use single argument for c.Bind ***
+	if err = c.Bind(&commentCreate); err != nil {
+		// Log the binding error specifically
+		logger.ErrorContext(ctx, "Failed to bind request body", "error", err)
+		// Log the raw body again in case of error
+		logger.DebugContext(ctx, "Raw request body on bind failure", "rawBody", string(rawBodyBytes))
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body: "+err.Error())
 	}
-	// TODO: Add validation for comment content (e.g., non-empty)
+	// Log the bound data *after* successful binding
+	logger.DebugContext(ctx, "Request body bound successfully", "commentContentLength", len(commentCreate.Comment), "commentContent", commentCreate.Comment, "isInternal", commentCreate.IsInternalNote)
+
+
+	// Validation: Check if comment content is empty AFTER binding
+	if strings.TrimSpace(commentCreate.Comment) == "" {
+		logger.WarnContext(ctx, "Attempted to add empty comment (post-binding check)")
+		return echo.NewHTTPError(http.StatusBadRequest, "Comment content cannot be empty.")
+	}
 
 	// --- 2. Get User Context ---
 	userID, err := auth.GetUserIDFromContext(c)
@@ -60,7 +95,7 @@ func (h *Handler) AddTicketComment(c echo.Context) error {
 		return err
 	}
 
-	logger.DebugContext(ctx, "Add comment request received", "userID", userID, "role", userRole, "isInternal", commentCreate.IsInternalNote)
+	logger.DebugContext(ctx, "Add comment request processing", "userID", userID, "role", userRole, "isInternal", commentCreate.IsInternalNote)
 
 	// --- 3. Authorization & Pre-checks ---
 	// Fetch ticket status and assignee ID to check permissions
@@ -85,8 +120,6 @@ func (h *Handler) AddTicketComment(c echo.Context) error {
 	}
 
 	// Authorization: Check if user is allowed to add this type of comment
-	// For now, assume any authenticated user associated with the ticket (or admin) can comment.
-	// More specific logic could be added (e.g., only assignee/submitter/admin).
 	// Check if non-staff/admin is trying to add an internal note
 	if commentCreate.IsInternalNote && userRole != models.RoleAdmin && userRole != models.RoleStaff {
 		logger.WarnContext(ctx, "Unauthorized attempt to add internal note", "userID", userID, "userRole", userRole)
@@ -118,7 +151,9 @@ func (h *Handler) AddTicketComment(c echo.Context) error {
     `, ticketID, userID, commentCreate.Comment, commentCreate.IsInternalNote, time.Now()).Scan(&commentID)
 	if err != nil {
 		logger.ErrorContext(ctx, "Failed to insert ticket update", "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to add comment.")
+		// Use the named return variable 'err' to trigger the deferred rollback
+		err = fmt.Errorf("database error: failed to add comment: %w", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	// Update the ticket's updated_at timestamp
@@ -135,7 +170,9 @@ func (h *Handler) AddTicketComment(c echo.Context) error {
 		err = tx.Commit(ctx)
 		if err != nil {
 			logger.ErrorContext(ctx, "Failed to commit transaction", "error", err)
-			return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to save comment.")
+			// Use the named return variable 'err' to trigger the deferred rollback
+			err = fmt.Errorf("database error: failed to save comment: %w", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 	} else {
 		// If err is set (e.g., from timestamp update), defer handles rollback

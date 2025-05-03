@@ -179,3 +179,23 @@ export const buildQueryString = (params: Record<string, any>): string => {
     return query ? `?${query}` : '';
 };
 
+/**
+ * Recursively converts all object keys from snake_case to camelCase.
+ * Handles arrays, nested objects, and leaves primitives untouched.
+ * @param obj - The object or array to convert.
+ * @returns A new object/array with camelCase keys.
+ */
+export function keysToCamel<T = any>(obj: any): T {
+    if (Array.isArray(obj)) {
+        return obj.map(keysToCamel) as any;
+    } else if (obj && typeof obj === 'object' && obj.constructor === Object) {
+        const newObj: any = {};
+        Object.keys(obj).forEach((key) => {
+            const camelKey = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+            newObj[camelKey] = keysToCamel(obj[key]);
+        });
+        return newObj;
+    }
+    return obj;
+}
+

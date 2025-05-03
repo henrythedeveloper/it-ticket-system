@@ -1,7 +1,8 @@
 // src/types/index.ts
 // ==========================================================================
 // Centralized type definitions for the application.
-// **REVISED**: Added is_system_update to TicketUpdate interface.
+// **SIMPLIFIED**: Removed task-related types to focus on ticket functionality.
+// **REVISED**: Updated ticket status model to use Open/In Progress/Closed.
 // ==========================================================================
 
 import { ReactNode } from 'react';
@@ -35,18 +36,18 @@ export interface Tag {
 }
 
 // --- Ticket ---
-export type TicketStatus = 'Unassigned' | 'Assigned' | 'In Progress' | 'Closed';
+export type TicketStatus = 'Open' | 'In Progress' | 'Closed';
 export type TicketUrgency = 'Low' | 'Medium' | 'High' | 'Critical';
 
 export interface TicketUpdate {
   id: string;
   ticket_id: string;
-  content: string; // Changed from comment for consistency? Check backend model. Assume content based on error.
-  author?: Pick<User, 'id' | 'name'> | null; // Keep camelCase for nested user object?
+  comment: string;
+  user?: Pick<User, 'id' | 'name'> | null; // Changed from author for consistency with Ticket
   user_id?: string | null;
   created_at: string;
-  is_internal_note?: boolean; // Use snake_case
-  is_system_update?: boolean; // <-- Added this field
+  is_internal_note?: boolean;
+  is_system_update?: boolean; // Indicates if update was auto-generated
 }
 
 export interface TicketAttachment {
@@ -56,20 +57,21 @@ export interface TicketAttachment {
   size: number;
   url: string;
   uploaded_at: string;
-  storage_path?: string;
+  storage_path?: string; // Might not be needed in frontend
 }
 
 export interface Ticket {
   id: string;
   ticket_number: number;
+  submitter_name?: string | null;
+  end_user_email: string;
   subject: string;
   description: string;
   status: TicketStatus;
   urgency: TicketUrgency;
   issue_type?: string;
   tags?: Tag[];
-  end_user_email: string;
-  submitter?: Pick<User, 'id' | 'name' | 'email'> | null;
+  submitter?: Pick<User, 'id' | 'name' | 'email'> | null; // User record if email matches existing user
   assigned_to_user_id?: string | null;
   assignedTo?: Pick<User, 'id' | 'name'> | null;
   created_at: string;
@@ -78,40 +80,73 @@ export interface Ticket {
   resolution_notes?: string | null;
   updates?: TicketUpdate[];
   attachments?: TicketAttachment[];
+  tag_names?: string;
 }
 
-// --- Task ---
-export type TaskStatus = 'Open' | 'In Progress' | 'Completed';
+// --- Ticket Context Types ---
+export type TicketFilter = {
+  status?: string;
+  urgency?: string;
+  assignedTo?: string;
+  submitterId?: string;
+  tags?: string[];
+  search?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  fromDate?: string;
+  toDate?: string;
+};
 
-// Added TaskUpdate interface
-export interface TaskUpdate {
-  id: string;
-  task_id: string;
-  user_id?: string | null;
-  author?: Pick<User, 'id' | 'name'> | null; // Keep camelCase for nested user?
-  comment: string; // Task updates might use 'comment' field? Check backend
-  created_at: string;
+export type TicketStatusUpdate = {
+  status: string;
+  assignedToId?: string | null;
+  resolutionNotes?: string;
+};
+
+export interface TicketContextType {
+  tickets: Ticket[];
+  currentTicket: Ticket | null;
+  totalTickets: number;
+  isLoading: boolean;
+  error: string | null;
+  filters: TicketFilter;
+  notifications: Notification[];
+  hasNewNotifications: boolean;
+  markNotificationsAsRead: () => void;
+  checkForNewNotifications: () => Promise<void>;
+  fetchTickets: (newFilters?: Partial<TicketFilter>) => Promise<void>;
+  fetchTicketById: (id: string) => Promise<Ticket | null>;
+  updateTicket: (id: string, update: TicketStatusUpdate) => Promise<boolean>;
+  refreshCurrentTicket: () => Promise<void>;
+  setFilters: (newFilters: Partial<TicketFilter>) => void;
+  clearError: () => void;
 }
 
-
-export interface Task {
+// --- Notification ---
+export interface Notification {
   id: string;
-  task_number: number;
+  type: 'unassigned_ticket' | 'assigned_ticket' | 'comment' | 'status_change' | 'system';
   title: string;
-  description?: string;
-  status: TaskStatus;
-  due_date?: string | null;
-  assigned_to_user_id?: string | null;
-  assignedTo?: Pick<User, 'id' | 'name'> | null;
-  task_id?: string | null;
-  created_by_user_id?: string;
-  createdBy?: Pick<User, 'id' | 'name'> | null;
-  created_at: string;
-  updated_at: string;
-  completed_at?: string | null;
-  is_recurring?: boolean;
-  recurrence_rule?: string | null;
-  updates?: TaskUpdate[]; // Use TaskUpdate type
+  message: string;
+  ticketId?: string;
+  ticketNumber?: number;
+  isRead: boolean;
+  createdAt: string;
+}
+
+// Extended user type with notification count
+export interface UserWithNotifications extends User {
+  unreadNotifications?: number;
+}
+
+// --- Dashboard Stats ---
+export interface DashboardStats {
+  unassigned: number;
+  assignedToMe: number;
+  inProgress: number;
+  myOpenTickets: number;
 }
 
 // --- Settings ---
@@ -146,17 +181,19 @@ export interface PaginatedResponse<T> {
   hasMore?: boolean;
 }
 export type TicketsResponse = PaginatedResponse<Ticket>;
-export type SingleTicketResponse = Ticket;
+export type SingleTicketResponse = Ticket; // Often wrapped in APIResponse
 
 // --- Forms ---
 export interface LoginFormInputs { email: string; password?: string; }
-export interface TicketFormInputs { subject: string; description: string; urgency: TicketUrgency; issueType?: string; tags?: string[]; }
-export interface TicketCommentFormInputs { content: string; isInternalNote?: boolean; }
+export interface TicketCommentFormInputs { content: string; isInternalNote?: boolean; } // Frontend form still uses 'content' internally
 export interface TicketStatusFormInputs { status: TicketStatus; assignedToId?: string | null; resolutionNotes?: string; }
 
 // --- UI Context ---
 export interface ThemeState { theme: 'light' | 'dark'; }
 export interface ThemeContextType extends ThemeState { toggleTheme: () => void; }
 export interface SidebarState { isOpen: boolean; }
-export interface SidebarContextType extends SidebarState { toggleSidebar: () => void; openSidebar: () => void; closeSidebar: () => void; }
-
+export interface SidebarContextType extends SidebarState { 
+  toggleSidebar: () => void; 
+  openSidebar: () => void; 
+  closeSidebar: () => void; 
+}

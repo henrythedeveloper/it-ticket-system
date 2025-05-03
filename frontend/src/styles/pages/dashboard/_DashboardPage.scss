@@ -83,7 +83,7 @@
     }
   }
 
-  // Main Dashboard Grid (Recent Tickets, My Tickets, Tasks, Actions)
+  // Main Dashboard Grid (Recent Tickets, My Tickets, Actions)
   .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); // Responsive grid, min width 400px
@@ -155,32 +155,6 @@
     min-width: 80px; // Ensure consistent width
   }
 
-  // Task list styles
-  .task-list {
-    list-style: none; padding: 0; margin: 0;
-    .task-item {
-      border-bottom: 1px solid var(--border-color); // Use CSS var
-      transition: border-color $transition-medium;
-      &:last-child { border-bottom: none; }
-
-      .task-link {
-        display: flex; justify-content: space-between; align-items: center;
-        padding: $spacing-3; text-decoration: none; color: var(--text-secondary); // Use CSS var
-        transition: background-color $transition-fast, color $transition-medium;
-        &:hover { background-color: var(--surface-alt-bg); } // Use CSS var
-
-        .task-title { font-weight: $font-weight-medium; color: var(--text-primary); flex-grow: 1; } // Use CSS var
-        .task-due { font-size: $font-size-sm; color: var(--text-muted); margin: 0 $spacing-3; } // Use CSS var
-        .task-status { // Task-specific status badges
-          @include mixins.badge-base;
-          min-width: 80px;
-          // Apply task status colors (could be part of badge-alpha-variants if vars are named consistently)
-          // Mixin handles this now if variables are defined
-        }
-      }
-    }
-  }
-
   // Quick Actions section styles
   .quick-actions {
     display: grid;
@@ -213,12 +187,6 @@
       td:nth-child(4), td:nth-child(5) {
         display: none;
       }
-    }
-    // Adjust task list layout
-    .task-list .task-item .task-link {
-      flex-wrap: wrap;
-      .task-title { width: 100%; margin-bottom: $spacing-1; }
-      .task-due, .task-status { margin-top: $spacing-1; }
     }
   }
 }

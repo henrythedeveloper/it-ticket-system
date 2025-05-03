@@ -52,7 +52,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Ensure loading is true while fetching (might be redundant if store default is true)
         if (isMounted) setLoading(true);
         try {
-          const userProfile = await fetchUserProfile();
+          const userProfileResponse = await fetchUserProfile();
+          const userProfile = userProfileResponse;
           console.log('[AuthContext] Profile fetch successful:', userProfile);
           // Use storeLogin to set token, user, and loading=false atomically
           if (isMounted) storeLogin(currentToken, userProfile);

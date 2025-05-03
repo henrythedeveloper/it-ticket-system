@@ -3,6 +3,7 @@
 // Component for displaying a summary of a ticket in a list format.
 // Used on dashboard and ticket list pages.
 // **REVISED**: Show ticket_number instead of ID.
+// **REVISED AGAIN**: Display submitter_name if available.
 // ==========================================================================
 
 import React from 'react';
@@ -31,8 +32,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
             {ticket.urgency}
           </Badge>
         </div>
-        {/* ** FIX: Display ticket_number instead of ID ** */}
-        <span className="ticket-id" title={`Ticket #${ticket.ticket_number}`}>
+        <span className="ticket-id" title={`Ticket #${ticket.id}`}>
           #{ticket.ticket_number}
         </span>
       </header>
@@ -44,12 +44,12 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
 
       {/* Metadata: Submitter and Creation Date */}
       <div className="ticket-meta">
-          {ticket.submitter && ( // Check if submitter info exists
-            <div>
-                <span className="meta-label">Submitter:</span>
-                <span className="meta-value">{ticket.submitter.name}</span>
-            </div>
-          )}
+          {/* Display Submitter Name or Email */}
+          <div>
+            <span className="meta-label">Submitter:</span>
+            {/* Prefer submitter_name, fallback to email */}
+            <span className="meta-value">{ticket.submitter_name || ticket.end_user_email}</span>
+          </div>
           <div>
             <span className="meta-label">Created:</span>
             <span className="meta-value" title={formatDateTime(ticket.created_at)}>

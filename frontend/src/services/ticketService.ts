@@ -1,23 +1,30 @@
 // src/services/ticketService.ts
 // ==========================================================================
 // Service functions for handling ticket-related API calls.
-// **REVISED**: Fixed fetchTicketById to correctly extract nested data object.
-// **REVISED AGAIN**: Updated createTicket to handle FormData for attachments.
-// **REVISED AGAIN**: Added checks for optional data in API responses.
+// **REVISED AGAIN**: Reverted fetchTickets mapping to expect `tags: Tag[]`
+//                    as backend now includes this directly in the list response.
 // ==========================================================================
 
 import api from './api'; // Import the configured Axios instance
-import { Ticket, PaginatedResponse, TicketUpdate, TicketAttachment, Tag, APIResponse } from '../types'; // Import relevant types
-import { buildQueryString } from '../utils/helpers'; // Helper for query params
+import { Ticket, PaginatedResponse, TicketUpdate, TicketAttachment, Tag, APIResponse, User } from '../types'; // Import relevant types
+import { buildQueryString, keysToCamel } from '../utils/helpers'; // Helper for query params and keysToCamel
 
-// --- Interface Definitions (FetchTicketsParams, AddTicketUpdateInput, UpdateTicketStatusInput) ---
+// --- Constants ---
+const DEFAULT_LIMIT = 15; // Default number of items per page
+
+// --- Interface Definitions ---
+
+/**
+ * Represents the parameters for fetching tickets (filtering, pagination).
+ * Keys match the backend query parameter names (snake_case).
+ */
 interface FetchTicketsParams {
     page?: number;
     limit?: number;
     status?: string;
     urgency?: string;
-    assigneeId?: string | 'unassigned' | 'me';
-    submitterId?: string;
+    assigned_to?: string | 'unassigned' | 'me';
+    submitter_id?: string;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
     search?: string;
@@ -35,62 +42,103 @@ interface UpdateTicketStatusInput {
     resolutionNotes?: string;
 }
 
+// --- Raw API Response Structures ---
+// Define the raw structure expected from the LIST endpoint
+// *** REVERTED: Expecting backend to send mapped 'assignedTo' and 'tags' directly ***
+interface RawTicketListItem extends Omit<Ticket, 'updates' | 'attachments'> {
+    // Assuming backend now sends assignedTo and tags directly in the list view
+    // assigned_to_user?: Pick<User, 'id' | 'name'> | null; // No longer needed if backend sends assignedTo
+    // tag_names?: string[] | null; // No longer needed if backend sends tags
+}
+
+interface RawPaginatedResponse extends Omit<PaginatedResponse<any>, 'data'> {
+    // Expecting data to be closer to the final Ticket structure now
+    data: RawTicketListItem[];
+}
+
 // --- Service Functions ---
 
 /**
- * Fetches a paginated list of tickets based on provided parameters.
- * @param params - Optional parameters for filtering, sorting, and pagination.
- * @returns A Promise resolving with a PaginatedResponse containing tickets.
- */
-export const fetchTickets = async (params: FetchTicketsParams = {}): Promise<PaginatedResponse<Ticket>> => {
-    try {
-        const queryString = buildQueryString(params);
-        const response = await api.get<PaginatedResponse<Ticket>>(`/tickets${queryString}`);
-        // Ensure nested data arrays exist
-        if (response.data && Array.isArray(response.data.data)) {
-            response.data.data = response.data.data.map(ticket => ({
-                ...ticket,
-                tags: Array.isArray(ticket.tags) ? ticket.tags : [],
-                updates: Array.isArray(ticket.updates) ? ticket.updates : [],
-                attachments: Array.isArray(ticket.attachments) ? ticket.attachments : []
-            }));
-        } else {
-            // Handle case where response.data or response.data.data is not as expected
-            response.data = { ...response.data, data: [], total: 0, total_pages: 0 }; // Provide default empty structure
-        }
-        return response.data;
-    } catch (error) {
-        console.error('Fetch tickets API error:', error);
-        throw error;
-    }
-};
-
-/**
  * Fetches a single ticket by its ID, including updates and attachments.
+ * Maps backend snake_case fields like assigned_to_user to frontend camelCase assignedTo.
  * @param ticketId - The ID of the ticket to fetch.
  * @returns A Promise resolving with the full Ticket object.
  */
 export const fetchTicketById = async (ticketId: string): Promise<Ticket> => {
     try {
-        const response = await api.get<APIResponse<Ticket>>(`/tickets/${ticketId}`);
-        const ticketData = response.data.data; // Access nested data
+        // Define the expected raw API response structure (with snake_case)
+        interface RawTicketDetail extends Omit<Ticket, 'assignedTo' | 'submitter'> {
+            assigned_to_user?: User | null; // Expect full user object potentially
+            submitter?: User | null;
+            // Tags likely includes ID here
+            tags?: { id: string; name: string; created_at: string }[];
+            updates?: TicketUpdate[];
+            attachments?: TicketAttachment[];
+        }
+        interface RawDetailApiResponse extends Omit<APIResponse<any>, 'data'> {
+             data?: RawTicketDetail;
+        }
 
-        // FIX: Check if ticketData exists before processing/returning
-        if (!ticketData) {
+        // Fetch the raw data
+        const response = await api.get<RawDetailApiResponse>(`/tickets/${ticketId}`);
+        const rawData = response.data.data; // Access nested data
+
+        if (!rawData) {
             throw new Error("Ticket data missing in API response.");
         }
 
-        // Ensure nested arrays exist
-        ticketData.tags = Array.isArray(ticketData.tags) ? ticketData.tags : [];
-        ticketData.updates = Array.isArray(ticketData.updates) ? ticketData.updates : [];
-        ticketData.attachments = Array.isArray(ticketData.attachments) ? ticketData.attachments : [];
+        // Convert all keys to camelCase
+        const ticketData: Ticket = keysToCamel(rawData);
 
-        return ticketData; // Return the validated data
+        return ticketData; // Return the mapped data
     } catch (error) {
         console.error(`Fetch ticket by ID (${ticketId}) API error:`, error);
         throw error;
     }
 };
+
+
+/**
+ * Fetches a paginated list of tickets based on provided parameters.
+ * Assumes backend now sends data closer to the frontend Ticket structure.
+ * @param params - Optional parameters for filtering, sorting, and pagination. Uses FetchTicketsParams interface.
+ * @returns A Promise resolving with a PaginatedResponse containing mapped Ticket objects.
+ */
+export const fetchTickets = async (params: FetchTicketsParams = {}): Promise<PaginatedResponse<Ticket>> => {
+    try {
+        const queryString = buildQueryString(params);
+        // Fetch expecting PaginatedResponse<Ticket> directly, assuming backend sends mapped data
+        const response = await api.get<PaginatedResponse<any>>(`/tickets${queryString}`);
+
+        // Validate the basic structure of the response
+        if (!response.data || !Array.isArray(response.data.data)) {
+             console.warn("Received invalid paginated response structure from /tickets");
+             // Return a default empty paginated response
+             return {
+                 data: [],
+                 total: 0,
+                 page: params.page || 1,
+                 limit: params.limit || DEFAULT_LIMIT,
+                 total_pages: 0,
+                 hasMore: false
+                };
+        }
+
+        // Convert all tickets to camelCase
+        const mappedTickets = response.data.data.map(keysToCamel);
+
+        // Return the PaginatedResponse with potentially validated data
+        return {
+            ...response.data, // Copy pagination fields (total, page, etc.)
+            data: mappedTickets, // Use the validated/mapped ticket data
+        };
+
+    } catch (error) {
+        console.error('Fetch tickets API error:', error);
+        throw error; // Re-throw the error for the calling component to handle
+    }
+};
+
 
 /**
  * Creates a new ticket, potentially including attachments.
@@ -99,13 +147,11 @@ export const fetchTicketById = async (ticketId: string): Promise<Ticket> => {
  */
 export const createTicket = async (formData: FormData): Promise<APIResponse<Ticket>> => {
     try {
-        const response = await api.post<APIResponse<Ticket>>('/tickets', formData);
+        const response = await api.post<APIResponse<any>>('/tickets', formData);
 
-        // Ensure nested arrays exist in the response data
+        // Convert all keys to camelCase
         if (response.data?.data) {
-            response.data.data.tags = Array.isArray(response.data.data.tags) ? response.data.data.tags : [];
-            response.data.data.updates = Array.isArray(response.data.data.updates) ? response.data.data.updates : [];
-            response.data.data.attachments = Array.isArray(response.data.data.attachments) ? response.data.data.attachments : [];
+            response.data.data = keysToCamel(response.data.data);
         }
         // Return the whole APIResponse structure as expected by useFormSubmit
         return response.data;
@@ -124,12 +170,11 @@ export const createTicket = async (formData: FormData): Promise<APIResponse<Tick
  */
 export const addTicketUpdate = async (ticketId: string, updateData: AddTicketUpdateInput): Promise<TicketUpdate> => {
     try {
-        const response = await api.post<APIResponse<TicketUpdate>>(`/tickets/${ticketId}/comments`, updateData);
-        // FIX: Check if data exists before returning
+        const response = await api.post<APIResponse<any>>(`/tickets/${ticketId}/comments`, updateData);
         if (!response.data.data) {
             throw new Error("Ticket update data missing in API response.");
         }
-        return response.data.data;
+        return keysToCamel(response.data.data);
     } catch (error) {
         console.error(`Add ticket update (${ticketId}) API error:`, error);
         throw error;
@@ -144,22 +189,34 @@ export const addTicketUpdate = async (ticketId: string, updateData: AddTicketUpd
  */
 export const updateTicketStatus = async (ticketId: string, statusData: UpdateTicketStatusInput): Promise<Ticket> => {
     try {
-        const response = await api.put<APIResponse<Ticket>>(`/tickets/${ticketId}`, statusData);
-        // FIX: Check if data exists before processing/returning
-        if (!response.data.data) {
+        // Define the expected raw API response structure (with snake_case)
+        interface RawTicketApiResponseData extends Omit<Ticket, 'assignedTo' | 'submitter'> {
+            assigned_to_user?: User | null; // Expect snake_case from backend
+            submitter?: User | null;
+            tags?: Tag[]; // Assuming full tag objects might be returned on update
+            updates?: TicketUpdate[];
+            attachments?: TicketAttachment[];
+        }
+        interface RawApiResponse extends Omit<APIResponse<any>, 'data'> {
+             data?: RawTicketApiResponseData;
+        }
+
+        // Make the API call
+        const response = await api.put<RawApiResponse>(`/tickets/${ticketId}`, statusData);
+        const rawData = response.data.data;
+
+        if (!rawData) {
             throw new Error("Updated ticket data missing in API response.");
         }
-        // Ensure nested arrays exist
-        response.data.data.tags = Array.isArray(response.data.data.tags) ? response.data.data.tags : [];
-        response.data.data.updates = Array.isArray(response.data.data.updates) ? response.data.data.updates : [];
-        response.data.data.attachments = Array.isArray(response.data.data.attachments) ? response.data.data.attachments : [];
 
-        return response.data.data;
+        // Convert all keys to camelCase
+        return keysToCamel(rawData);
     } catch (error) {
         console.error(`Update ticket status (${ticketId}) API error:`, error);
         throw error;
     }
 };
+
 
 /**
  * Uploads an attachment file for a specific ticket (alternative way, if not done during creation).
@@ -178,16 +235,15 @@ export const uploadTicketAttachment = async (
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await api.post<APIResponse<TicketAttachment>>(
+        const response = await api.post<APIResponse<any>>(
             `/tickets/${ticketId}/attachments`,
             formData,
             { onUploadProgress }
         );
-        // FIX: Check if data exists before returning
         if (!response.data.data) {
             throw new Error("Attachment data missing in API response after upload.");
         }
-        return response.data.data;
+        return keysToCamel(response.data.data);
     } catch (error) {
         console.error(`Upload ticket attachment (${ticketId}) API error:`, error);
         throw error;

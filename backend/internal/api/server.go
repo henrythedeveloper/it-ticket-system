@@ -5,6 +5,7 @@
 // server lifecycle (start, shutdown).
 // **REVISED**: Added attachment download route.
 // **REVISED AGAIN**: Fixed import paths.
+// **UPDATED**: Integrated caching system.
 // ==========================================================================
 
 package api
@@ -19,13 +20,13 @@ import (
 	// Corrected handler imports
 	"github.com/henrythedeveloper/it-ticket-system/internal/api/handlers/faq"
 	"github.com/henrythedeveloper/it-ticket-system/internal/api/handlers/tag"
-	"github.com/henrythedeveloper/it-ticket-system/internal/api/handlers/task"
 	"github.com/henrythedeveloper/it-ticket-system/internal/api/handlers/ticket"
 	"github.com/henrythedeveloper/it-ticket-system/internal/api/handlers/user"
 	authmw "github.com/henrythedeveloper/it-ticket-system/internal/api/middleware/auth" // Auth middleware
 
 	// Import core services and config
 	"github.com/henrythedeveloper/it-ticket-system/internal/auth"
+	"github.com/henrythedeveloper/it-ticket-system/internal/cache"
 	"github.com/henrythedeveloper/it-ticket-system/internal/config"
 	"github.com/henrythedeveloper/it-ticket-system/internal/db"
 	"github.com/henrythedeveloper/it-ticket-system/internal/email"
@@ -43,6 +44,7 @@ type Server struct {
 	echo        *echo.Echo
 	config      *config.Config
 	authService auth.Service
+	cache       cache.Cache
 }
 
 // --- Constructor ---
@@ -56,28 +58,58 @@ func NewServer(db *db.DB, emailService email.Service, fileService file.Service, 
 	authService := auth.NewService(cfg.Auth)
 	slog.Info("Authentication service initialized")
 
+	// Initialize cache
+	var cacheService cache.Cache
+	if cfg.Cache.Enabled {
+		cacheOptions := cache.Options{
+			DefaultExpiration: cfg.Cache.DefaultExpiration,
+			RedisURL:          cfg.Cache.RedisURL,
+			UseMemoryCache:    cfg.Cache.Provider == "memory",
+		}
+
+		var err error
+		cacheService, err = cache.NewCache(cacheOptions)
+		if err != nil {
+			slog.Warn("Failed to initialize cache service, proceeding without caching", "error", err)
+			cacheService = cache.NewNoOpCache()
+		} else {
+			slog.Info("Cache service initialized successfully", "provider", cfg.Cache.Provider)
+		}
+	} else {
+		slog.Info("Caching disabled in configuration")
+		cacheService = cache.NewNoOpCache()
+	}
+
 	// --- Setup Middleware ---
 	// Request Logger configuration (assuming it was correct)
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
-		LogStatus:   true,
-		LogURI:      true,
-		LogMethod:   true,
-		LogLatency:  true,
-		LogError:    true,
-		LogRemoteIP: true,
+		LogStatus:    true,
+		LogURI:       true,
+		LogMethod:    true,
+		LogLatency:   true,
+		LogError:     true,
+		LogRemoteIP:  true,
 		LogUserAgent: true,
 		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
 			level := slog.LevelInfo
 			var errMsg string
-			if v.Error != nil { errMsg = v.Error.Error() }
-			if v.Status >= 500 { level = slog.LevelError }
-			if v.Status >= 400 { level = slog.LevelWarn }
+			if v.Error != nil {
+				errMsg = v.Error.Error()
+			}
+			if v.Status >= 500 {
+				level = slog.LevelError
+			}
+			if v.Status >= 400 {
+				level = slog.LevelWarn
+			}
 			attrs := []slog.Attr{
 				slog.String("ip", v.RemoteIP), slog.String("method", v.Method),
 				slog.String("uri", v.URI), slog.Int("status", v.Status),
 				slog.Duration("latency", v.Latency), slog.String("user_agent", v.UserAgent),
 			}
-			if errMsg != "" { attrs = append(attrs, slog.String("error", errMsg)) }
+			if errMsg != "" {
+				attrs = append(attrs, slog.String("error", errMsg))
+			}
 			slog.LogAttrs(context.Background(), level, "HTTP Request", attrs...)
 			return nil
 		},
@@ -95,7 +127,6 @@ func NewServer(db *db.DB, emailService email.Service, fileService file.Service, 
 	tagHandler := tag.NewHandler(db)
 	userHandler := user.NewHandler(db, authService)
 	ticketHandler := ticket.NewHandler(db, emailService, fileService)
-	taskHandler := task.NewHandler(db, emailService)
 	slog.Info("API handlers initialized")
 
 	// --- Setup Authentication Middleware ---
@@ -123,7 +154,6 @@ func NewServer(db *db.DB, emailService email.Service, fileService file.Service, 
 	authGroup := apiGroup.Group("", jwtMiddleware)
 
 	ticket.RegisterRoutes(authGroup.Group("/tickets"), ticketHandler)
-	task.RegisterRoutes(authGroup.Group("/tasks"), taskHandler)
 	user.RegisterRoutes(authGroup.Group("/users"), userHandler, adminMiddleware)
 	faq.RegisterRoutes(authGroup.Group("/faq"), faqHandler, adminMiddleware)
 	tag.RegisterRoutes(authGroup.Group("/tags"), tagHandler, adminMiddleware)
@@ -134,6 +164,7 @@ func NewServer(db *db.DB, emailService email.Service, fileService file.Service, 
 		echo:        e,
 		config:      cfg,
 		authService: authService,
+		cache:       cacheService,
 	}
 }
 

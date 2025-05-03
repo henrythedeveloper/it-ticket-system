@@ -58,7 +58,7 @@ func main() {
 		slog.Error("Failed to initialize email service. Exiting.", "error", err)
 		os.Exit(1)
 	}
-	slog.Info("Email service initialized", "provider", cfg.Email.Provider)
+	slog.Info("Email service initialized")
 
 	// --- Initialize File Storage Service ---
 	fileService, err := file.NewService(cfg.Storage)

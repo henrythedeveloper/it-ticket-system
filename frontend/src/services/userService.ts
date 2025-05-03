@@ -5,7 +5,7 @@
 
 import api from './api'; // Import the configured Axios instance
 import { User, PaginatedResponse } from '../types'; // Import relevant types
-import { buildQueryString } from '../utils/helpers'; // Helper for query params
+import { buildQueryString, keysToCamel } from '../utils/helpers'; // Helper for query params and keysToCamel
 
 /**
  * Represents the parameters for fetching users (filtering, pagination).
@@ -37,12 +37,17 @@ type UserInputData = Partial<Omit<User, 'id' | 'createdAt' | 'updatedAt'>> & {
  */
 export const fetchUsers = async (params: FetchUsersParams = {}): Promise<PaginatedResponse<User>> => {
     try {
-    const queryString = buildQueryString(params);
-    const response = await api.get<PaginatedResponse<User>>(`/users${queryString}`);
-    return response.data;
+        const queryString = buildQueryString(params);
+        const response = await api.get<PaginatedResponse<any>>(`/users${queryString}`);
+        // Convert all users to camelCase
+        const mappedUsers = response.data.data.map(keysToCamel);
+        return {
+            ...response.data,
+            data: mappedUsers,
+        };
     } catch (error) {
-    console.error('Fetch users API error:', error);
-    throw error;
+        console.error('Fetch users API error:', error);
+        throw error;
     }
 };
 
@@ -54,11 +59,11 @@ export const fetchUsers = async (params: FetchUsersParams = {}): Promise<Paginat
  */
 export const fetchUserById = async (userId: string): Promise<User> => {
     try {
-    const response = await api.get<User>(`/users/${userId}`);
-    return response.data;
+        const response = await api.get<any>(`/users/${userId}`);
+        return keysToCamel(response.data);
     } catch (error) {
-    console.error(`Fetch user by ID (${userId}) API error:`, error);
-    throw error;
+        console.error(`Fetch user by ID (${userId}) API error:`, error);
+        throw error;
     }
 };
 
@@ -70,11 +75,11 @@ export const fetchUserById = async (userId: string): Promise<User> => {
  */
 export const createUser = async (userData: UserInputData): Promise<User> => {
     try {
-    const response = await api.post<User>('/users', userData);
-    return response.data;
+        const response = await api.post<any>('/users', userData);
+        return keysToCamel(response.data);
     } catch (error) {
-    console.error('Create user API error:', error);
-    throw error;
+        console.error('Create user API error:', error);
+        throw error;
     }
 };
 
@@ -87,17 +92,17 @@ export const createUser = async (userData: UserInputData): Promise<User> => {
  */
 export const updateUser = async (userId: string, userData: UserInputData): Promise<User> => {
     try {
-    // Ensure password isn't accidentally sent if not intended
-    const dataToSend = { ...userData };
-    if (!dataToSend.password) {
-        delete dataToSend.password;
-    }
+        // Ensure password isn't accidentally sent if not intended
+        const dataToSend = { ...userData };
+        if (!dataToSend.password) {
+            delete dataToSend.password;
+        }
 
-    const response = await api.put<User>(`/users/${userId}`, dataToSend);
-    return response.data;
+        const response = await api.put<any>(`/users/${userId}`, dataToSend);
+        return keysToCamel(response.data);
     } catch (error) {
-    console.error(`Update user (${userId}) API error:`, error);
-    throw error;
+        console.error(`Update user (${userId}) API error:`, error);
+        throw error;
     }
 };
 
@@ -109,10 +114,10 @@ export const updateUser = async (userId: string, userData: UserInputData): Promi
  */
 export const deleteUser = async (userId: string): Promise<void> => {
     try {
-    await api.delete(`/users/${userId}`);
-    // No data usually returned on successful delete
+        await api.delete(`/users/${userId}`);
+        // No data usually returned on successful delete
     } catch (error) {
-    console.error(`Delete user (${userId}) API error:`, error);
-    throw error;
+        console.error(`Delete user (${userId}) API error:`, error);
+        throw error;
     }
 };

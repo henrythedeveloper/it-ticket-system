@@ -6,6 +6,7 @@
 
 import api from './api'; // Import the configured Axios instance
 import { User, LoginFormInputs } from '../types'; // Import relevant types
+import { keysToCamel } from '../utils/helpers'; // Import keysToCamel
 
 /**
  * Represents the expected response structure for a successful login.
@@ -43,7 +44,7 @@ export const login = async (credentials: LoginFormInputs): Promise<LoginResponse
         // Return the token and user details in the expected LoginResponse format
         return {
             token: data.access_token,
-            user: data.user
+            user: keysToCamel(data.user)
         };
     } catch (error: any) {
         // Handle potential errors during login
@@ -65,10 +66,10 @@ export const login = async (credentials: LoginFormInputs): Promise<LoginResponse
  */
 export const fetchUserProfile = async (): Promise<User> => {
     try {
-        // *** FIX: Changed endpoint from '/auth/profile' to '/users/me' ***
         // The token is automatically added by the interceptor
-        const response = await api.get<User>('/users/me');
-        return response.data;
+        const response = await api.get('/users/me');
+        // The backend returns { success, data }, so return only the user object
+        return keysToCamel(response.data.data);
     } catch (error) {
         // Handle potential errors during profile fetch
         console.error('Fetch user profile API error:', error);

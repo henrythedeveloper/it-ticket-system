@@ -2,6 +2,7 @@
 // ==========================================================================
 // Main application router configuration using React Router DOM.
 // Defines public and private routes, utilizing layout components.
+// **SIMPLIFIED**: Removed task-related routes to focus on ticket management.
 // ==========================================================================
 
 import React from 'react';
@@ -27,8 +28,6 @@ import LoginPage from '../../pages/auth/LoginPage';
 import DashboardPage from '../../pages/dashboard/DashboardPage';
 import TicketsPage from '../../pages/dashboard/TicketsPage';
 import TicketDetailPage from '../../pages/dashboard/TicketDetailPage';
-import TasksPage from '../../pages/dashboard/TasksPage';
-import TaskDetailPage from '../../pages/dashboard/TaskDetailPage';
 import ProfilePage from '../../pages/dashboard/ProfilePage';
 // Admin Pages
 import UsersPage from '../../pages/dashboard/UsersPage';
@@ -78,14 +77,6 @@ const AppRouter: React.FC = () => {
         <Route path="tickets/:ticketId" element={<TicketDetailPage />} />
         {/* Optional: Route for creating tickets within dashboard */}
         {/* <Route path="tickets/new" element={<CreateTicketInternalPage />} /> */}
-
-        {/* Task Routes (Accessible to Staff/Admin) */}
-        {/* Wrap these in AdminRoute if only Admins can view all tasks */}
-        <Route path="tasks" element={<TasksPage />} />
-        <Route path="tasks/:taskId" element={<TaskDetailPage />} />
-            {/* Optional: Route for creating tasks within dashboard */}
-        <Route path="tasks/new" element={<TaskDetailPage />} /> {/* Reuse detail page for create? Or dedicated form page */}
-
 
         {/* Profile Route (Accessible to all authenticated users) */}
         <Route path="profile" element={<ProfilePage />} />

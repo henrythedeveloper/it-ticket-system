@@ -1,5 +1,5 @@
 # Build stage
-FROM node:18-alpine as build
+FROM node:23-alpine AS build
 
 # Build arguments (Use PUBLIC_ prefix if you rename the var)
 ARG PUBLIC_API_URL=/api
@@ -23,7 +23,7 @@ ENV PUBLIC_API_URL=${PUBLIC_API_URL}
 RUN npm run build
 
 # Production stage
-FROM nginx:alpine as production
+FROM nginx:alpine AS production
 
 # Copy built assets from build stage (Rsbuild outputs to 'dist' by default)
 # Copy from the 'dist' folder in the build stage

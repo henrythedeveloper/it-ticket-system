@@ -3,9 +3,7 @@
 // Component rendering the form for creating new tickets (public facing).
 // Handles text inputs, selections, and file attachments using FormData.
 // Uses the useFormSubmit hook for submission logic.
-// **REVISED**: Added drag-and-drop file upload functionality.
-// **REVISED AGAIN**: Removed clearData() from drop handler and added logging.
-// **REVISED AGAIN**: Removed FormData iteration loop causing TS error.
+// SIMPLIFIED: Consolidated handlers and improved form management
 // ==========================================================================
 
 import React, { useState, useRef, DragEvent } from 'react';
@@ -15,7 +13,7 @@ import Select from '../common/Select';
 import Button from '../common/Button';
 import Alert from '../common/Alert';
 import { useFormSubmit } from '../../hooks/useFormSubmit';
-import { Ticket, TicketUrgency, Tag, APIResponse } from '../../types';
+import { Ticket, TicketUrgency, APIResponse } from '../../types';
 import { createTicket } from '../../services/ticketService';
 import { formatBytes } from '../../utils/helpers';
 import { UploadCloud, X as CloseIcon } from 'lucide-react';
@@ -47,8 +45,13 @@ const TicketForm: React.FC<TicketFormProps> = ({
 }) => {
     // --- State ---
     const [formData, setFormData] = useState<PublicTicketFormInputs>({
-        submitterName: '', endUserEmail: '', subject: '', description: '',
-        urgency: 'Medium', issueType: issueTypes[0] || '', tags: [],
+        submitterName: '', 
+        endUserEmail: '', 
+        subject: '', 
+        description: '',
+        urgency: 'Medium', 
+        issueType: issueTypes[0] || '', 
+        tags: [],
         attachments: [],
     });
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -64,53 +67,66 @@ const TicketForm: React.FC<TicketFormProps> = ({
         createTicket,
         {
             onSuccess: (response) => {
-                console.log("[TicketForm] onSuccess received response:", response);
                 if (response?.data?.ticket_number !== undefined) {
+                    // Reset form and call success handler
+                    resetForm();
                     onSubmitSuccess(response.data.ticket_number);
-                    setFormData({
-                        submitterName: '', endUserEmail: '', subject: '', description: '',
-                        urgency: 'Medium', issueType: issueTypes[0] || '', tags: [], attachments: []
-                    });
-                    if (fileInputRef.current) {
-                        fileInputRef.current.value = '';
-                    }
                 } else {
                     console.error("[TicketForm] Invalid response structure or missing ticket_number:", response);
                     onSubmitSuccess(0);
                 }
             },
             onError: (err) => {
-                console.error("Failed to create ticket (hook callback):", err);
+                console.error("Failed to create ticket:", err);
             },
         }
     );
 
-    // --- Handlers ---
+    // --- Reset Form ---
+    const resetForm = () => {
+        setFormData({
+            submitterName: '', 
+            endUserEmail: '', 
+            subject: '', 
+            description: '',
+            urgency: 'Medium', 
+            issueType: issueTypes[0] || '', 
+            tags: [], 
+            attachments: []
+        });
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    // --- Unified Change Handler ---
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
     ) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+        setFormData(prev => ({ ...prev, [name]: value }));
         if (error) clearError();
     };
 
+    // --- Toggle Tag Selection ---
     const handleTagToggle = (tag: string) => {
-        setFormData((prev) => {
-            const currentTags = prev.tags;
-            const newTags = currentTags.includes(tag)
-                ? currentTags.filter(t => t !== tag)
-                : [...currentTags, tag];
+        setFormData(prev => {
+            const newTags = prev.tags.includes(tag)
+                ? prev.tags.filter(t => t !== tag)
+                : [...prev.tags, tag];
             return { ...prev, tags: newTags };
         });
         if (error) clearError();
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            const newFiles = Array.from(e.target.files);
-            addFilesToState(newFiles);
-            if (error) clearError();
-        }
+    // --- File Handling ---
+    const handleFiles = (files: FileList | File[]) => {
+        const newFiles = Array.from(files);
+        setFormData(prev => ({
+            ...prev,
+            attachments: [...prev.attachments, ...newFiles]
+        }));
+        if (error) clearError();
     };
 
     const handleRemoveFile = (fileToRemove: File) => {
@@ -120,76 +136,68 @@ const TicketForm: React.FC<TicketFormProps> = ({
         }));
     };
 
-    // --- Drag and Drop Handlers ---
+    // --- File Input Change ---
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            handleFiles(e.target.files);
+        }
+    };
+
+    // --- Drag and Drop ---
     const handleDragOver = (e: DragEvent<HTMLLabelElement>) => {
         e.preventDefault();
-        e.stopPropagation();
         setIsDraggingOver(true);
     };
 
     const handleDragLeave = (e: DragEvent<HTMLLabelElement>) => {
         e.preventDefault();
-        e.stopPropagation();
         setIsDraggingOver(false);
     };
 
     const handleDrop = (e: DragEvent<HTMLLabelElement>) => {
         e.preventDefault();
-        e.stopPropagation();
         setIsDraggingOver(false);
-        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            const droppedFiles = Array.from(e.dataTransfer.files);
-            console.log("[TicketForm] Files dropped:", droppedFiles.map(f => f.name));
-            addFilesToState(droppedFiles);
-            if (error) clearError();
+        if (e.dataTransfer.files?.length > 0) {
+            handleFiles(e.dataTransfer.files);
         }
     };
 
-    // Helper function to add files
-    const addFilesToState = (filesToAdd: File[]) => {
-         setFormData(prev => ({
-            ...prev,
-            attachments: [...prev.attachments, ...filesToAdd]
-        }));
-        console.log("[TicketForm] Updated attachments state:", filesToAdd.map(f=>f.name));
-    };
-
-    // --- Form Submission Handler ---
+    // --- Form Submission ---
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        console.log("[TicketForm] handleSubmit triggered. Current formData state:", formData);
-
+        
+        // Create FormData object
         const submissionData = new FormData();
-
-        submissionData.append('submitterName', formData.submitterName);
-        submissionData.append('endUserEmail', formData.endUserEmail);
-        submissionData.append('subject', formData.subject);
-        submissionData.append('description', formData.description);
-        submissionData.append('urgency', formData.urgency);
-        if (formData.issueType) {
-            submissionData.append('issueType', formData.issueType);
-        }
-        formData.tags.forEach(tag => submissionData.append('tags', tag));
-        formData.attachments.forEach((file) => {
-            submissionData.append('attachments', file, file.name);
+        
+        // Add form field values
+        Object.entries(formData).forEach(([key, value]) => {
+            if (Array.isArray(value)) {
+                if (key === 'tags') {
+                    value.forEach(tag => submissionData.append('tags', tag));
+                } else if (key === 'attachments') {
+                    value.forEach(file => submissionData.append('attachments', file, file.name));
+                }
+            } else if (value) { // Only append if value exists
+                submissionData.append(key, value.toString());
+            }
         });
-
-        console.log("[TicketForm] FormData object created for submission:", submissionData);
-        // ** REMOVED the problematic logging loop that caused TS error **
-        // for (let [key, value] of submissionData.entries()) { ... }
-
-        if (!submissionData.has('endUserEmail') || !submissionData.has('subject') || !submissionData.has('description')) {
-             console.error("[TicketForm] Error: Trying to submit FormData missing required fields.");
-             return;
+        
+        // Validate required fields
+        if (!formData.endUserEmail || !formData.subject || !formData.description) {
+            console.error("[TicketForm] Error: Missing required fields");
+            return;
         }
-
+        
+        // Submit the form
         submitNewTicket(submissionData);
     };
 
     // --- Options ---
-    const urgencyOptions: { value: TicketUrgency; label: string }[] = [
-        { value: 'Low', label: 'Low' }, { value: 'Medium', label: 'Medium' },
-        { value: 'High', label: 'High' }, { value: 'Critical', label: 'Critical' },
+    const urgencyOptions = [
+        { value: 'Low', label: 'Low' }, 
+        { value: 'Medium', label: 'Medium' },
+        { value: 'High', label: 'High' }, 
+        { value: 'Critical', label: 'Critical' },
     ];
     const issueTypeOptions = issueTypes.map(type => ({ value: type, label: type }));
 
@@ -198,35 +206,94 @@ const TicketForm: React.FC<TicketFormProps> = ({
         <form onSubmit={handleSubmit} className="ticket-form">
             {error && <Alert type="error" message={error} className="mb-4" />}
 
-            {/* Fields remain the same */}
+            {/* Contact Information */}
             <div className="form-row">
-                <Input label="Your Name" id="submitterName" name="submitterName" type="text"
-                    value={formData.submitterName} onChange={handleChange} required disabled={isLoading} />
-                <Input label="Your Email" id="endUserEmail" name="endUserEmail" type="email"
-                    value={formData.endUserEmail} onChange={handleChange} required disabled={isLoading} />
+                <Input 
+                    label="Your Name" 
+                    id="submitterName" 
+                    name="submitterName" 
+                    type="text"
+                    value={formData.submitterName} 
+                    onChange={handleChange} 
+                    required 
+                    disabled={isLoading} 
+                />
+                <Input 
+                    label="Your Email" 
+                    id="endUserEmail" 
+                    name="endUserEmail" 
+                    type="email"
+                    value={formData.endUserEmail} 
+                    onChange={handleChange} 
+                    required 
+                    disabled={isLoading} 
+                />
             </div>
-            <Input label="Subject" id="subject" name="subject" type="text"
-                value={formData.subject} onChange={handleChange} required disabled={isLoading}
-                containerClassName="mb-4" />
-            <Textarea label="Describe your issue" id="description" name="description"
-                value={formData.description} onChange={handleChange} required disabled={isLoading}
-                rows={8} containerClassName="mb-4" placeholder="Please provide as much detail as possible..." />
+
+            {/* Ticket Details */}
+            <Input 
+                label="Subject" 
+                id="subject" 
+                name="subject" 
+                type="text"
+                value={formData.subject} 
+                onChange={handleChange} 
+                required 
+                disabled={isLoading}
+                containerClassName="mb-4" 
+            />
+            <Textarea 
+                label="Describe your issue" 
+                id="description" 
+                name="description"
+                value={formData.description} 
+                onChange={handleChange} 
+                required 
+                disabled={isLoading}
+                rows={8} 
+                containerClassName="mb-4" 
+                placeholder="Please provide as much detail as possible..." 
+            />
+
+            {/* Classification */}
             <div className="form-row">
-                <Select label="Urgency" id="urgency" name="urgency" options={urgencyOptions}
-                    value={formData.urgency} onChange={handleChange} required disabled={isLoading} />
+                <Select 
+                    label="Urgency" 
+                    id="urgency" 
+                    name="urgency" 
+                    options={urgencyOptions}
+                    value={formData.urgency} 
+                    onChange={handleChange} 
+                    required 
+                    disabled={isLoading} 
+                />
                 {issueTypeOptions.length > 0 && (
-                    <Select label="Issue Type / Category" id="issueType" name="issueType" options={issueTypeOptions}
-                        value={formData.issueType} onChange={handleChange} disabled={isLoading} placeholder="Select category..." />
+                    <Select 
+                        label="Issue Type / Category" 
+                        id="issueType" 
+                        name="issueType" 
+                        options={issueTypeOptions}
+                        value={formData.issueType} 
+                        onChange={handleChange} 
+                        disabled={isLoading} 
+                        placeholder="Select category..." 
+                    />
                 )}
             </div>
+
+            {/* Tags */}
             {availableTags.length > 0 && (
                 <div className="form-group">
                     <label>Tags (Optional)</label>
                     <div className="tags-container">
                         {availableTags.map(tag => (
-                            <button type="button" key={tag}
+                            <button 
+                                type="button" 
+                                key={tag}
                                 className={`tag ${formData.tags.includes(tag) ? 'selected' : ''}`}
-                                onClick={() => handleTagToggle(tag)} disabled={isLoading}>
+                                onClick={() => handleTagToggle(tag)} 
+                                disabled={isLoading}
+                            >
                                 {tag}
                             </button>
                         ))}
@@ -234,7 +301,7 @@ const TicketForm: React.FC<TicketFormProps> = ({
                 </div>
             )}
 
-            {/* Attachment Input - Handlers added to the label */}
+            {/* Attachments */}
             <div className="form-group">
                 <label htmlFor="attachments">Attachments (Optional)</label>
                 <div className="attachment-input-area">
@@ -260,6 +327,8 @@ const TicketForm: React.FC<TicketFormProps> = ({
                         <span>{isDraggingOver ? 'Drop files here!' : 'Click or drag files to upload'}</span>
                     </label>
                 </div>
+
+                {/* File Preview */}
                 {formData.attachments.length > 0 && (
                     <div className="file-preview-list">
                         {formData.attachments.map((file, index) => (
@@ -282,8 +351,13 @@ const TicketForm: React.FC<TicketFormProps> = ({
             </div>
 
             {/* Submit Button */}
-            <Button type="submit" variant="primary" isLoading={isLoading} disabled={isLoading}
-                className="submit-button mt-6">
+            <Button 
+                type="submit" 
+                variant="primary" 
+                isLoading={isLoading} 
+                disabled={isLoading}
+                className="submit-button mt-6"
+            >
                 {isLoading ? 'Submitting Ticket...' : 'Submit Ticket'}
             </Button>
         </form>

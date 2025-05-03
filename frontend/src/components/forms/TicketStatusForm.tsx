@@ -3,6 +3,7 @@
 // Component rendering the form for updating a ticket's status and assignee.
 // Often used within a modal or sidebar on the Ticket Detail page.
 // Refactored to use the useFormSubmit hook.
+// Simplified to use Open/In Progress/Closed status model.
 // ==========================================================================
 
 import React, { useState, useEffect } from 'react';
@@ -25,14 +26,14 @@ interface TicketStatusFormProps {
 // --- Form Input Data Structure ---
 interface StatusFormInputs {
     status: TicketStatus;
-    assignedToId: string; // Store ID, empty string if unassigned
+    assignedToId: string; // Store ID, empty string ('') if unassigned
     resolutionNotes: string; // Required only when closing
 }
 
 // --- API Payload Structure ---
 interface UpdateTicketStatusApiPayload {
     status: Ticket['status'];
-    assignedToId?: string | null;
+    assignedToId?: string | null; // Backend expects null for unassigned
     resolutionNotes?: string; // Required if status is 'Closed'
 }
 
@@ -53,7 +54,8 @@ const TicketStatusForm: React.FC<TicketStatusFormProps> = ({
 }) => {
     // --- State ---
     const [formData, setFormData] = useState<StatusFormInputs>({
-    status: ticket.status || 'Unassigned',
+    status: ticket.status || 'Open',
+    // Initialize with current assignee ID or empty string if none
     assignedToId: ticket.assignedTo?.id || '',
     resolutionNotes: ticket.resolution_notes || '',
     });
@@ -83,16 +85,17 @@ const TicketStatusForm: React.FC<TicketStatusFormProps> = ({
     const isClosing = formData.status === 'Closed';
 
     // --- Effects ---
-    // Reset form when the ticket prop changes
+    // Reset form when the ticket prop changes (e.g., opening modal for different ticket)
     useEffect(() => {
-    setFormData({
-        status: ticket.status || 'Unassigned',
-        assignedToId: ticket.assignedTo?.id || '',
-        resolutionNotes: ticket.resolution_notes || '',
-    });
-    clearError(); // Clear errors when ticket changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ticket]); // Depend only on ticket
+        console.log("[TicketStatusForm] useEffect running. Initializing form state from ticket:", ticket);
+        setFormData({
+            status: ticket.status || 'Open',
+            assignedToId: ticket.assignedTo?.id || '', // Correctly initialize
+            resolutionNotes: ticket.resolution_notes || '',
+        });
+        clearError(); // Clear errors when ticket context changes
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [ticket.id]); // Depend only on ticket ID to reset when ticket changes
 
     // --- Handlers ---
     /**
@@ -101,36 +104,43 @@ const TicketStatusForm: React.FC<TicketStatusFormProps> = ({
     const handleChange = (
     e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement>
     ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (error) clearError();
+        const { name, value } = e.target;
+        console.log(`[TicketStatusForm] handleChange: name=${name}, value=${value}`);
+        setFormData((prev) => ({ ...prev, [name]: value }));
+        if (error) clearError();
     };
 
     /**
      * Handles form submission to update the ticket status.
      */
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (isClosing && !formData.resolutionNotes.trim()) {
-        alert('Resolution notes are required to close the ticket.'); // Simple validation
-        return;
-    }
+        e.preventDefault();
+        if (isClosing && !formData.resolutionNotes.trim()) {
+            alert('Resolution notes are required to close the ticket.'); // Simple validation
+            return;
+        }
 
-    // Prepare payload for the API
-    const payload: UpdateTicketStatusApiPayload = {
-        status: formData.status,
-        assignedToId: formData.assignedToId || null,
-        resolutionNotes: isClosing ? formData.resolutionNotes : undefined,
-    };
+        console.log("[TicketStatusForm] handleSubmit: Current formData state:", formData);
 
-    submitStatusUpdate(payload); // Call the hook's submit function
+        // Prepare payload for the API
+        const payload: UpdateTicketStatusApiPayload = {
+            status: formData.status,
+            assignedToId: formData.assignedToId ? formData.assignedToId : null,
+            resolutionNotes: isClosing ? formData.resolutionNotes : undefined,
+        };
+
+        console.log("[TicketStatusForm] Submitting status update payload:", payload); // Log the final payload
+        submitStatusUpdate(payload); // Call the hook's submit function
     };
 
     // --- Options ---
     const statusOptions: { value: TicketStatus; label: string }[] = [
-    { value: 'Unassigned', label: 'Unassigned' }, { value: 'Assigned', label: 'Assigned' },
-    { value: 'In Progress', label: 'In Progress' }, { value: 'Closed', label: 'Closed' },
+    { value: 'Open', label: 'Open' },
+    { value: 'In Progress', label: 'In Progress' }, 
+    { value: 'Closed', label: 'Closed' },
     ];
+    
+    // Ensure the "Unassigned" option has value=""
     const assigneeOptions = [
     { value: '', label: 'Unassigned / Keep Unassigned' },
     ...assignableUsers.map(user => ({ value: user.id, label: user.name })),

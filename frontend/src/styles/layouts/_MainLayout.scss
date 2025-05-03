@@ -104,6 +104,51 @@
   transition: margin-left $transition-medium, width $transition-medium, background-color $transition-medium;
 }
 
+// --- Footer Styles (aligned with sidebar/main-content) ---
+.main-layout.sidebar-open .footer-bottom,
+.main-layout.sidebar-open .public-footer {
+  margin-left: $sidebar-width;
+  width: calc(100% - #{$sidebar-width});
+  transition: margin-left $transition-medium, width $transition-medium;
+}
+
+.main-layout.sidebar-closed .footer-bottom,
+.main-layout.sidebar-closed .public-footer {
+  margin-left: $sidebar-collapsed-width;
+  width: calc(100% - #{$sidebar-collapsed-width});
+  transition: margin-left $transition-medium, width $transition-medium;
+}
+
+// Remove max-width for footer so it stretches with content
+.footer-bottom, .public-footer {
+  max-width: none;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: $spacing-6 0;
+}
+
+// --- Main Container Styles ---
+.main-container {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+
+  // Sidebar and main-content already handled
+  // Footer should align with main-content
+  .footer-bottom, .public-footer {
+    // Inherit margin-left and width from .main-content logic
+    margin-left: 0;
+    width: 100%;
+    // Remove max-width if present, so it stretches with main-content
+    max-width: none;
+    // Optional: add padding or border if needed
+  }
+}
+
 // --- Responsive Adjustments ---
 @media (max-width: $breakpoint-md) {
   // Removed sidebar transform rules - handled in _Sidebar.scss now

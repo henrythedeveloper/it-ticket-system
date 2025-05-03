@@ -54,6 +54,7 @@
     text-align: center;
     text-decoration: none;
     transition: background-color $transition-fast, transform $transition-fast, border-color $transition-fast, color $transition-fast, box-shadow $transition-fast;
+    margin-bottom: $spacing-4;
 
     &:focus-visible { // Use focus-visible for better accessibility
         outline: none;

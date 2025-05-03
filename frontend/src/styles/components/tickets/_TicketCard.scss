@@ -19,7 +19,6 @@
   transition: transform $transition-fast, box-shadow $transition-fast, background-color $transition-medium, border-color $transition-medium;
 
   &:hover {
-    transform: translateY(-2px);
     box-shadow: $shadow-md;
     border-color: var(--surface-tonal-3); // Use tonal surface for hover state
   }

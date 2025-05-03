@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>{{.Title}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type="text/css">
+        /* Basic Styles */
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+        body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; font-family: Helvetica, Arial, sans-serif; }
+        a { color: #3b82f6; }
+        .container { padding: 20px; }
+        .content { background-color: #ffffff; padding: 40px; border-radius: 4px; }
+        .resolution { background-color: #f3f4f6; padding: 15px; border-radius: 4px; margin-bottom: 15px; }
+        .footer { color: #999999; font-size: 12px; padding-top: 20px; text-align: center; }
+        .status-chip {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+            margin-right: 10px;
+        }
+        .status-new { background-color: #3b82f6; }
+        .status-inprogress { background-color: #f59e0b; }
+        .status-closed { background-color: #10b981; }
+    </style>
+</head>
+<body style="background-color: #f3f4f6;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+            <td align="center" bgcolor="#f3f4f6" class="container">
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px;">
+                    <tr>
+                        <td align="left" bgcolor="#ffffff" class="content">
+                            <h1 style="font-size: 24px; font-weight: bold; margin: 0 0 20px;">
+                                {{.Title}}
+                                <span class="status-chip status-{{.Status}}">{{.StatusLabel}}</span>
+                            </h1>
+                            
+                            <p style="margin-bottom: 15px;">Hello{{if .RecipientName}} {{.RecipientName}}{{end}},</p>
+                            
+                            <p style="margin-bottom: 15px;">
+                                {{if eq .NotificationType "new"}}
+                                Thank you for submitting your support request. Your ticket (ID: <strong>#{{.TicketID}}</strong>) regarding "<strong>{{.Subject}}</strong>" has been received and is being reviewed by our team.
+                                {{else if eq .NotificationType "inprogress"}}
+                                Your support ticket (ID: <strong>#{{.TicketID}}</strong>) regarding "<strong>{{.Subject}}</strong>" is now being worked on.
+                                {{if .AssignedStaffName}}<p style="margin-bottom: 15px;"><strong>Assigned Staff Member:</strong> {{.AssignedStaffName}}</p>{{end}}
+                                <p style="margin-bottom: 15px;">We will update you again once the issue is resolved or if we require more information.</p>
+                                {{else if eq .NotificationType "closed"}}
+                                Your support ticket (ID: <strong>#{{.TicketID}}</strong>) regarding "<strong>{{.Subject}}</strong>" has been closed.
+                                
+                                {{if .Resolution}}
+                                <p style="margin-bottom: 10px;"><strong>Resolution Notes:</strong></p>
+                                <div class="resolution">
+                                    <p style="margin: 0;">{{.Resolution}}</p>
+                                </div>
+                                {{end}}
+                                
+                                <p style="margin-bottom: 15px;">If you feel the issue is not resolved or if it reoccurs, please reply to this email to reopen the ticket, or submit a new one.</p>
+                                {{else}}
+                                There has been an update to your support ticket (ID: <strong>#{{.TicketID}}</strong>) regarding "<strong>{{.Subject}}</strong>".
+                                {{end}}
+                            </p>
+                            
+                            {{if .PortalURL}}
+                            <p style="margin-bottom: 15px;">You can view your ticket in our portal: <a href="{{.PortalURL}}/tickets/{{.TicketID}}">View Ticket</a></p>
+                            {{end}}
+                            
+                            <p style="margin-bottom: 0;">Regards,<br>IT Helpdesk Team</p>
+                        </td>
+                    </tr>
+                     <tr>
+                        <td align="center" class="footer">
+                           {{if eq .NotificationType "new"}}
+                           You received this email because you submitted a ticket to the IT Helpdesk.
+                           {{else if eq .NotificationType "closed"}}
+                           Your ticket was closed by the IT Helpdesk.
+                           {{else}}
+                           IT Helpdesk Notification
+                           {{end}}
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

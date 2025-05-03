@@ -4,6 +4,7 @@
 // and page-specific styles. Defines global styles.
 // Theme overrides are now handled by CSS variables defined in _variables.scss
 // via @media (prefers-color-scheme: ...).
+// **SIMPLIFIED**: Removed task-related imports.
 // ==========================================================================
 
 // --------------------------------------------------------------------------
@@ -19,6 +20,7 @@
 @use './components/common/Dropdown';
 @use './components/common/Pagination';
 @use './components/common/Sidebar';
+@use './components/notifications/NotificationBell';
 
 // Import layout styles
 @use './layouts/AuthLayout';
@@ -29,8 +31,6 @@
 @use './pages/dashboard/DashboardPage';
 @use './pages/dashboard/ProfilePage';
 @use './pages/dashboard/SettingsPage';
-@use './pages/dashboard/TaskDetailPage';
-@use './pages/dashboard/TasksPage';
 @use './pages/dashboard/TicketDetailPage';
 @use './pages/dashboard/TicketsPage';
 @use './pages/dashboard/UserFormPage';
@@ -221,6 +221,21 @@ button:disabled {
   box-shadow: none !important; // Remove focus shadow on disabled
 }
 
+
+// Add notification styling for header
+.header-notification-bell {
+  margin-right: $spacing-4;
+}
+
+// Remove focus outline and box-shadow for theme toggle button except for keyboard navigation
+.theme-toggle-header:focus {
+  outline: none;
+  box-shadow: none;
+}
+.theme-toggle-header:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
 
 // Responsive Utilities
 // --------------------------------------------------------------------------

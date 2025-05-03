@@ -1,9 +1,10 @@
 // src/components/common/Header.tsx
 // ==========================================================================
 // Reusable Header component for the main application layout.
-// Includes sidebar toggle, logo, theme toggle, and user dropdown.
+// Includes sidebar toggle, logo, theme toggle, notification bell, and user dropdown.
 // **REVISED**: Added more defensive checks using optional chaining and
 //              nullish coalescing when accessing user properties.
+// **SIMPLIFIED**: Added notification bell for unassigned tickets.
 // ==========================================================================
 
 import React from 'react';
@@ -12,6 +13,7 @@ import { useAuth } from '../../hooks/useAuth'; // Auth context hook
 import { useTheme } from '../../hooks/useTheme'; // Theme context hook
 import { useSidebar } from '../../hooks/useSidebar'; // Sidebar context hook
 import Dropdown from './Dropdown'; // Dropdown component
+import NotificationBell from '../notifications/NotificationBell'; // Added notification bell
 import { Sun, Moon, Menu, LogOut, User as UserIcon, Settings } from 'lucide-react'; // Icons
 
 // --- Component Props ---
@@ -59,7 +61,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
                 </Link>
             </div>
 
-            {/* Right side: Theme Toggle, User Info, Dropdown */}
+            {/* Right side: Theme Toggle, Notifications, User Info, Dropdown */}
             <div className="header-right">
                 {/* Theme Toggle Button */}
                 <button
@@ -69,6 +71,11 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
                 >
                     {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
                 </button>
+
+                {/* Notification Bell - Only visible to Admin and Staff roles */}
+                {user && (user.role === 'Admin' || user.role === 'Staff') && (
+                    <NotificationBell className="header-notification-bell" />
+                )}
 
                 {/* User Info and Dropdown - Render only if user object exists */}
                 {user && ( // Still check if user object exists overall

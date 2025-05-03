@@ -2,14 +2,14 @@
 // ==========================================================================
 // Reusable Sidebar component for main application navigation.
 // Uses context for state and displays navigation links.
-// Fixed role filtering type error.
+// **SIMPLIFIED**: Removed tasks-related navigation item.
 // ==========================================================================
 
 import React from 'react';
 import { NavLink } from 'react-router-dom'; // Use NavLink for active styling
 import { useSidebar } from '../../hooks/useSidebar'; // Sidebar context hook
 import { useAuth } from '../../hooks/useAuth'; // Auth context hook
-import { LayoutDashboard, Ticket, CheckSquare, Users, Settings } from 'lucide-react'; // Icons
+import { LayoutDashboard, Ticket, Users, Settings } from 'lucide-react'; // Icons
 
 // --- Component Props ---
 
@@ -56,7 +56,6 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
     const navItems: NavItem[] = [
     { path: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
     { path: '/tickets', label: 'Tickets', icon: <Ticket size={20} /> },
-    { path: '/tasks', label: 'Tasks', icon: <CheckSquare size={20} />, requiredRole: ['Admin', 'Staff'] }, // Example: Staff/Admin only
     { path: '/users', label: 'Users', icon: <Users size={20} />, requiredRole: ['Admin'] }, // Example: Admin only
     { path: '/settings', label: 'Settings', icon: <Settings size={20} />, requiredRole: ['Admin'] }, // Example: Admin only
     ];
@@ -84,7 +83,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
 
 
     // --- Render ---
-    const sidebarClass = `sidebar ${isOpen ? 'open' : 'closed'} ${className}`;
+    const sidebarClass = `sidebar ${isOpen ? 'sidebar-open' : 'sidebar-closed'} ${className}`;
 
     return (
     <aside className={sidebarClass}>
