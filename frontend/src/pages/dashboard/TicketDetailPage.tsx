@@ -40,10 +40,17 @@ const TicketDetailPage: React.FC = () => {
   console.log(`[TicketDetailPage] Component rendered. ID from useParams: ${ticketId}`);
 
   // --- Effects ---
+  // --- Effects ---
   useEffect(() => {
     console.log(`[TicketDetailPage] useEffect running. ID dependency: ${ticketId}`);
-    if (ticketId) {
-      console.log(`[TicketDetailPage] Calling fetchTicketById with ID: ${ticketId}`);
+
+    // Only fetch if ticketId is present AND EITHER:
+    // 1. There's no currentTicket loaded yet OR
+    // 2. The currentTicket's ID doesn't match the ticketId from the URL
+    // This prevents fetching again right after a successful update via context.
+    if (ticketId && (!currentTicket || currentTicket.id !== ticketId)) {
+
+      console.log(`[TicketDetailPage] Calling fetchTicketById with ID: ${ticketId} because currentTicket is mismatched or null.`);
       fetchTicketById(ticketId)
         .then(ticket => {
           console.log(`[TicketDetailPage] fetchTicketById promise resolved. Ticket received (or null):`, ticket);
@@ -51,14 +58,17 @@ const TicketDetailPage: React.FC = () => {
         .catch(err => {
           console.error('[TicketDetailPage] fetchTicketById promise rejected:', err);
         });
+    } else if (ticketId && currentTicket && currentTicket.id === ticketId) {
+        console.log(`[TicketDetailPage] Skipping fetch because currentTicket already matches ticketId (${ticketId}).`);
     } else {
-        console.warn('[TicketDetailPage] useEffect ran but ID is missing.');
+      console.warn('[TicketDetailPage] useEffect ran but ID is missing or condition not met.');
     }
+
     return () => {
       console.log('[TicketDetailPage] Cleanup effect running.');
       clearError();
     };
-  }, [ticketId, fetchTicketById, clearError]);
+  }, [ticketId, currentTicket, fetchTicketById, clearError]);
 
   React.useEffect(() => {
     console.log('[TicketDetailPage] Fetching assignable users...');
@@ -71,19 +81,43 @@ const TicketDetailPage: React.FC = () => {
   }, []);
 
   // --- Handlers ---
-  const handleTicketUpdate = (updatedTicket: Ticket) => { // Removed async, context update is sync
-    console.log(`[TicketDetailPage] handleTicketUpdate called. Received updated ticket:`, updatedTicket);
+  const handleTicketUpdate = (updatedTicketData: Partial<Ticket> & { assignedToUserId?: string | null }) => { // Expect potential assignedToUserId
+    console.log(`[TicketDetailPage] handleTicketUpdate called. Received updated ticket data:`, updatedTicketData);
 
-    // CORRECT CALL: Pass the single updated Ticket object to the context function
-    // The context's updateTicket now returns boolean directly (not a Promise)
-    const success: boolean = updateTicket(updatedTicket); // Removed await
+    // --- ADD THIS LOGIC ---
+    // Reconstruct the assignedTo object based on the ID and the assignableUsers list
+    let fullUpdatedTicket: Ticket = { ...currentTicket, ...updatedTicketData } as Ticket; // Start with current + updates
 
-    // Check the boolean result
+    if (updatedTicketData.assignedToUserId) {
+        // Find the user object from the list fetched earlier
+        const assignedUser = assignableUsers.find(u => u.id === updatedTicketData.assignedToUserId);
+        if (assignedUser) {
+            fullUpdatedTicket.assignedTo = assignedUser; // Set the nested object
+        } else {
+            // User ID present but not found in the list (edge case?)
+            console.warn(`Assignee with ID ${updatedTicketData.assignedToUserId} not found in assignableUsers list.`);
+            // Keep assignedTo as null or handle appropriately
+             fullUpdatedTicket.assignedTo = null;
+        }
+    } else if (updatedTicketData.hasOwnProperty('assignedToUserId')) { // Check if the property exists, even if null/undefined
+         // Explicitly set to unassigned
+         fullUpdatedTicket.assignedTo = null;
+         fullUpdatedTicket.assignedToUserId = null; // Also clear the ID field
+    }
+    // Remove the potentially temporary assignedToUserId property if it exists at the top level
+    // delete fullUpdatedTicket.assignedToUserId; // This might cause issues if Ticket type expects it. Check your type. Assuming Ticket type has both assignedTo and assignedToUserId.
+
+    console.log(`[TicketDetailPage] handleTicketUpdate: Reconstructed ticket object for context:`, fullUpdatedTicket);
+    // --- END ADDED LOGIC ---
+
+
+    // Pass the *reconstructed* ticket object to the context update function
+    const success: boolean = updateTicket(fullUpdatedTicket);
+
     if (success) {
-      console.log(`[TicketDetailPage] Context state updated successfully for ticket ID: ${updatedTicket.id}`);
+      console.log(`[TicketDetailPage] Context state updated successfully for ticket ID: ${fullUpdatedTicket.id}`);
     } else {
-      // Log if the synchronous state update in the context failed (less likely)
-      console.error(`[TicketDetailPage] Failed to update context state for ticket ID: ${updatedTicket.id}`);
+      console.error(`[TicketDetailPage] Failed to update context state for ticket ID: ${fullUpdatedTicket.id}`);
     }
   };
 
@@ -123,7 +157,7 @@ const TicketDetailPage: React.FC = () => {
         <h1>Ticket #{currentTicket.ticketNumber}</h1>
         <button
           className="btn btn-secondary"
-          onClick={() => navigate('/dashboard/tickets')}
+          onClick={() => navigate('/tickets')}
         >
           Back to Tickets
         </button>
