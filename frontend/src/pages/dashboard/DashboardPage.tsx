@@ -97,13 +97,12 @@ const DashboardPage: React.FC = () => {
 
   // --- Table Columns ---
   const ticketColumns: TableColumn<Ticket>[] = [
-    { key: 'ticket_number', header: '#', render: (item) => <Link to={`/tickets/${item.id}`}>#{item.ticket_number}</Link> },
+    { key: 'ticketNumber', header: '#', render: (item) => <Link to={`/tickets/${item.id}`}>#{item.ticketNumber}</Link> },
     { key: 'subject', header: 'Subject', render: (item) => <Link to={`/tickets/${item.id}`}>{truncateString(item.subject, 40)}</Link> },
-    { key: 'status', header: 'Status', render: (item) => <Badge type={item.status.toLowerCase() as any}>{item.status}</Badge> },
-    { key: 'urgency', header: 'Urgency', render: (item) => <Badge type={item.urgency.toLowerCase() as any}>{item.urgency}</Badge> },
-    { key: 'created_at', header: 'Created', render: (item) => formatDate(item.created_at) },
+    { key: 'status', header: 'Status', render: (item) => <Badge type={item.status?.toLowerCase() as any}>{item.status}</Badge> },
+    { key: 'urgency', header: 'Urgency', render: (item) => <Badge type={item.urgency?.toLowerCase() as any}>{item.urgency}</Badge> },
+    { key: 'createdAt', header: 'Created', render: (item) => formatDate(item.createdAt ?? item.createdAt) },
   ];
-
 
   // --- Render ---
   if (authLoading || isLoading) {

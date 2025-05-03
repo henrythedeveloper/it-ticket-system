@@ -67,10 +67,9 @@ interface RawPaginatedResponse extends Omit<PaginatedResponse<any>, 'data'> {
 export const fetchTicketById = async (ticketId: string): Promise<Ticket> => {
     try {
         // Define the expected raw API response structure (with snake_case)
-        interface RawTicketDetail extends Omit<Ticket, 'assignedTo' | 'submitter'> {
-            assigned_to_user?: User | null; // Expect full user object potentially
+        interface RawTicketDetail extends Omit<Ticket, 'assignedTo' | 'submitter' | 'tags'> {
+            assigned_to_user?: User | null;
             submitter?: User | null;
-            // Tags likely includes ID here
             tags?: { id: string; name: string; created_at: string }[];
             updates?: TicketUpdate[];
             attachments?: TicketAttachment[];
@@ -89,7 +88,13 @@ export const fetchTicketById = async (ticketId: string): Promise<Ticket> => {
 
         // Convert all keys to camelCase
         const ticketData: Ticket = keysToCamel(rawData);
-
+        // Ensure tags have createdAt property (not created_at)
+        if (ticketData.tags) {
+            ticketData.tags = ticketData.tags.map(tag => ({
+                ...tag,
+                createdAt: tag.createdAt ?? '',
+            }));
+        }
         return ticketData; // Return the mapped data
     } catch (error) {
         console.error(`Fetch ticket by ID (${ticketId}) API error:`, error);

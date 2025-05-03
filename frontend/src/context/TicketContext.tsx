@@ -67,12 +67,12 @@ export const TicketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         assigned_to: user.id // FIX: use assigned_to
       });
       const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      const newTicketNotifications = tickets.data.filter((ticket: Ticket) => new Date(ticket.updated_at) > hourAgo)
+      const newTicketNotifications = tickets.data.filter((ticket: Ticket) => new Date(ticket.updatedAt) > hourAgo)
         .map((ticket: Ticket): Notification => ({
           id: `ticket-${ticket.id}-${Date.now()}`,
           type: 'status_change',
           title: ticket.subject, // FIX: add title
-          message: `Ticket #${ticket.ticket_number}: ${ticket.subject} was updated`,
+          message: `Ticket #${ticket.ticketNumber}: ${ticket.subject} was updated`,
           isRead: false,
           createdAt: new Date().toISOString(),
           ticketId: ticket.id

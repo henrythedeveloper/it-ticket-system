@@ -85,7 +85,7 @@ const TicketDetailPage: React.FC = () => {
   return (
     <div className="ticket-detail-page">
       <div className="page-header">
-        <h1>Ticket #{currentTicket.ticket_number}</h1>
+        <h1>Ticket #{currentTicket.ticketNumber}</h1>
         <button
           className="btn btn-secondary"
           onClick={() => navigate('/dashboard/tickets')}
@@ -124,13 +124,13 @@ const TicketDetailPage: React.FC = () => {
               <div className="update-history">
                 {currentTicket.updates && currentTicket.updates.length > 0 ? (
                   currentTicket.updates.map((update) => (
-                    <div key={update.id} className={`update-item ${update.is_internal_note ? 'internal-note' : ''}`}>
+                    <div key={update.id} className={`update-item ${update.isInternalNote ? 'internal-note' : ''}`}>
                       <div className="update-header">
                         <span className="update-author">{update.user?.name || 'System'}</span>
                         <span className="update-time">
-                          {new Date(update.created_at).toLocaleString()}
+                          {new Date(update.createdAt).toLocaleString()}
                         </span>
-                        {update.is_internal_note && (
+                        {update.isInternalNote && (
                           <span className="internal-badge">Internal Note</span>
                         )}
                       </div>

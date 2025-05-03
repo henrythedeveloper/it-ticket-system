@@ -13,8 +13,8 @@ export interface User {
   name: string;
   email: string;
   role: 'Admin' | 'Staff' | 'User';
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 export interface AuthState {
   user: User | null;
@@ -32,7 +32,7 @@ export interface AuthContextType extends Omit<AuthState, 'isAuthenticated'> {
 export interface Tag {
   id: string;
   name: string;
-  created_at: string;
+  createdAt: string;
 }
 
 // --- Ticket ---
@@ -41,46 +41,46 @@ export type TicketUrgency = 'Low' | 'Medium' | 'High' | 'Critical';
 
 export interface TicketUpdate {
   id: string;
-  ticket_id: string;
+  ticketId: string;
   comment: string;
-  user?: Pick<User, 'id' | 'name'> | null; // Changed from author for consistency with Ticket
-  user_id?: string | null;
-  created_at: string;
-  is_internal_note?: boolean;
-  is_system_update?: boolean; // Indicates if update was auto-generated
+  user?: Pick<User, 'id' | 'name'> | null;
+  userId?: string | null;
+  createdAt: string;
+  isInternalNote?: boolean;
+  isSystemUpdate?: boolean;
 }
 
 export interface TicketAttachment {
   id: string;
   filename: string;
-  mime_type: string;
+  mimeType: string;
   size: number;
   url: string;
-  uploaded_at: string;
-  storage_path?: string; // Might not be needed in frontend
+  uploadedAt: string;
+  storagePath?: string;
 }
 
 export interface Ticket {
   id: string;
-  ticket_number: number;
-  submitter_name?: string | null;
-  end_user_email: string;
+  ticketNumber: number;
+  submitterName?: string | null;
+  endUserEmail: string;
   subject: string;
   description: string;
   status: TicketStatus;
   urgency: TicketUrgency;
-  issue_type?: string;
+  issueType?: string;
   tags?: Tag[];
-  submitter?: Pick<User, 'id' | 'name' | 'email'> | null; // User record if email matches existing user
-  assigned_to_user_id?: string | null;
+  submitter?: Pick<User, 'id' | 'name' | 'email'> | null;
+  assignedToUserId?: string | null;
   assignedTo?: Pick<User, 'id' | 'name'> | null;
-  created_at: string;
-  updated_at: string;
-  closed_at?: string | null;
-  resolution_notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  closedAt?: string | null;
+  resolutionNotes?: string | null;
   updates?: TicketUpdate[];
   attachments?: TicketAttachment[];
-  tag_names?: string;
+  tagNames?: string;
 }
 
 // --- Ticket Context Types ---
@@ -185,7 +185,7 @@ export type SingleTicketResponse = Ticket; // Often wrapped in APIResponse
 
 // --- Forms ---
 export interface LoginFormInputs { email: string; password?: string; }
-export interface TicketCommentFormInputs { content: string; isInternalNote?: boolean; } // Frontend form still uses 'content' internally
+export interface TicketCommentFormInputs { content: string; isInternalNote?: boolean; }
 export interface TicketStatusFormInputs { status: TicketStatus; assignedToId?: string | null; resolutionNotes?: string; }
 
 // --- UI Context ---
