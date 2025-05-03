@@ -1,29 +1,30 @@
 // src/styles/components/common/_Sidebar.scss
 // ==========================================================================
 // Styles for the Sidebar component.
-// **REVISED**: Use flexbox on the link element for centering icons in collapsed state.
+// FIXED: Use position: fixed only for mobile overlay.
 // ==========================================================================
 
 @use '../../variables' as *; // Use variables
 
 // --- Sidebar Styles ---
 .sidebar {
-  background-color: var(--sidebar-bg, var(--surface-tonal));
+  background-color: var(--sidebar-bg, var(--surface-bg)); // Default to surface-bg if sidebar-bg not set
   width: $sidebar-width; // Default width (desktop open)
-  height: 100vh;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: $z-index-fixed - 1;
-  padding-top: $header-height;
+  height: 100%; // Take full height of parent (.main-container)
+  // position: fixed; // REMOVE from base styles
+  position: relative; // Use relative or static for normal flow
+  // top: 0; // Not needed for relative/static
+  // left: 0; // Not needed for relative/static
+  z-index: $z-index-fixed - 1; // Adjust z-index if needed
+  // padding-top: $header-height; // Padding is handled by parent (.main-container) now
   transition: width $transition-medium, transform $transition-medium, background-color $transition-medium, border-color $transition-medium;
   overflow-y: auto;
   border-right: 1px solid var(--border-color);
-  transform: none; // Default transform state for desktop
+  flex-shrink: 0; // Prevent sidebar from shrinking horizontally
 
   // Navigation list within sidebar
   .sidebar-nav {
-    padding: $spacing-4 0;
+    padding: $spacing-4 0; // Add padding back here if needed
     ul {
       list-style: none;
       padding: 0;
@@ -34,10 +35,10 @@
           display: flex; // Default display is flex
           align-items: center;
           padding: $spacing-3 $spacing-4;
-          color: var(--sidebar-text, var(--text-muted));
+          color: var(--sidebar-text, var(--text-muted)); // Default to text-muted if sidebar-text not set
           text-decoration: none;
           font-weight: $font-weight-medium;
-          transition: background-color $transition-fast, color $transition-fast, border-color $transition-fast, padding $transition-medium, justify-content $transition-medium; // Added justify-content to transition
+          transition: background-color $transition-fast, color $transition-fast, border-color $transition-fast, padding $transition-medium, justify-content $transition-medium;
           border-left: 3px solid transparent;
           overflow: hidden;
           width: 100%;
@@ -56,7 +57,7 @@
             justify-content: center;
           }
           span { // The text label
-            transition: opacity $transition-fast, visibility $transition-fast, width $transition-medium, margin-left $transition-fast; // Added margin-left
+            transition: opacity $transition-fast, visibility $transition-fast, width $transition-medium, margin-left $transition-fast;
             opacity: 1;
             visibility: visible;
             white-space: nowrap;
@@ -81,33 +82,29 @@
 
   // --- Desktop Collapsed State ---
   @media (min-width: ($breakpoint-md + 1px)) {
-    .main-layout.sidebar-closed & {
+    // Apply width change based on parent class
+    .main-layout.sidebar-closed & { // Target .sidebar when parent has .sidebar-closed
         width: $sidebar-collapsed-width;
 
         .sidebar-nav ul li a {
-          // Keep display: flex
           display: flex;
-          // Center content horizontally
           justify-content: center;
-          // Vertical alignment is handled by default align-items: center
           align-items: center;
-          // Adjust padding for icon-only view
-          padding: $spacing-3 0; // Vertical padding, zero horizontal
+          padding: $spacing-3 0;
 
-          .icon + span { // Hide only the label span, not the icon
+          .icon + span { // Hide only the label span
             display: none;
             opacity: 0;
             visibility: hidden;
             width: 0;
-            margin-left: -$spacing-3; // Avoid layout shift during transition (match icon margin)
+            margin-left: -$spacing-3;
           }
 
           .icon { // Style the icon span
-            margin-right: 0; // Remove margin when collapsed
-            // Ensure icon is visible (redundant but safe)
+            margin-right: 0;
             opacity: 1;
             visibility: visible;
-            width: auto; // Let the icon determine its width
+            width: auto;
           }
         }
     }
@@ -116,9 +113,14 @@
 
    // --- Mobile specific styles ---
    @media (max-width: $breakpoint-md) {
+      position: fixed; // APPLY position: fixed ONLY for mobile
+      top: 0; // Need top/left for fixed positioning
+      left: 0; // Need top/left for fixed positioning
+      height: 100vh; // Ensure full height on mobile
       transform: translateX(-100%);
-      z-index: $z-index-fixed + 5;
-      width: 280px;
+      z-index: $z-index-fixed + 5; // Higher z-index for mobile overlay
+      width: 280px; // Fixed mobile width
+      padding-top: $header-height; // Add padding back for mobile fixed header
 
       &.mobile-open {
           transform: translateX(0);

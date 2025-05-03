@@ -1,0 +1,95 @@
+// src/styles/components/common/_Footer.scss
+// ==========================================================================
+// Styles specifically for the Footer component.
+// ==========================================================================
+
+@use '../../variables' as *; // Import variables
+
+.public-footer {
+  background-color: var(--surface-bg); // Use CSS var
+  color: var(--text-secondary); // Use CSS var
+  border-top: 1px solid var(--border-color); // Use CSS var
+  padding: $spacing-6;
+  font-size: $font-size-sm;
+  transition: background-color $transition-medium, color $transition-medium, border-color $transition-medium;
+  flex-shrink: 0; // Prevent footer from shrinking in flex layouts
+  width: 100%; // Take full available width by default
+
+  // Optional: Styles for a content wrapper within the footer, if used
+  .footer-content {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: $spacing-8;
+    max-width: $max-content-width; // Limit content width
+    margin: 0 auto $spacing-6 auto; // Center content, add bottom margin
+    text-align: left;
+
+    .footer-section {
+      flex: 1;
+      min-width: 200px;
+      h3 {
+        color: var(--text-primary);
+        font-size: $font-size-lg;
+        margin-bottom: $spacing-4;
+        font-weight: $font-weight-semibold;
+        transition: color $transition-medium;
+      }
+      p {
+        color: var(--text-secondary);
+        font-size: $font-size-sm;
+        margin-bottom: $spacing-2;
+        line-height: 1.6;
+        transition: color $transition-medium;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        li {
+          margin-bottom: $spacing-2;
+          a {
+            color: var(--text-link);
+            text-decoration: none;
+            transition: color $transition-fast;
+            &:hover {
+              color: var(--text-link-hover);
+              text-decoration: underline;
+            }
+          }
+        }
+      }
+    }
+
+    @media (max-width: $breakpoint-md) {
+      text-align: center; // Center section content on mobile
+    }
+  } // End .footer-content
+
+  // Styles for the bottom copyright line
+  .footer-bottom {
+    border-top: 1px solid var(--border-color); // Use CSS var
+    padding-top: $spacing-4;
+    margin-top: $spacing-6;
+    text-align: center;
+    transition: border-color $transition-medium;
+    p {
+      color: var(--text-muted); // Use CSS var
+      font-size: $font-size-xs;
+      margin: 0;
+      transition: color $transition-medium;
+      a { // Style links within the bottom line
+          color: var(--text-link);
+          &:hover {
+            color: var(--text-link-hover);
+          }
+      }
+    }
+  } // End .footer-bottom
+
+  // Responsive adjustments for overall footer padding
+  @media (max-width: $breakpoint-md) {
+    padding: $spacing-6 $spacing-4;
+  }
+
+} // End .public-footer

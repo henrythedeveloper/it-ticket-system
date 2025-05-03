@@ -20,7 +20,7 @@ CREATE TABLE tags (
 CREATE TABLE tickets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     ticket_number SERIAL UNIQUE NOT NULL,
-    submitter_name VARCHAR(100),
+    submitter_name VARCHAR(100) NOT NULL,
     end_user_email VARCHAR(255) NOT NULL,
     issue_type VARCHAR(100),
     urgency VARCHAR(20) NOT NULL, -- 'Low', 'Medium', 'High', 'Critical'

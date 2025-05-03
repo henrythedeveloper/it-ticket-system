@@ -2,7 +2,7 @@
 // ==========================================================================
 // Styles for the main application layout (header, sidebar, content area)
 // used for authenticated users.
-// **REVISED**: Moved sidebar styles to _Sidebar.scss.
+// Footer styles are now primarily in _Footer.scss.
 // ==========================================================================
 
 @use '../variables' as *;
@@ -11,156 +11,112 @@
 .main-layout {
   display: flex;
   flex-direction: column;
-  height: 100vh; // Full viewport height
+  min-height: 100vh; // Use min-height for flexibility
 
-  // --- Sidebar State Handling ---
-  // Styles when the sidebar is open
-  &.sidebar-open {
-    .main-content {
-      margin-left: $sidebar-width;
-      width: calc(100% - #{$sidebar-width});
-      transition: margin-left $transition-medium, width $transition-medium;
-    }
-  }
-
-  // Styles when the sidebar is closed (collapsed)
-  &.sidebar-closed {
-    .main-content {
-      margin-left: $sidebar-collapsed-width;
-      width: calc(100% - #{$sidebar-collapsed-width});
-      transition: margin-left $transition-medium, width $transition-medium;
-    }
-    // Note: .sidebar styles for collapsed state are now in _Sidebar.scss
-  }
-}
-
-// --- Header Styles ---
-.header {
-  background-color: var(--surface-tonal-1);
-  color: var(--text-primary);
-  box-shadow: $shadow;
-  height: $header-height;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 $spacing-4;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: $z-index-fixed;
-  border-bottom: 1px solid var(--surface-tonal-2);
-  transition: background-color $transition-medium, color $transition-medium, border-color $transition-medium;
-
-  .header-left {
+  // --- Header Styles --- (Keep as is)
+  .header {
+    background-color: var(--surface-tonal-1);
+    color: var(--text-primary);
+    box-shadow: $shadow;
+    height: $header-height;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    padding: 0 $spacing-4;
+    position: fixed; // Header is fixed
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: $z-index-fixed;
+    border-bottom: 1px solid var(--surface-tonal-2);
+    transition: background-color $transition-medium, color $transition-medium, border-color $transition-medium;
 
-    .sidebar-toggle {
-      background: none; border: none; cursor: pointer;
-      display: flex; flex-direction: column; justify-content: center; align-items: center;
-      padding: $spacing-2; margin-right: $spacing-4;
-      span {
-        background-color: var(--text-secondary); display: block;
-        height: 2px; width: 22px; margin: 2px 0;
-        transition: all $transition-fast;
+    .header-left {
+      display: flex;
+      align-items: center;
+      .sidebar-toggle {
+        background: none; border: none; cursor: pointer;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        padding: $spacing-2; margin-right: $spacing-4;
+        span {
+          background-color: var(--text-secondary); display: block;
+          height: 2px; width: 22px; margin: 2px 0;
+          transition: all $transition-fast;
+        }
+        &:hover span { background-color: var(--primary); }
       }
-      &:hover span { background-color: var(--primary); }
+      .logo {
+        color: var(--primary); font-size: $font-size-xl;
+        font-weight: $font-weight-bold; margin: 0; text-decoration: none;
+      }
     }
-    .logo {
-      color: var(--primary); font-size: $font-size-xl;
-      font-weight: $font-weight-bold; margin: 0; text-decoration: none; // Added text-decoration none
+    .header-right {
+      display: flex; align-items: center;
+      .user-info {
+        display: flex; flex-direction: column; align-items: flex-end;
+        margin-right: $spacing-3;
+        .user-name { font-weight: $font-weight-medium; color: var(--text-primary); }
+        .user-role { color: var(--text-muted); font-size: $font-size-xs; }
+      }
+      .theme-toggle-header {
+          background: none; border: none; color: var(--text-secondary);
+          cursor: pointer; font-size: $font-size-xl; padding: $spacing-2;
+          margin-right: $spacing-2; transition: color $transition-fast;
+          &:hover { color: var(--text-primary); }
+          &:focus { outline: none; box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.4); }
+      }
     }
   }
 
-  .header-right {
-    display: flex; align-items: center;
-
-    .user-info {
-      display: flex; flex-direction: column; align-items: flex-end;
-      margin-right: $spacing-3;
-      .user-name { font-weight: $font-weight-medium; color: var(--text-primary); }
-      .user-role { color: var(--text-muted); font-size: $font-size-xs; }
-    }
-
-    .theme-toggle-header {
-        background: none; border: none; color: var(--text-secondary);
-        cursor: pointer; font-size: $font-size-xl; padding: $spacing-2;
-        margin-right: $spacing-2; transition: color $transition-fast;
-        &:hover { color: var(--text-primary); }
-        &:focus { outline: none; box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.4); }
-    }
-
-    // Dropdown styles are now in _Dropdown.scss
+  // --- Main Container (Holds Sidebar + Content) ---
+  .main-container {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1; // Make this container grow vertically
+    padding-top: $header-height; // Account for fixed header height
   }
-}
 
-// --- Main Content Area Styles ---
-.main-content {
-  margin-top: $header-height; // Avoid content going under fixed header
-  min-height: calc(100vh - #{$header-height}); // Ensure footer is pushed down
-  padding: $spacing-6;
-  background-color: var(--surface-tonal); // Use tonal surface for main content
-  transition: margin-left $transition-medium, width $transition-medium, background-color $transition-medium;
-}
-
-// --- Footer Styles (aligned with sidebar/main-content) ---
-.main-layout.sidebar-open .footer-bottom,
-.main-layout.sidebar-open .public-footer {
-  margin-left: $sidebar-width;
-  width: calc(100% - #{$sidebar-width});
-  transition: margin-left $transition-medium, width $transition-medium;
-}
-
-.main-layout.sidebar-closed .footer-bottom,
-.main-layout.sidebar-closed .public-footer {
-  margin-left: $sidebar-collapsed-width;
-  width: calc(100% - #{$sidebar-collapsed-width});
-  transition: margin-left $transition-medium, width $transition-medium;
-}
-
-// Remove max-width for footer so it stretches with content
-.footer-bottom, .public-footer {
-  max-width: none;
-  width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: $spacing-6 0;
-}
-
-// --- Main Container Styles ---
-.main-container {
-  display: flex;
-  flex-direction: row;
-  height: 100%;
-
-  // Sidebar and main-content already handled
-  // Footer should align with main-content
-  .footer-bottom, .public-footer {
-    // Inherit margin-left and width from .main-content logic
-    margin-left: 0;
-    width: 100%;
-    // Remove max-width if present, so it stretches with main-content
-    max-width: none;
-    // Optional: add padding or border if needed
-  }
-}
-
-// --- Responsive Adjustments ---
-@media (max-width: $breakpoint-md) {
-  // Removed sidebar transform rules - handled in _Sidebar.scss now
+  // --- Main Content Area Styles (Inside .main-container) ---
   .main-content {
-    margin-left: 0 !important; // Content takes full width
-    width: 100% !important;
-    padding: $spacing-4; // Reduce padding
+    // No margin-top needed as parent (.main-container) has padding-top
+    padding: $spacing-6;
+    background-color: var(--surface-tonal);
+    transition: margin-left $transition-medium, width $transition-medium, background-color $transition-medium;
+    flex-grow: 1; // Make content area grow horizontally within .main-container
   }
-    .header {
-      padding: 0 $spacing-3; // Reduce header padding
-      .header-left .logo { font-size: $font-size-lg; } // Smaller logo
-      .header-right .user-info { display: none; } // Hide user text info
-    }
-}
 
+  // --- Footer Alignment Styles (Direct child of .main-layout) ---
+  // These rules align the footer horizontally with the main content area
+  &.sidebar-open .public-footer { // Target footer when sidebar is open
+    margin-left: $sidebar-width;
+    width: calc(100% - #{$sidebar-width});
+    transition: margin-left $transition-medium, width $transition-medium;
+  }
+
+  &.sidebar-closed .public-footer { // Target footer when sidebar is closed
+    margin-left: $sidebar-collapsed-width;
+    width: calc(100% - #{$sidebar-collapsed-width});
+    transition: margin-left $transition-medium, width $transition-medium;
+  }
+
+  // --- Responsive Adjustments --- (Keep as is)
+  @media (max-width: $breakpoint-md) {
+    // Sidebar is handled via transform, content takes full width
+    .main-content {
+      margin-left: 0 !important;
+      width: 100% !important;
+      padding: $spacing-4;
+    }
+    // Footer also takes full width on mobile
+    &.sidebar-open .public-footer,
+    &.sidebar-closed .public-footer {
+      margin-left: 0;
+      width: 100%;
+    }
+    .header {
+      padding: 0 $spacing-3;
+      .header-left .logo { font-size: $font-size-lg; }
+      .header-right .user-info { display: none; }
+    }
+  }
+}
