@@ -15,7 +15,7 @@ import TicketCommentForm from '../../components/forms/TicketCommentForm';
 import Loader from '../../components/common/Loader';
 import Alert from '../../components/common/Alert';
 import { fetchUsers } from '../../services/userService';
-import { User, TicketUpdate } from '../../types';
+import { User, TicketUpdate, Ticket } from '../../types';
 
 
 const TicketDetailPage: React.FC = () => {
@@ -71,14 +71,19 @@ const TicketDetailPage: React.FC = () => {
   }, []);
 
   // --- Handlers ---
-  const handleTicketUpdate = async (update: any) => {
-    if (!ticketId) return;
-    console.log(`[TicketDetailPage] handleTicketUpdate called with ID: ${ticketId}, Update:`, update);
-    const success = await updateTicket(ticketId, update);
+  const handleTicketUpdate = (updatedTicket: Ticket) => { // Removed async, context update is sync
+    console.log(`[TicketDetailPage] handleTicketUpdate called. Received updated ticket:`, updatedTicket);
+
+    // CORRECT CALL: Pass the single updated Ticket object to the context function
+    // The context's updateTicket now returns boolean directly (not a Promise)
+    const success: boolean = updateTicket(updatedTicket); // Removed await
+
+    // Check the boolean result
     if (success) {
-      console.log(`[TicketDetailPage] Ticket update successful for ticketId: ${ticketId}`);
+      console.log(`[TicketDetailPage] Context state updated successfully for ticket ID: ${updatedTicket.id}`);
     } else {
-      console.error(`[TicketDetailPage] Ticket update failed for ticketId: ${ticketId}`);
+      // Log if the synchronous state update in the context failed (less likely)
+      console.error(`[TicketDetailPage] Failed to update context state for ticket ID: ${updatedTicket.id}`);
     }
   };
 

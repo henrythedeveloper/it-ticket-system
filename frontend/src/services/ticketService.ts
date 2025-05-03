@@ -196,33 +196,54 @@ export const addTicketUpdate = async (ticketId: string, updateData: AddTicketUpd
  * @param statusData - The new status, optional assignee ID, and optional resolution notes.
  * @returns A Promise resolving with the updated Ticket object.
  */
+
 export const updateTicketStatus = async (ticketId: string, statusData: UpdateTicketStatusInput): Promise<Ticket> => {
     try {
-        // Define the expected raw API response structure (with snake_case)
-        interface RawTicketApiResponseData extends Omit<Ticket, 'assignedTo' | 'submitter'> {
-            assigned_to_user?: User | null; // Expect snake_case from backend
-            submitter?: User | null;
-            tags?: Tag[]; // Assuming full tag objects might be returned on update
-            updates?: TicketUpdate[];
-            attachments?: TicketAttachment[];
-        }
-        interface RawApiResponse extends Omit<APIResponse<any>, 'data'> {
-             data?: RawTicketApiResponseData;
-        }
+        console.log(`[updateTicketStatus] Sending PUT request for ID: ${ticketId} with data:`, statusData);
 
-        // Make the API call
-        const response = await api.put<RawApiResponse>(`/tickets/${ticketId}`, statusData);
-        const rawData = response.data.data;
+        // Expect the response data itself to be the raw ticket object
+        // Use <any> or define a specific RawTicket type if needed for snake_case fields before mapping
+        const response = await api.put<any>(`/tickets/${ticketId}`, statusData);
 
-        if (!rawData) {
-            throw new Error("Updated ticket data missing in API response.");
+        // Use response.data directly as the raw ticket data
+        const rawData = response.data;
+        console.log(`[updateTicketStatus] Received response data:`, rawData);
+
+        // Check if rawData is actually received and looks like an object
+        if (!rawData || typeof rawData !== 'object') {
+            console.error('[updateTicketStatus] Invalid data received from API:', rawData);
+            throw new Error("Invalid ticket data received from API update.");
         }
 
-        // Convert all keys to camelCase
-        return keysToCamel(rawData);
-    } catch (error) {
-        console.error(`Update ticket status (${ticketId}) API error:`, error);
-        throw error;
+        // Convert keys (assuming backend might still send snake_case here)
+        const ticketData: Ticket = keysToCamel(rawData);
+        console.log(`[updateTicketStatus] Mapped ticket data:`, ticketData);
+
+        // Basic validation after mapping
+        if (!ticketData.id) {
+             console.error('[updateTicketStatus] Ticket ID missing after mapping:', ticketData);
+             throw new Error("Mapped ticket data is missing ID after update.");
+        }
+
+         // Ensure arrays are present (optional, but good practice)
+        ticketData.tags = Array.isArray(ticketData.tags) ? ticketData.tags : [];
+        ticketData.updates = Array.isArray(ticketData.updates) ? ticketData.updates : [];
+        ticketData.attachments = Array.isArray(ticketData.attachments) ? ticketData.attachments : [];
+
+
+        return ticketData; // Return the mapped data
+
+    } catch (error: any) {
+        // Log more context if available from Axios error
+        const responseData = error.response?.data;
+        console.error(`Update ticket status (${ticketId}) API error:`, {
+            message: error.message,
+            response: responseData,
+            fullError: error
+        });
+        // Re-throw a potentially more specific error or the original one
+        const errorMessage = responseData?.error || responseData?.message || error.message || 'Failed to update ticket status.';
+        throw new Error(errorMessage);
     }
 };
 

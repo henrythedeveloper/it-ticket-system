@@ -48,7 +48,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
           <div>
             <span className="meta-label">Submitter:</span>
             {/* Prefer submitter_name, fallback to email */}
-            <span className="meta-value">{ticket.submitterName || ticket.endUserEmail}</span>
+            <span className="meta-value">{ticket.submitterName}</span>
           </div>
           <div>
             <span className="meta-label">Created:</span>

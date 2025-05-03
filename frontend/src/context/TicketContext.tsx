@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { Ticket, Notification, TicketFilter, TicketStatusUpdate, TicketContextType } from '../types';
-import { fetchTickets, fetchTicketById, updateTicketStatus } from '../services/ticketService';
+import { fetchTickets, fetchTicketById} from '../services/ticketService';
 import { useAuth } from '../hooks/useAuth';
 
 const defaultFilters: TicketFilter = {
@@ -129,33 +129,25 @@ export const TicketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   }, []); // No dependencies needed if it doesn't rely on context state directly
 
-  const updateTicket = useCallback(async (id: string, update: TicketStatusUpdate): Promise<boolean> => {
-    console.log(`[TicketContext] updateTicket called for ID: ${id} with update:`, update);
+  const updateTicket = useCallback((updatedTicketData: Ticket): boolean => {
+    console.log(`[TicketContext] updateTicket (state update) called with data:`, updatedTicketData);
     try {
-      console.log('[TicketContext] updateTicket: Setting loading=true');
-      setIsLoading(true);
-      setError(null);
-      const updatedTicket = await updateTicketStatus(id, { ...update, status: update.status as any });
-      console.log('[TicketContext] updateTicket: Service call successful. Updated Ticket:', updatedTicket);
-
-      // Update currentTicket if it matches
-      if (currentTicket && currentTicket.id === id) {
+      // Update the currentTicket state if it matches
+      if (currentTicket && currentTicket.id === updatedTicketData.id) {
         console.log('[TicketContext] updateTicket: Updating currentTicket state.');
-        setCurrentTicket(updatedTicket);
+        setCurrentTicket(updatedTicketData);
       }
-      // Update the ticket in the main list
-      setTickets(prev => prev.map((t: Ticket) => (t.id === id ? updatedTicket : t)));
-      return true;
-    } catch (err: any) {
-      const errorMsg = err.message || 'Error updating ticket. Please try again.';
-      console.error('[TicketContext] ERROR in updateTicket:', err);
-      setError(errorMsg);
-      return false;
-    } finally {
-      console.log('[TicketContext] updateTicket: Setting loading=false');
-      setIsLoading(false);
+      // Update the ticket in the main list state
+      console.log('[TicketContext] updateTicket: Updating tickets list state.');
+      setTickets(prev => prev.map((t: Ticket) => (t.id === updatedTicketData.id ? updatedTicketData : t)));
+      setError(null); // Clear any previous errors on successful state update
+      return true; // Indicate state update success
+    } catch (error) {
+        console.error("[TicketContext] Error updating local state:", error);
+        setError("Failed to update ticket state locally.");
+        return false; // Indicate state update failure
     }
-  }, [currentTicket]); // Depend on currentTicket to update it correctly
+  }, [currentTicket]); // Keep dependency on currentTicket
 
   const refreshCurrentTicket = useCallback(async (): Promise<void> => {
     console.log('[TicketContext] refreshCurrentTicket called.');

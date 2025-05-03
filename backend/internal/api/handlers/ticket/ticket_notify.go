@@ -23,7 +23,7 @@ func (h *Handler) CreateNotification(userID, notifType, message string, relatedT
 }
 
 // triggerUpdateNotifications sends relevant emails and creates in-app notifications based on the changes made.
-func (h *Handler) triggerUpdateNotifications(currentState *ticketState, update *models.TicketStatusUpdate, recipientEmail, subject string, ticketNumber int32) {
+func (h *Handler) triggerUpdateNotifications(currentState *models.TicketState, update *models.TicketStatusUpdate, recipientEmail, subject string, ticketNumber int32) {
 	if update.Status != "" && update.Status != currentState.Status {
 		msg := fmt.Sprintf("Ticket #%d status changed from %s to %s", ticketNumber, currentState.Status, update.Status)
 		h.CreateNotification(recipientEmail, "status_change", msg, nil)

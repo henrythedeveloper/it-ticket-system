@@ -118,7 +118,7 @@ export interface TicketContextType {
   checkForNewNotifications: () => Promise<void>;
   fetchTickets: (newFilters?: Partial<TicketFilter>) => Promise<void>;
   fetchTicketById: (id: string) => Promise<Ticket | null>;
-  updateTicket: (id: string, update: TicketStatusUpdate) => Promise<boolean>;
+  updateTicket: (updatedTicketData: Ticket) => boolean;
   refreshCurrentTicket: () => Promise<void>;
   setFilters: (newFilters: Partial<TicketFilter>) => void;
   clearError: () => void;

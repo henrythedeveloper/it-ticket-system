@@ -115,6 +115,15 @@ type TicketUpdate struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
+type TicketState struct {
+    Status           TicketStatus // Use the existing TicketStatus type
+    AssignedToUserID *string      // Keep as pointer for nullability
+    EndUserEmail     string
+    Subject          string
+    TicketNumber     int32
+    ResolutionNotes  *string // Added this as generateChangeDescription likely needs it too
+}
+
 type TicketUpdateCreate struct {
 	Comment        string `json:"content"` // Matches frontend form field name
 	IsInternalNote bool   `json:"is_internal_note"`
@@ -122,7 +131,7 @@ type TicketUpdateCreate struct {
 
 type TicketStatusUpdate struct {
 	Status           TicketStatus `json:"status" validate:"required,oneof=Open In Progress Closed"`
-	AssignedToUserID *string      `json:"assigned_to_user_id,omitempty"`
+	AssignedToUserID *string      `json:"assignedToId,omitempty"`
 	ResolutionNotes  *string      `json:"resolution_notes,omitempty"`
 }
 

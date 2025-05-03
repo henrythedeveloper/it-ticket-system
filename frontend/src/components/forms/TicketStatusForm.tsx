@@ -6,7 +6,7 @@
 // Simplified to use Open/In Progress/Closed status model.
 // ==========================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Select from '../common/Select';
 import Textarea from '../common/Textarea';
 import Button from '../common/Button';
@@ -60,6 +60,9 @@ const TicketStatusForm: React.FC<TicketStatusFormProps> = ({
     resolutionNotes: ticket.resolutionNotes || '',
     });
 
+    const [isFormSubmitting, setIsFormSubmitting] = useState(false); // Local submitting state
+
+
     // --- Custom Hook for Submission ---
     const {
         submit: submitStatusUpdate,
@@ -72,9 +75,11 @@ const TicketStatusForm: React.FC<TicketStatusFormProps> = ({
         (statusData) => updateTicketStatus(ticket.id, statusData),
         {
             onSuccess: (updatedTicket) => {
+                setIsFormSubmitting(false); 
                 onUpdateSuccess(updatedTicket); // Notify parent
             },
             onError: (err) => {
+                setIsFormSubmitting(false);
                 console.error("Failed to update ticket status (hook callback):", err);
                 // Error message handled by hook state
             },
@@ -113,10 +118,18 @@ const TicketStatusForm: React.FC<TicketStatusFormProps> = ({
     /**
      * Handles form submission to update the ticket status.
      */
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+
+        console.log("[TicketStatusForm] Entered handleSubmit");
+
+        if (isFormSubmitting) {
+            console.log("[TicketStatusForm] handleSubmit: Already submitting, ignoring.");
+            return; // Prevent submission if already in progress
+        }
+    
         if (isClosing && !formData.resolutionNotes.trim()) {
-            alert('Resolution notes are required to close the ticket.'); // Simple validation
+            alert('Resolution notes are required to close the ticket.');
             return;
         }
 
@@ -129,9 +142,20 @@ const TicketStatusForm: React.FC<TicketStatusFormProps> = ({
             resolutionNotes: isClosing ? formData.resolutionNotes : undefined,
         };
 
-        console.log("[TicketStatusForm] Submitting status update payload:", payload); // Log the final payload
-        submitStatusUpdate(payload); // Call the hook's submit function
-    };
+
+        console.log("[TicketStatusForm] >>> Calling useFormSubmit's submit function with payload:", payload);
+        // *** SET local submitting state BEFORE calling submit ***
+        setIsFormSubmitting(true);
+        clearError(); // Clear previous errors before new submission
+
+        // Call the hook's submit function
+        // No need to await here if we handle state reset in callbacks
+        submitStatusUpdate(payload);
+
+        // Note: No setIsFormSubmitting(false) here; it's handled in onSuccess/onError
+
+    // Add dependencies for useCallback
+    }, [isClosing, formData, isFormSubmitting, clearError, submitStatusUpdate]); // Pass hook submit function
 
     // --- Options ---
     const statusOptions: { value: TicketStatus; label: string }[] = [
@@ -174,7 +198,12 @@ const TicketStatusForm: React.FC<TicketStatusFormProps> = ({
         <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
             Cancel
         </Button>
-        <Button type="submit" variant="primary" isLoading={isLoading} disabled={isLoading}>
+        <Button 
+        type="submit" 
+        variant="primary" 
+        isLoading={isLoading} 
+        disabled={isLoading || isFormSubmitting}
+        >
             {isLoading ? 'Updating...' : 'Update Status'}
         </Button>
         </div>
