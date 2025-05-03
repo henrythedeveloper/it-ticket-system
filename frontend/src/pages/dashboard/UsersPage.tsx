@@ -181,7 +181,7 @@ const UsersPage: React.FC = () => {
     { key: 'name', header: 'Name' },
     { key: 'email', header: 'Email' },
     { key: 'role', header: 'Role', render: (item) => <Badge type={item.role.toLowerCase() as any}>{item.role}</Badge> },
-    { key: 'createdAt', header: 'Created', render: (item) => formatDate(item.created_at) },
+    { key: 'createdAt', header: 'Created', render: (item) => formatDate(item.createdAt) },
     { key: 'actions', header: 'Actions', render: (item) => (
         <div className='actions-cell-content' style={{ display: 'flex', gap: '0.5rem' }}>
             <Link to={`/users/edit/${item.id}`}>

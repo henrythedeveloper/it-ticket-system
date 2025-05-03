@@ -18,10 +18,8 @@ const defaultFilters: TicketFilter = {
   toDate: undefined,
 };
 
-// Create the context with a default undefined value
 const TicketContext = createContext<TicketContextType | undefined>(undefined);
 
-// Provider component that wraps the app or section that needs ticket data
 export const TicketProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -30,12 +28,9 @@ export const TicketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFiltersState] = useState<TicketFilter>(defaultFilters);
-  
-  // Notification state
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
 
-  // Set filters (partial update)
   const setFilters = useCallback((newFilters: Partial<TicketFilter>) => {
     setFiltersState((prev: TicketFilter) => ({
       ...prev,
@@ -44,139 +39,135 @@ export const TicketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }));
   }, []);
 
-  // Clear any error messages
-  const clearError = useCallback(() => setError(null), []);
-
-  // Mark all notifications as read
-  const markNotificationsAsRead = useCallback(() => {
-    setHasNewNotifications(false);
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, isRead: true }))
-    );
-    // In a real app, you would also call an API to update the read status on the server
+  const clearError = useCallback(() => {
+    console.log('[TicketContext] clearError called.');
+    setError(null);
   }, []);
 
-  // Check for new notifications
+  const markNotificationsAsRead = useCallback(() => {
+    setHasNewNotifications(false);
+    setNotifications(prev =>
+      prev.map(notification => ({ ...notification, isRead: true }))
+    );
+  }, []);
+
   const checkForNewNotifications = useCallback(async (): Promise<void> => {
     if (!user) return;
     try {
-      const tickets = await fetchTickets({
-        limit: 5,
-        sortBy: 'updated_at',
-        sortOrder: 'desc',
-        assigned_to: user.id // FIX: use assigned_to
-      });
+      const tickets = await fetchTickets({ limit: 5, sortBy: 'updated_at', sortOrder: 'desc', assigned_to: user.id });
       const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
       const newTicketNotifications = tickets.data.filter((ticket: Ticket) => new Date(ticket.updatedAt) > hourAgo)
-        .map((ticket: Ticket): Notification => ({
-          id: `ticket-${ticket.id}-${Date.now()}`,
-          type: 'status_change',
-          title: ticket.subject, // FIX: add title
-          message: `Ticket #${ticket.ticketNumber}: ${ticket.subject} was updated`,
-          isRead: false,
-          createdAt: new Date().toISOString(),
-          ticketId: ticket.id
-        }));
+        .map((ticket: Ticket): Notification => ({ id: `ticket-${ticket.id}-${Date.now()}`, type: 'status_change', title: ticket.subject, message: `Ticket #${ticket.ticketNumber}: ${ticket.subject} was updated`, isRead: false, createdAt: new Date().toISOString(), ticketId: ticket.id }));
       if (newTicketNotifications.length > 0) {
         setNotifications(prev => [...newTicketNotifications, ...prev].slice(0, 20));
         setHasNewNotifications(true);
       }
     } catch (err) {
-      console.error('Error checking for notifications:', err);
+      console.error('[TicketContext] Error checking for notifications:', err);
     }
   }, [user]);
 
-  // Initial fetch of notifications and set up polling
   useEffect(() => {
     if (user) {
       checkForNewNotifications();
-      
-      // Poll for new notifications
-      const intervalId = setInterval(() => {
-        checkForNewNotifications();
-      }, 60000); // Check every minute
-      
+      const intervalId = setInterval(() => { checkForNewNotifications(); }, 60000);
       return () => clearInterval(intervalId);
     }
   }, [user, checkForNewNotifications]);
 
-  // Fetch tickets with current filters
   const fetchTicketsHandler = useCallback(async (newFilters?: Partial<TicketFilter>): Promise<void> => {
+    console.log('[TicketContext] fetchTicketsHandler called with newFilters:', newFilters);
     try {
+      console.log('[TicketContext] fetchTicketsHandler: Setting loading=true');
       setIsLoading(true);
       setError(null);
       const updatedFilters = newFilters ? { ...filters, ...newFilters } : filters;
-      // Convert tags array to comma-separated string for API
-      const apiFilters = {
-        ...updatedFilters,
-        tags: Array.isArray(updatedFilters.tags) ? updatedFilters.tags.join(',') : updatedFilters.tags
-      };
-      const tickets = await fetchTickets(apiFilters);
-      setTickets(tickets.data.map((t: any) => ({
-        ...t,
-        // Fallback for both camelCase and snake_case keys
-        ticketNumber: t.ticketNumber ?? t.ticket_number ?? '—',
-        submitterName: t.submitterName ?? t.submitter_name ?? '—',
-        updatedAt: t.updatedAt ?? t.updated_at ?? '—',
-      })));
-      setTotalTickets(tickets.data.length); // FIX: use tickets.data.length
+      const apiFilters = { ...updatedFilters, tags: Array.isArray(updatedFilters.tags) ? updatedFilters.tags.join(',') : updatedFilters.tags };
+      console.log('[TicketContext] fetchTicketsHandler: Calling service.fetchTickets with filters:', apiFilters);
+      const ticketsData = await fetchTickets(apiFilters);
+      console.log('[TicketContext] fetchTicketsHandler: Service call successful. Response total:', ticketsData.total);
+      setTickets(ticketsData.data.map((t: any) => ({ ...t, ticketNumber: t.ticketNumber ?? t.ticket_number ?? '—', submitterName: t.submitterName ?? t.submitter_name ?? '—', updatedAt: t.updatedAt ?? t.updated_at ?? '—' })));
+      setTotalTickets(ticketsData.total); // Use response total
       if (newFilters) setFiltersState(updatedFilters);
-    } catch (err) {
-      setError('Error fetching tickets. Please try again.');
-      console.error('Error fetching tickets:', err);
+    } catch (err: any) {
+      const errorMsg = err.message || 'Error fetching tickets. Please try again.';
+      console.error('[TicketContext] ERROR in fetchTicketsHandler:', err);
+      setError(errorMsg);
     } finally {
+      console.log('[TicketContext] fetchTicketsHandler: Setting loading=false');
       setIsLoading(false);
     }
-  }, [filters]);
+  }, [filters]); // Dependency on filters
 
-  // Fetch a single ticket by ID
   const fetchTicketByIdHandler = useCallback(async (id: string): Promise<Ticket | null> => {
+    console.log(`[TicketContext] fetchTicketByIdHandler called with ID: ${id}`);
+    if (!id) {
+        console.warn('[TicketContext] fetchTicketByIdHandler called with invalid ID.');
+        setError("Invalid ticket ID requested.");
+        return null;
+    }
     try {
+      console.log('[TicketContext] fetchTicketByIdHandler: Setting loading=true');
       setIsLoading(true);
-      setError(null);
-      const ticket = await fetchTicketById(id);
-      setCurrentTicket(ticket);
+      setError(null); // Clear previous errors specific to single fetch
+      setCurrentTicket(null); // Clear previous ticket before fetching new one
+      console.log(`[TicketContext] fetchTicketByIdHandler: Calling service.fetchTicketById(${id})`);
+      const ticket = await fetchTicketById(id); // Service call
+      console.log('[TicketContext] fetchTicketByIdHandler: Service call successful. Result:', ticket);
+      console.log('[TicketContext] fetchTicketByIdHandler: Setting currentTicket.');
+      setCurrentTicket(ticket); // Set state
       return ticket;
-    } catch (err) {
-      setError('Error fetching ticket details. Please try again.');
-      console.error('Error fetching ticket details:', err);
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.error || err.message || 'Error fetching ticket details. Please try again.';
+      console.error('[TicketContext] ERROR in fetchTicketByIdHandler:', err);
+      setError(errorMsg); // Set error state
+      setCurrentTicket(null); // Ensure current ticket is null on error
       return null;
     } finally {
-      setIsLoading(false);
+      console.log('[TicketContext] fetchTicketByIdHandler: Setting loading=false');
+      setIsLoading(false); // Set loading false in finally
     }
-  }, []);
+  }, []); // No dependencies needed if it doesn't rely on context state directly
 
-  // Update ticket status or assignment
   const updateTicket = useCallback(async (id: string, update: TicketStatusUpdate): Promise<boolean> => {
+    console.log(`[TicketContext] updateTicket called for ID: ${id} with update:`, update);
     try {
+      console.log('[TicketContext] updateTicket: Setting loading=true');
       setIsLoading(true);
       setError(null);
-      const ticket = await updateTicketStatus(id, {
-        ...update,
-        status: update.status as any // FIX: cast to TicketStatus if needed
-      });
+      const updatedTicket = await updateTicketStatus(id, { ...update, status: update.status as any });
+      console.log('[TicketContext] updateTicket: Service call successful. Updated Ticket:', updatedTicket);
+
+      // Update currentTicket if it matches
       if (currentTicket && currentTicket.id === id) {
-        setCurrentTicket(ticket);
+        console.log('[TicketContext] updateTicket: Updating currentTicket state.');
+        setCurrentTicket(updatedTicket);
       }
-      setTickets(prev => prev.map((t: Ticket) => t.id === id ? ticket : t));
+      // Update the ticket in the main list
+      setTickets(prev => prev.map((t: Ticket) => (t.id === id ? updatedTicket : t)));
       return true;
-    } catch (err) {
-      setError('Error updating ticket. Please try again.');
-      console.error('Error updating ticket:', err);
+    } catch (err: any) {
+      const errorMsg = err.message || 'Error updating ticket. Please try again.';
+      console.error('[TicketContext] ERROR in updateTicket:', err);
+      setError(errorMsg);
       return false;
     } finally {
+      console.log('[TicketContext] updateTicket: Setting loading=false');
       setIsLoading(false);
     }
-  }, [currentTicket]);
+  }, [currentTicket]); // Depend on currentTicket to update it correctly
 
-  // Refresh the current ticket data
   const refreshCurrentTicket = useCallback(async (): Promise<void> => {
+    console.log('[TicketContext] refreshCurrentTicket called.');
     if (currentTicket) {
+      console.log(`[TicketContext] Refreshing data for current ticket ID: ${currentTicket.id}`);
+      // Use fetchTicketByIdHandler which already handles loading and error states
       await fetchTicketByIdHandler(currentTicket.id);
+    } else {
+        console.warn('[TicketContext] refreshCurrentTicket called but no current ticket is set.');
     }
-  }, [currentTicket, fetchTicketByIdHandler]);
+  }, [currentTicket, fetchTicketByIdHandler]); // Depend on currentTicket and the fetch handler
 
-  // Create the context value object
   const value: TicketContextType = {
     tickets,
     currentTicket,
@@ -203,7 +194,6 @@ export const TicketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   );
 };
 
-// Custom hook to use the ticket context
 export const useTickets = (): TicketContextType => {
   const context = useContext(TicketContext);
   if (context === undefined) {

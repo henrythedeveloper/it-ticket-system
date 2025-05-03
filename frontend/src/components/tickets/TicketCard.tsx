@@ -33,7 +33,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
           </Badge>
         </div>
         <span className="ticket-id" title={`Ticket #${ticket.id}`}>
-          #{ticket.ticket_number}
+          #{ticket.ticketNumber}
         </span>
       </header>
 
@@ -48,12 +48,12 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
           <div>
             <span className="meta-label">Submitter:</span>
             {/* Prefer submitter_name, fallback to email */}
-            <span className="meta-value">{ticket.submitter_name || ticket.end_user_email}</span>
+            <span className="meta-value">{ticket.submitterName || ticket.endUserEmail}</span>
           </div>
           <div>
             <span className="meta-label">Created:</span>
-            <span className="meta-value" title={formatDateTime(ticket.created_at)}>
-                {formatDate(ticket.created_at)}
+            <span className="meta-value" title={formatDateTime(ticket.createdAt)}>
+                {formatDate(ticket.createdAt)}
             </span>
           </div>
       </div>

@@ -9,6 +9,9 @@ package ticket
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"time"
+	"strings"
 
 	"github.com/henrythedeveloper/it-ticket-system/internal/api/middleware/auth"
 	"github.com/henrythedeveloper/it-ticket-system/internal/models"
@@ -109,34 +112,80 @@ func (h *Handler) getUserName(ctx context.Context, userID string) (string, error
 
 // buildTicketUpdateQuery constructs the SQL UPDATE statement and arguments dynamically.
 func (h *Handler) buildTicketUpdateQuery(ctx context.Context, ticketID string, update *models.TicketStatusUpdate, currentState *ticketState) (string, []interface{}, error) {
-	query := `UPDATE tickets SET `
-	args := []interface{}{}
-	argIndex := 1
+    var setClauses []string
+    var args []interface{}
+    argIndex := 1 // Start indexing from 1
 
-	if update.Status != "" && update.Status != currentState.Status {
-		query += fmt.Sprintf("status = $%d, ", argIndex)
-		args = append(args, update.Status)
-		argIndex++
-	}
+    // Status Change
+    if update.Status != "" && update.Status != currentState.Status {
+        setClauses = append(setClauses, fmt.Sprintf("status = $%d", argIndex))
+        args = append(args, update.Status)
+        argIndex++
+    }
 
-	if update.AssignedToUserID != nil && update.AssignedToUserID != currentState.AssignedToUserID {
-		query += fmt.Sprintf("assigned_to_user_id = $%d, ", argIndex)
-		args = append(args, *update.AssignedToUserID)
-		argIndex++
-	}
+    // Assignee Change
+    // Check if assignedToId is provided in the request payload
+    if update.AssignedToUserID != nil {
+        newAssigneeID := *update.AssignedToUserID
+        // Check if it's different from the current state OR if current state was null
+        // An empty string "" means unassign -> NULL
+        needsUpdate := false
+        if newAssigneeID == "" { // Unassigning
+            if currentState.AssignedToUserID != nil { // Only update if currently assigned
+                 needsUpdate = true
+                 args = append(args, nil) // Append NULL for unassignment
+            }
+        } else { // Assigning to a specific user
+            if currentState.AssignedToUserID == nil || *currentState.AssignedToUserID != newAssigneeID {
+                needsUpdate = true
+                args = append(args, newAssigneeID) // Append the new user ID
+            }
+        }
 
-	if update.ResolutionNotes != nil && *update.ResolutionNotes != "" {
-		query += fmt.Sprintf("resolution_notes = $%d, ", argIndex)
-		args = append(args, *update.ResolutionNotes)
-		argIndex++
-	}
+        if needsUpdate {
+                setClauses = append(setClauses, fmt.Sprintf("assigned_to_user_id = $%d", argIndex))
+                argIndex++
+        }
+    }
 
-	query = query[:len(query)-2] // Remove trailing comma and space
-	query += fmt.Sprintf(" WHERE id = $%d", argIndex)
-	args = append(args, ticketID)
 
-	return query, args, nil
+    // Resolution Notes (Only set if provided, typically on closing)
+    // Assuming frontend only sends this when closing or explicitly editing resolution
+    if update.ResolutionNotes != nil {
+         // Add check if different from current state if resolution notes can be edited separately
+         setClauses = append(setClauses, fmt.Sprintf("resolution_notes = $%d", argIndex))
+         args = append(args, *update.ResolutionNotes)
+         argIndex++
+    }
+
+     // Check if there are any actual fields to update
+     if len(setClauses) == 0 {
+        // No changes detected other than potentially the timestamp
+        slog.DebugContext(ctx, "No actual field changes detected for update", "ticketID", ticketID)
+        // You could return an error, or just update the timestamp
+        // return "", nil, errors.New("no fields to update")
+        // Or proceed to only update timestamp
+     }
+
+    // Always update the updated_at timestamp if there are other changes
+    setClauses = append(setClauses, fmt.Sprintf("updated_at = $%d", argIndex))
+    args = append(args, time.Now())
+    argIndex++
+
+
+    // Construct the final query
+    query := fmt.Sprintf("UPDATE tickets SET %s WHERE id = $%d",
+        strings.Join(setClauses, ", "), // Join clauses with commas
+        argIndex,                       // Parameter index for the ID
+    )
+    args = append(args, ticketID) // Add the ticket ID as the last argument
+
+    slog.DebugContext(ctx, "Built ticket update query", "query", query, "argsCount", len(args))
+
+    return query, args, nil
 }
+
+
 
 // generateChangeDescription creates a human-readable string describing the changes made.
 func (h *Handler) generateChangeDescription(ctx context.Context, currentState *ticketState, update *models.TicketStatusUpdate, updaterName string) string {

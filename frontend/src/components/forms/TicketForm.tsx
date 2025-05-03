@@ -67,10 +67,10 @@ const TicketForm: React.FC<TicketFormProps> = ({
         createTicket,
         {
             onSuccess: (response) => {
-                if (response?.data?.ticket_number !== undefined) {
+                if (response?.data?.ticketNumber !== undefined) {
                     // Reset form and call success handler
                     resetForm();
-                    onSubmitSuccess(response.data.ticket_number);
+                    onSubmitSuccess(response.data.ticketNumber);
                 } else {
                     console.error("[TicketForm] Invalid response structure or missing ticket_number:", response);
                     onSubmitSuccess(0);

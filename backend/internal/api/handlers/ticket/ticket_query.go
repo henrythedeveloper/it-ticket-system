@@ -106,7 +106,7 @@ func (h *Handler) GetAllTickets(c echo.Context) error {
 		query += " WHERE " + strings.Join(whereClauses, " AND ")
 	}
 	// Updated GROUP BY to include all non-aggregated columns required by PostgreSQL
-	query += " GROUP BY t.id, t.ticket_number, t.subject, t.description, t.status, t.urgency, t.created_at, t.updated_at, u.id, u.name, u.email"
+	query += " GROUP BY t.id, t.ticket_number, t.subject, t.description, t.status, t.urgency, t.created_at, t.updated_at, u.id"
 	query += " ORDER BY t.updated_at DESC LIMIT $" + strconv.Itoa(argIdx) + " OFFSET $" + strconv.Itoa(argIdx+1)
 	args = append(args, limit, offset)
 
@@ -180,7 +180,7 @@ func (h *Handler) GetTicketByID(c echo.Context) error {
 	LEFT JOIN ticket_tags tt ON t.id = tt.ticket_id
 	LEFT JOIN tags tg ON tt.tag_id = tg.id
 	WHERE t.id = $1
-	GROUP BY t.id, t.ticket_number, t.subject, t.description, t.status, t.urgency, t.created_at, t.updated_at, u.id, u.name, u.email`
+	GROUP BY t.id, t.ticket_number, t.subject, t.description, t.status, t.urgency, t.created_at, t.updated_at, u.id`
 	row := h.db.Pool.QueryRow(ctx, query, ticketID)
 
 	var id, subject, description, status, urgency string

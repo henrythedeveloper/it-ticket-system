@@ -66,41 +66,45 @@ interface RawPaginatedResponse extends Omit<PaginatedResponse<any>, 'data'> {
  */
 export const fetchTicketById = async (ticketId: string): Promise<Ticket> => {
     try {
-        // Define the expected raw API response structure (with snake_case)
-        interface RawTicketDetail extends Omit<Ticket, 'assignedTo' | 'submitter' | 'tags'> {
-            assigned_to_user?: User | null;
-            submitter?: User | null;
-            tags?: { id: string; name: string; created_at: string }[];
-            updates?: TicketUpdate[];
-            attachments?: TicketAttachment[];
-        }
-        interface RawDetailApiResponse extends Omit<APIResponse<any>, 'data'> {
-             data?: RawTicketDetail;
-        }
+        // --- CHANGE HERE ---
+        // Expect the response.data *itself* to be the raw ticket object
+        const response = await api.get<any>(`/tickets/${ticketId}`); // Use <any> or a specific RawTicket type if defined elsewhere
+        const rawData = response.data; // Use response.data directly
 
-        // Fetch the raw data
-        const response = await api.get<RawDetailApiResponse>(`/tickets/${ticketId}`);
-        const rawData = response.data.data; // Access nested data
-
-        if (!rawData) {
-            throw new Error("Ticket data missing in API response.");
+        // Check if rawData is actually received
+        if (!rawData || typeof rawData !== 'object') { // Add a type check
+            console.error('[fetchTicketById] Invalid data received from API:', rawData);
+            throw new Error("Invalid ticket data received from API.");
         }
+        // --- END CHANGE ---
 
         // Convert all keys to camelCase
         const ticketData: Ticket = keysToCamel(rawData);
-        // Ensure tags have createdAt property (not created_at)
-        if (ticketData.tags) {
-            ticketData.tags = ticketData.tags.map(tag => ({
-                ...tag,
-                createdAt: tag.createdAt ?? '',
-            }));
+
+        // Ensure tags/updates/attachments are arrays if they exist, or initialize if needed
+        ticketData.tags = Array.isArray(ticketData.tags) ? ticketData.tags.map(tag => ({ ...tag, createdAt: tag.createdAt ?? '' })) : [];
+        ticketData.updates = Array.isArray(ticketData.updates) ? ticketData.updates : [];
+        ticketData.attachments = Array.isArray(ticketData.attachments) ? ticketData.attachments : [];
+
+
+        // Specific check if ID is missing after mapping (shouldn't happen if rawData is valid)
+        if (!ticketData.id) {
+            console.error('[fetchTicketById] Ticket ID missing after mapping:', ticketData);
+            throw new Error("Mapped ticket data is missing ID.");
         }
+
         return ticketData; // Return the mapped data
-    } catch (error) {
-        console.error(`Fetch ticket by ID (${ticketId}) API error:`, error);
-        throw error;
+    } catch (error: any) { // Catch specific AxiosError if needed for response access
+        console.error(`Workspace ticket by ID (${ticketId}) API error:`, error);
+        // Re-throw a potentially more specific error or the original one
+        const errorMessage = error.response?.data?.error || // Check for backend { "error": "..." }
+                        error.response?.data?.message ||
+                        error.message ||
+                        'Failed to fetch ticket details.';
+        throw new Error(errorMessage);
     }
 };
+
 
 
 /**

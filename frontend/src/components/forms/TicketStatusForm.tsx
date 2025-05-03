@@ -57,7 +57,7 @@ const TicketStatusForm: React.FC<TicketStatusFormProps> = ({
     status: ticket.status || 'Open',
     // Initialize with current assignee ID or empty string if none
     assignedToId: ticket.assignedTo?.id || '',
-    resolutionNotes: ticket.resolution_notes || '',
+    resolutionNotes: ticket.resolutionNotes || '',
     });
 
     // --- Custom Hook for Submission ---
@@ -91,7 +91,7 @@ const TicketStatusForm: React.FC<TicketStatusFormProps> = ({
         setFormData({
             status: ticket.status || 'Open',
             assignedToId: ticket.assignedTo?.id || '', // Correctly initialize
-            resolutionNotes: ticket.resolution_notes || '',
+            resolutionNotes: ticket.resolutionNotes || '',
         });
         clearError(); // Clear errors when ticket context changes
         // eslint-disable-next-line react-hooks/exhaustive-deps

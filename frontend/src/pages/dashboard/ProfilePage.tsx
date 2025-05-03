@@ -84,7 +84,7 @@ const ProfilePage: React.FC = () => {
                   </span>
                   {/* Join Date */}
                   <span className="join-date">
-                    Joined: {formatDateTime(user.created_at)}
+                    Joined: {formatDateTime(user.createdAt)}
                   </span>
               </div>
             </div>

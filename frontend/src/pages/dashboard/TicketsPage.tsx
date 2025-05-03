@@ -179,9 +179,9 @@ const TicketsPage: React.FC = () => {
 
   // --- Table Columns ---
   const ticketColumns: TableColumn<Ticket>[] = [
-    { key: 'ticket_number', header: '#', render: (item) => <Link to={`/tickets/${item.id}`}>{item.ticket_number}</Link> },
+    { key: 'ticket_number', header: '#', render: (item) => <Link to={`/tickets/${item.id}`}>{item.ticketNumber}</Link> },
     { key: 'subject', header: 'Subject', render: (item) => <Link to={`/tickets/${item.id}`}>{item.subject}</Link>, cellClassName: 'subject-cell' },
-    { key: 'submitter_name', header: 'Submitter', render: (item) => item.submitter_name || item.end_user_email },
+    { key: 'submitter_name', header: 'Submitter', render: (item) => item.submitterName || item.endUserEmail },
     { key: 'status', header: 'Status', render: (item) => <Badge type={item.status.toLowerCase() as any}>{item.status}</Badge> },
     { key: 'urgency', header: 'Urgency', render: (item) => <Badge type={item.urgency.toLowerCase() as any}>{item.urgency}</Badge> },
     { key: 'assignedTo', header: 'Assignee', render: (item) => item.assignedTo?.name || '-' },
@@ -193,7 +193,7 @@ const TicketsPage: React.FC = () => {
           : <span className='no-tags'>-</span>
       ), cellClassName: 'tags-cell'
     },
-    { key: 'updatedAt', header: 'Last Update', render: (item) => formatDate(item.updated_at) },
+    { key: 'updatedAt', header: 'Last Update', render: (item) => formatDate(item.updatedAt) },
   ];
 
   // Check if any filters are active

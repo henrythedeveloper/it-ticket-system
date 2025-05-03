@@ -74,7 +74,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
 
                 {/* Notification Bell - Only visible to Admin and Staff roles */}
                 {user && (user.role === 'Admin' || user.role === 'Staff') && (
-                    <NotificationBell className="header-notification-bell" />
+                    <NotificationBell />
                 )}
 
                 {/* User Info and Dropdown - Render only if user object exists */}
