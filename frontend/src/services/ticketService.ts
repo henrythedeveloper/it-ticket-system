@@ -1,8 +1,7 @@
-// src/services/ticketService.ts
+// File: frontend/src/services/ticketService.ts
 // ==========================================================================
 // Service functions for handling ticket-related API calls.
-// **REVISED AGAIN**: Reverted fetchTickets mapping to expect `tags: Tag[]`
-//                    as backend now includes this directly in the list response.
+// **CONFIRMED**: fetchTags function removed.
 // ==========================================================================
 
 import api from './api'; // Import the configured Axios instance
@@ -44,15 +43,14 @@ interface UpdateTicketStatusInput {
 
 // --- Raw API Response Structures ---
 // Define the raw structure expected from the LIST endpoint
-// *** REVERTED: Expecting backend to send mapped 'assignedTo' and 'tags' directly ***
-interface RawTicketListItem extends Omit<Ticket, 'updates' | 'attachments'> {
-    // Assuming backend now sends assignedTo and tags directly in the list view
-    // assigned_to_user?: Pick<User, 'id' | 'name'> | null; // No longer needed if backend sends assignedTo
-    // tag_names?: string[] | null; // No longer needed if backend sends tags
+interface RawTicketListItem extends Omit<Ticket, 'updates' | 'attachments' | 'assignedTo' | 'submitter' | 'tags'> {
+    // Assuming backend sends these nested objects directly now
+    assignedTo?: Pick<User, 'id' | 'name'> | null;
+    submitter?: Pick<User, 'id' | 'name' | 'email'> | null;
+    tags?: Tag[];
 }
 
 interface RawPaginatedResponse extends Omit<PaginatedResponse<any>, 'data'> {
-    // Expecting data to be closer to the final Ticket structure now
     data: RawTicketListItem[];
 }
 
@@ -66,46 +64,33 @@ interface RawPaginatedResponse extends Omit<PaginatedResponse<any>, 'data'> {
  */
 export const fetchTicketById = async (ticketId: string): Promise<Ticket> => {
     try {
-        // --- CHANGE HERE ---
-        // Expect the response.data *itself* to be the raw ticket object
-        const response = await api.get<any>(`/tickets/${ticketId}`); // Use <any> or a specific RawTicket type if defined elsewhere
-        const rawData = response.data; // Use response.data directly
+        const response = await api.get<APIResponse<any>>(`/tickets/${ticketId}`);
+        const rawData = response.data?.data; // Assuming backend wraps single ticket in { success, data }
 
-        // Check if rawData is actually received
-        if (!rawData || typeof rawData !== 'object') { // Add a type check
-            console.error('[fetchTicketById] Invalid data received from API:', rawData);
+        if (!rawData || typeof rawData !== 'object') {
+            console.error('[fetchTicketById] Invalid data received from API:', response.data);
             throw new Error("Invalid ticket data received from API.");
         }
-        // --- END CHANGE ---
 
-        // Convert all keys to camelCase
         const ticketData: Ticket = keysToCamel(rawData);
 
-        // Ensure tags/updates/attachments are arrays if they exist, or initialize if needed
+        // Ensure arrays exist
         ticketData.tags = Array.isArray(ticketData.tags) ? ticketData.tags.map(tag => ({ ...tag, createdAt: tag.createdAt ?? '' })) : [];
         ticketData.updates = Array.isArray(ticketData.updates) ? ticketData.updates : [];
         ticketData.attachments = Array.isArray(ticketData.attachments) ? ticketData.attachments : [];
 
-
-        // Specific check if ID is missing after mapping (shouldn't happen if rawData is valid)
         if (!ticketData.id) {
             console.error('[fetchTicketById] Ticket ID missing after mapping:', ticketData);
             throw new Error("Mapped ticket data is missing ID.");
         }
 
-        return ticketData; // Return the mapped data
-    } catch (error: any) { // Catch specific AxiosError if needed for response access
-        console.error(`Workspace ticket by ID (${ticketId}) API error:`, error);
-        // Re-throw a potentially more specific error or the original one
-        const errorMessage = error.response?.data?.error || // Check for backend { "error": "..." }
-                        error.response?.data?.message ||
-                        error.message ||
-                        'Failed to fetch ticket details.';
+        return ticketData;
+    } catch (error: any) {
+        console.error(`Fetch ticket by ID (${ticketId}) API error:`, error);
+        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to fetch ticket details.';
         throw new Error(errorMessage);
     }
 };
-
-
 
 /**
  * Fetches a paginated list of tickets based on provided parameters.
@@ -116,35 +101,23 @@ export const fetchTicketById = async (ticketId: string): Promise<Ticket> => {
 export const fetchTickets = async (params: FetchTicketsParams = {}): Promise<PaginatedResponse<Ticket>> => {
     try {
         const queryString = buildQueryString(params);
-        // Fetch expecting PaginatedResponse<Ticket> directly, assuming backend sends mapped data
-        const response = await api.get<PaginatedResponse<any>>(`/tickets${queryString}`);
+        const response = await api.get<PaginatedResponse<any>>(`/tickets${queryString}`); // Expecting PaginatedResponse structure
 
-        // Validate the basic structure of the response
         if (!response.data || !Array.isArray(response.data.data)) {
              console.warn("Received invalid paginated response structure from /tickets");
-             // Return a default empty paginated response
-             return {
-                 data: [],
-                 total: 0,
-                 page: params.page || 1,
-                 limit: params.limit || DEFAULT_LIMIT,
-                 total_pages: 0,
-                 hasMore: false
-                };
+             return { data: [], total: 0, page: params.page || 1, limit: params.limit || DEFAULT_LIMIT, total_pages: 0, hasMore: false };
         }
 
-        // Convert all tickets to camelCase
         const mappedTickets = response.data.data.map(keysToCamel);
 
-        // Return the PaginatedResponse with potentially validated data
         return {
-            ...response.data, // Copy pagination fields (total, page, etc.)
-            data: mappedTickets, // Use the validated/mapped ticket data
+            ...response.data,
+            data: mappedTickets,
         };
 
     } catch (error) {
         console.error('Fetch tickets API error:', error);
-        throw error; // Re-throw the error for the calling component to handle
+        throw error;
     }
 };
 
@@ -158,11 +131,9 @@ export const createTicket = async (formData: FormData): Promise<APIResponse<Tick
     try {
         const response = await api.post<APIResponse<any>>('/tickets', formData);
 
-        // Convert all keys to camelCase
         if (response.data?.data) {
             response.data.data = keysToCamel(response.data.data);
         }
-        // Return the whole APIResponse structure as expected by useFormSubmit
         return response.data;
     } catch (error: any) {
         console.error('Create ticket API error:', error);
@@ -200,48 +171,34 @@ export const addTicketUpdate = async (ticketId: string, updateData: AddTicketUpd
 export const updateTicketStatus = async (ticketId: string, statusData: UpdateTicketStatusInput): Promise<Ticket> => {
     try {
         console.log(`[updateTicketStatus] Sending PUT request for ID: ${ticketId} with data:`, statusData);
-
-        // Expect the response data itself to be the raw ticket object
-        // Use <any> or define a specific RawTicket type if needed for snake_case fields before mapping
+        // Backend directly returns the updated ticket object on PUT /tickets/:id
         const response = await api.put<any>(`/tickets/${ticketId}`, statusData);
-
-        // Use response.data directly as the raw ticket data
-        const rawData = response.data;
+        const rawData = response.data; // The response *is* the ticket object
         console.log(`[updateTicketStatus] Received response data:`, rawData);
 
-        // Check if rawData is actually received and looks like an object
         if (!rawData || typeof rawData !== 'object') {
             console.error('[updateTicketStatus] Invalid data received from API:', rawData);
             throw new Error("Invalid ticket data received from API update.");
         }
 
-        // Convert keys (assuming backend might still send snake_case here)
         const ticketData: Ticket = keysToCamel(rawData);
         console.log(`[updateTicketStatus] Mapped ticket data:`, ticketData);
 
-        // Basic validation after mapping
         if (!ticketData.id) {
              console.error('[updateTicketStatus] Ticket ID missing after mapping:', ticketData);
              throw new Error("Mapped ticket data is missing ID after update.");
         }
 
-         // Ensure arrays are present (optional, but good practice)
+        // Ensure arrays are present
         ticketData.tags = Array.isArray(ticketData.tags) ? ticketData.tags : [];
         ticketData.updates = Array.isArray(ticketData.updates) ? ticketData.updates : [];
         ticketData.attachments = Array.isArray(ticketData.attachments) ? ticketData.attachments : [];
 
-
-        return ticketData; // Return the mapped data
+        return ticketData;
 
     } catch (error: any) {
-        // Log more context if available from Axios error
         const responseData = error.response?.data;
-        console.error(`Update ticket status (${ticketId}) API error:`, {
-            message: error.message,
-            response: responseData,
-            fullError: error
-        });
-        // Re-throw a potentially more specific error or the original one
+        console.error(`Update ticket status (${ticketId}) API error:`, { message: error.message, response: responseData, fullError: error });
         const errorMessage = responseData?.error || responseData?.message || error.message || 'Failed to update ticket status.';
         throw new Error(errorMessage);
     }

@@ -87,7 +87,7 @@ export interface Ticket {
 export type TicketFilter = {
   status?: string;
   urgency?: string;
-  assignedTo?: string;
+  assignedTo?: string; // Keep frontend state as camelCase
   submitterId?: string;
   tags?: string[];
   search?: string;
@@ -101,28 +101,36 @@ export type TicketFilter = {
 
 export type TicketStatusUpdate = {
   status: string;
-  assignedToId?: string | null;
+  assignedToId?: string | null; // Use assignedToId for API payload consistency
   resolutionNotes?: string;
 };
 
 export interface TicketContextType {
+  // Core ticket state
   tickets: Ticket[];
   currentTicket: Ticket | null;
   totalTickets: number;
   isLoading: boolean;
   error: string | null;
   filters: TicketFilter;
-  notifications: Notification[];
+  notifications: Notification[]; 
   hasNewNotifications: boolean;
+  assignableUsers: Pick<User, 'id' | 'name'>[];
+  availableTags: Tag[]; 
+  // Actions / Handlers
   markNotificationsAsRead: () => void;
   checkForNewNotifications: () => Promise<void>;
   fetchTickets: (newFilters?: Partial<TicketFilter>) => Promise<void>;
   fetchTicketById: (id: string) => Promise<Ticket | null>;
-  updateTicket: (updatedTicketData: Ticket) => boolean;
+  updateTicket: (updatedTicketData: Ticket) => boolean; // Function to update local state
   refreshCurrentTicket: () => Promise<void>;
   setFilters: (newFilters: Partial<TicketFilter>) => void;
   clearError: () => void;
+  loadFiltersData: () => Promise<void>; 
 }
+
+
+
 
 // --- Notification ---
 export interface Notification {

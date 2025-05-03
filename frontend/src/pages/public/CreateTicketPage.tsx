@@ -2,7 +2,7 @@
 // ==========================================================================
 // Component representing the public page for creating a new support ticket.
 // Displays the TicketForm component.
-// FIX: Display ticket number instead of ID on success.
+// **REVISED**: Fetch available tags from API instead of using mock data.
 // ==========================================================================
 
 import React, { useState, useEffect } from 'react';
@@ -11,23 +11,16 @@ import { Link } from 'react-router-dom';
 import TicketForm from '../../components/forms/TicketForm'; // The actual form component
 import Loader from '../../components/common/Loader'; // Reusable Loader
 import Alert from '../../components/common/Alert'; // Reusable Alert
-import { AppSettings } from '../../types'; // Import AppSettings type
+import { AppSettings, Tag } from '../../types'; // Import AppSettings and Tag types
+import { fetchTags } from '../../services/tagService'; // Import fetchTags
 
-// --- Mock Settings Data (Replace with API call) ---
-// interface PublicSettings { // Replaced with AppSettings for consistency
-//     allowPublicSubmission: boolean;
-//     issueTypes: string[];
-//     availableTags: string[];
-// }
-
-// Assuming settings fetched from backend match AppSettings structure
+// --- Mock Settings Data (Replace with API call for settings if needed) ---
 const MOCK_SETTINGS: AppSettings = {
-    notifications: { emailOnNewTicket: true, emailOnAssignment: true, emailOnUpdate: false }, // Example data
+    notifications: { emailOnNewTicket: true, emailOnAssignment: true, emailOnUpdate: false },
     tickets: {
         allowPublicSubmission: true,
-        defaultUrgency: 'Medium', // Example data
+        defaultUrgency: 'Medium',
         issueTypes: ['General Inquiry', 'Bug Report', 'Feature Request', 'Password Reset', 'Hardware Issue'],
-        // availableTags: ['urgent', 'billing', 'account', 'software', 'printer'], // Tags might come from a separate endpoint
     }
 };
 
@@ -35,16 +28,16 @@ const MOCK_SETTINGS: AppSettings = {
 
 /**
  * Renders the page for public ticket submission.
- * Fetches necessary settings (like allowed issue types) and displays the TicketForm.
+ * Fetches necessary settings and available tags, then displays the TicketForm.
  * Handles the success state after submission.
  */
 const CreateTicketPage: React.FC = () => {
   // --- State ---
-  const [settings, setSettings] = useState<AppSettings | null>(null); // Use AppSettings type
-  const [availableTags, setAvailableTags] = useState<string[]>([]); // State for tags, potentially fetched separately
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  // State to hold fetched Tag objects
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]); // Changed type to Tag[]
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  // FIX: Change state variable name and type to store ticket number
   const [submittedTicketNumber, setSubmittedTicketNumber] = useState<number | null>(null);
 
   // --- Data Fetching ---
@@ -53,26 +46,24 @@ const CreateTicketPage: React.FC = () => {
       setIsLoading(true);
       setError(null);
       try {
-        // TODO: Replace with actual API calls
-        // Fetch settings (e.g., issue types, allow public submission)
-        // const fetchedSettings = await fetchPublicSettings(); // Example
-        await new Promise(resolve => setTimeout(resolve, 300)); // Simulate loading
-        const fetchedSettings = MOCK_SETTINGS; // Using mock for now
+        // Simulate fetching settings (replace with actual API call if needed)
+        await new Promise(resolve => setTimeout(resolve, 100)); // Short delay for settings
+        const fetchedSettings = MOCK_SETTINGS; // Using mock settings for now
 
-        // Fetch available tags (might be separate endpoint)
-        // const fetchedTags = await fetchAvailableTags(); // Example
-        const fetchedTags = ['urgent', 'billing', 'account', 'software', 'printer']; // Using mock
+        // Fetch available tags from the API
+        const fetchedTags = await fetchTags(); // Call the service function
 
-        // Basic validation
+        // Basic validation for settings
         if (!fetchedSettings.tickets.allowPublicSubmission) {
             throw new Error("Public ticket submission is currently disabled.");
         }
         setSettings(fetchedSettings);
-        setAvailableTags(fetchedTags);
+        setAvailableTags(fetchedTags); // Store the fetched Tag objects
 
       } catch (err: any) {
         console.error("Failed to load data for ticket creation:", err);
         setError(err.message || 'Could not load ticket submission form.');
+        setAvailableTags([]); // Ensure tags are empty on error
       } finally {
         setIsLoading(false);
       }
@@ -81,33 +72,20 @@ const CreateTicketPage: React.FC = () => {
   }, []); // Fetch on initial mount
 
   // --- Handlers ---
-  /**
-   * Handles the successful submission of the ticket form.
-   * Sets the submitted ticket number to display the success message.
-   * @param newTicketNumber - The number of the newly created ticket.
-   */
-  // FIX: Update function signature and state setter
   const handleSuccess = (newTicketNumber: number) => {
     console.log("[CreateTicketPage] handleSuccess called with Number:", newTicketNumber);
-    if (newTicketNumber > 0) { // Check if a valid number was received
+    if (newTicketNumber > 0) {
         setSubmittedTicketNumber(newTicketNumber);
         window.scrollTo(0, 0);
     } else {
-        // Handle the case where an invalid number (e.g., 0) was passed from the form
         console.error("[CreateTicketPage] Received invalid ticket number:", newTicketNumber);
         setError("Ticket submitted, but failed to retrieve ticket number.");
-        setSubmittedTicketNumber(null); // Ensure success message isn't shown
+        setSubmittedTicketNumber(null);
     }
   };
 
-  /**
-   * Resets the state to allow submitting another ticket.
-   */
   const handleSubmitAnother = () => {
-      // FIX: Reset the correct state variable
       setSubmittedTicketNumber(null);
-      // Optionally reset form state within TicketForm if needed,
-      // but remounting/clearing might be handled by parent logic
   };
 
   // --- Render ---
@@ -117,22 +95,18 @@ const CreateTicketPage: React.FC = () => {
       {isLoading && <Loader text="Loading form..." />}
 
       {/* --- Error State --- */}
-      {/* Display general errors OR the specific error from handleSuccess */}
       {(error && !isLoading) && (
         <Alert type="error" title="Error" message={error} className="mt-6" />
       )}
 
       {/* --- Main Content (Form or Success Message) --- */}
-      {/* FIX: Check settings?.tickets before accessing its properties */}
       {!isLoading && !error && settings?.tickets && (
         <>
-          {/* FIX: Check submittedTicketNumber state */}
           {submittedTicketNumber ? (
             <div className="success-message">
               <h2>Ticket Submitted Successfully!</h2>
               <p>
                 Your ticket has been received. Your Ticket Number is{' '}
-                {/* FIX: Display submittedTicketNumber */}
                 <strong>#{submittedTicketNumber}</strong>.
               </p>
               <p>
@@ -156,9 +130,12 @@ const CreateTicketPage: React.FC = () => {
               {/* Ticket Form */}
               <TicketForm
                 onSubmitSuccess={handleSuccess}
-                // FIX: Pass correct properties from settings
                 issueTypes={settings.tickets.issueTypes}
-                availableTags={availableTags} // Pass fetched/mocked tags
+                // Pass the array of Tag objects to the form
+                // The form component will need to extract the 'name' for display/value
+                availableTags={availableTags.map(tag => tag.name)} // Pass only names if TicketForm expects string[]
+                // OR if TicketForm is updated to handle Tag[]:
+                // availableTags={availableTags}
               />
             </>
           )}

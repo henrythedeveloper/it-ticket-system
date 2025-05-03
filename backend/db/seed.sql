@@ -86,32 +86,46 @@ CREATE TABLE notifications (
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- Users table
+--- Users table
 INSERT INTO users (id, name, email, password_hash, role, created_at, updated_at)
 VALUES
   ('11111111-1111-1111-1111-111111111111', 'Alice Admin', 'admin@example.com', '$2a$12$g/oVUahtVD05SCL/ywPUceXaCKOp4q7pMStPt/81qO1BkZcDulUSq', 'Admin', NOW(), NOW()),
   ('22222222-2222-2222-2222-222222222222', 'Bob Staff', 'staff@example.com', '$2a$12$g/oVUahtVD05SCL/ywPUceXaCKOp4q7pMStPt/81qO1BkZcDulUSq', 'Staff', NOW(), NOW());
 
--- Tags table
+-- Tags table (Using gen_random_uuid())
 INSERT INTO tags (id, name, created_at) VALUES
-  ('aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Network', NOW()),
-  ('aaaaaaa2-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Hardware', NOW());
+    (gen_random_uuid(), 'Network', NOW()),
+    (gen_random_uuid(), 'Hardware', NOW()),
+    (gen_random_uuid(), 'Software', NOW()),
+    (gen_random_uuid(), 'Account', NOW()),
+    (gen_random_uuid(), 'Billing', NOW()),
+    (gen_random_uuid(), 'UI', NOW()),
+    (gen_random_uuid(), 'Backend', NOW()),
+    (gen_random_uuid(), 'Urgent', NOW());
 
 -- Tickets table
 INSERT INTO tickets (id, ticket_number, submitter_name, end_user_email, issue_type, urgency, subject, description, status, assigned_to_user_id, submitter_id, created_at, updated_at, closed_at, resolution_notes)
 VALUES
   ('bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 1001, 'Charlie', 'charlie@example.com', 'Printer', 'High', 'Printer not working', 'The printer in room 101 is jammed.', 'Open', '22222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222', NOW(), NOW(), NULL, NULL),
   ('bbbbbbb2-bbbb-bbbb-bbbb-bbbbbbbbbbbc', 1002, 'Dana', 'dana@example.com', 'Network', 'Medium', 'WiFi issues', 'Cannot connect to WiFi in conference room.', 'In Progress', '22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', NOW(), NOW(), NULL, NULL),
-  -- Assigned to Alice Admin
   ('bbbbbbb3-bbbb-bbbb-bbbb-bbbbbbbbbbbd', 1003, 'Eve', 'eve@example.com', 'Software', 'Low', 'Software update needed', 'Please update the accounting software.', 'Open', '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', NOW(), NOW(), NULL, NULL),
   ('bbbbbbb4-bbbb-bbbb-bbbb-bbbbbbbbbbbe', 1004, 'Frank', 'frank@example.com', 'Hardware', 'Critical', 'Server down', 'The main server is not responding.', 'In Progress', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', NOW(), NOW(), NULL, NULL),
-  -- Unassigned ticket
   ('bbbbbbb5-bbbb-bbbb-bbbb-bbbbbbbbbbbf', 1005, 'Grace', 'grace@example.com', 'Network', 'High', 'VPN not working', 'Cannot connect to VPN from home.', 'Open', NULL, '11111111-1111-1111-1111-111111111111', NOW(), NOW(), NULL, NULL);
 
--- Ticket-Tag join table
+-- Ticket-Tag join table (Using subqueries to find tag IDs by name)
 INSERT INTO ticket_tags (ticket_id, tag_id) VALUES
-  ('bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'aaaaaaa2-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
-  ('bbbbbbb2-bbbb-bbbb-bbbb-bbbbbbbbbbbc', 'aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+  -- Link ticket 'Printer not working' (bbbbbbb1...) to the 'Hardware' tag
+  ('bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbbb', (SELECT id FROM tags WHERE name = 'Hardware')),
+  -- Link ticket 'WiFi issues' (bbbbbbb2...) to the 'Network' tag
+  ('bbbbbbb2-bbbb-bbbb-bbbb-bbbbbbbbbbbc', (SELECT id FROM tags WHERE name = 'Network')),
+  -- Link ticket 'Software update needed' (bbbbbbb3...) to the 'Software' tag
+  ('bbbbbbb3-bbbb-bbbb-bbbb-bbbbbbbbbbbd', (SELECT id FROM tags WHERE name = 'Software')),
+  -- Link ticket 'Server down' (bbbbbbb4...) to the 'Hardware' tag
+  ('bbbbbbb4-bbbb-bbbb-bbbb-bbbbbbbbbbbe', (SELECT id FROM tags WHERE name = 'Hardware')),
+  -- Link ticket 'VPN not working' (bbbbbbb5...) to the 'Network' tag
+  ('bbbbbbb5-bbbb-bbbb-bbbb-bbbbbbbbbbbf', (SELECT id FROM tags WHERE name = 'Network'));
+  -- Add more links as needed, for example:
+  -- ('bbbbbbb4-bbbb-bbbb-bbbb-bbbbbbbbbbbe', (SELECT id FROM tags WHERE name = 'Urgent')); -- Link 'Server down' to 'Urgent' too
 
 -- Ticket updates
 INSERT INTO ticket_updates (id, ticket_id, user_id, comment, is_internal_note, is_system_update, created_at)
@@ -128,3 +142,4 @@ VALUES
 INSERT INTO notifications (id, user_id, type, message, related_ticket_id, is_read, created_at)
 VALUES
   ('fffffff1-ffff-ffff-ffff-ffffffffffff', '22222222-2222-2222-2222-222222222222', 'TicketAssigned', 'You have been assigned a new ticket.', 'bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbbb', FALSE, NOW());
+
