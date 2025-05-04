@@ -71,7 +71,6 @@ func RegisterRoutes(g *echo.Group, h *Handler) {
 		{"GET", "", h.GetAllTickets},                                // GET /api/tickets
 		{"GET", "/counts", h.GetTicketCounts},                      // GET /api/tickets/counts
 		{"GET", "/search", h.SearchTickets},                        // GET /api/tickets/search
-		{"GET", "/:id", h.GetTicketByID},                           // GET /api/tickets/{id}
 		{"GET", "/:id", h.GetTicketByIDOptimized},                 // GET /api/tickets/{id} - Use optimized handler with attachments
 		{"PUT", "/:id", h.UpdateTicket},                           // PUT /api/tickets/{id} (Handles status/assignee updates)
 		{"POST", "/:id/comments", h.AddTicketComment},             // POST /api/tickets/{id}/comments

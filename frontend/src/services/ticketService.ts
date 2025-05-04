@@ -53,12 +53,13 @@ interface UpdateTicketStatusInput {
 export const fetchTicketById = async (ticketId: string): Promise<Ticket> => {
     try {
         const response = await api.get<APIResponse<any>>(`/tickets/${ticketId}`);
-        const rawData = response.data?.data; // Assuming backend wraps single ticket in { success, data }
+        const rawData = response.data?.data ?? response.data; // Assuming backend wraps single ticket in { success, data }
 
         if (!rawData || typeof rawData !== 'object') {
             console.error('[fetchTicketById] Invalid data received from API:', response.data);
             throw new Error("Invalid ticket data received from API.");
         }
+        console.log('[fetchTicketById] Raw data received for processing:', rawData);
 
         const ticketData: Ticket = keysToCamel(rawData);
 

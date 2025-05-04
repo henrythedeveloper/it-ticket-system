@@ -149,18 +149,8 @@ const TicketDetailPage: React.FC = () => {
   // --- DEBUG: Log attachments to verify keys ---
   console.log("TicketDetailPage: Raw attachments from API:", currentTicket.attachments);
 
-  function mapAttachmentKeys(att: any) {
-    return {
-      ...att,
-      uploadedByRole: att.uploaded_by_role,
-      uploadedByUserId: att.uploaded_by_user_id,
-      mimeType: att.mime_type,
-      uploadedAt: att.uploaded_at,
-      storagePath: att.storage_path,
-      // Add other fields as needed
-    };
-  }
-  const attachments = (currentTicket.attachments || []).map(mapAttachmentKeys);
+
+  const attachments = currentTicket.attachments || [];
   const submitterAttachments = attachments.filter(
     (a) => a.uploadedByRole !== 'Admin' && a.uploadedByRole !== 'Staff'
   );
