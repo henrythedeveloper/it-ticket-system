@@ -1,7 +1,7 @@
 # Build stage
 FROM golang:1.24-alpine AS build
 
-# Set working directory
+# Set initial working directory
 WORKDIR /app
 
 # Install build dependencies (like git, if needed by private modules)
@@ -18,10 +18,14 @@ RUN go mod download
 # The source code will now be at /app/backend/ relative to the module root /app
 COPY backend/ ./backend/
 
+# --- CHANGE: Set WORKDIR to the backend directory ---
+WORKDIR /app/backend
+
 # Build the Go application
-# Target the main package using the relative path from the WORKDIR (/app)
+# Target the main package using the path relative to the NEW WORKDIR (/app/backend)
 # Use -v flag for verbose output from the go build command
-RUN CGO_ENABLED=0 GOOS=linux go build -v -o /app/helpdesk-api ./backend/cmd/server
+# Output the binary to a predictable location relative to the original /app
+RUN CGO_ENABLED=0 GOOS=linux go build -v -o /app/helpdesk-api ./cmd/server
 
 # Final stage (minimal runtime image)
 FROM alpine:latest
@@ -33,6 +37,7 @@ WORKDIR /app
 RUN apk --no-cache add ca-certificates tzdata
 
 # Copy ONLY the compiled binary from the build stage
+# The binary was built to /app/helpdesk-api in the build stage
 COPY --from=build /app/helpdesk-api .
 
 # Expose the port the Go app listens on (defined in config/main.go)
