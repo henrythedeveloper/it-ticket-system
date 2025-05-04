@@ -20,8 +20,8 @@ COPY backend/ ./backend/
 
 # Build the Go application
 # Target the main package using the relative path from the WORKDIR (/app)
-# Go should find the package at /app/backend/cmd/server
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/helpdesk-api ./backend/cmd/server
+# Use -v flag for verbose output from the go build command
+RUN CGO_ENABLED=0 GOOS=linux go build -v -o /app/helpdesk-api ./backend/cmd/server
 
 # Final stage (minimal runtime image)
 FROM alpine:latest
