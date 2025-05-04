@@ -115,22 +115,31 @@ export const TicketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setIsLoading(true);
       setError(null);
       try {
-        const mergedFilters = { ...filters, ...newFilters };
-        const response = await fetchTickets({
-          ...mergedFilters,
-          tags: mergedFilters.tags ? mergedFilters.tags.join(',') : undefined,
+        // Always use the latest filters value
+        setFiltersState(prevFilters => {
+          const mergedFilters = { ...prevFilters, ...newFilters };
+          fetchTickets({
+            ...mergedFilters,
+            tags: mergedFilters.tags ? mergedFilters.tags.join(',') : undefined,
+          }).then(response => {
+            setTickets(response.data);
+            setTotalTickets(response.total);
+          }).catch((err: any) => {
+            setError(err.response?.data?.message || err.message || 'Failed to fetch tickets');
+            setTickets([]);
+            setTotalTickets(0);
+          }).finally(() => {
+            setIsLoading(false);
+          });
+          return mergedFilters;
         });
-        setTickets(response.data);
-        setTotalTickets(response.total);
-        setFiltersState(mergedFilters);
       } catch (err: any) {
         setError(err.response?.data?.message || err.message || 'Failed to fetch tickets');
         setTickets([]);
         setTotalTickets(0);
-      } finally {
         setIsLoading(false);
       }
-  }, [filters]);
+  }, []);
 
   const fetchTicketByIdHandler = useCallback(async (id: string): Promise<Ticket | null> => {
       setIsLoading(true);

@@ -27,7 +27,6 @@ const TicketDetailPage: React.FC = () => {
     fetchTicketById,
     updateTicket,
     refreshCurrentTicket,
-    clearError
   } = useTickets();
 
   // --- State ---
@@ -56,10 +55,6 @@ const TicketDetailPage: React.FC = () => {
     }
   }, [ticketId, currentTicket, fetchTicketById]);
 
-  // Clear error only on initial mount
-  useEffect(() => {
-    clearError();
-  }, [clearError]);
 
   React.useEffect(() => {
     console.log('[TicketDetailPage] Fetching assignable users...');

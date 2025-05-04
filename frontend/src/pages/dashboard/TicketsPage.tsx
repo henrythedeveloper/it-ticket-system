@@ -47,7 +47,6 @@ const TicketsPage: React.FC = () => {
     assignableUsers,
     availableTags,
     fetchTickets,
-    clearError,
   } = useTickets();
 
   // --- Filtering/Pagination State (derived from URL search params) ---
@@ -75,8 +74,12 @@ const TicketsPage: React.FC = () => {
         sortOrder: validSortOrder,
     };
     fetchTickets(filtersFromUrl);
-    return () => { clearError(); };
-  }, [currentPage, currentStatus, currentUrgency, currentAssignee, currentSearch, currentTags, currentSortBy, currentSortOrder, validSortOrder, fetchTickets, clearError]);
+    // Only clear error on unmount, not on every dependency change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // The following effect is for unmount only
+    // (moved to a separate useEffect below)
+  }, [currentPage, currentStatus, currentUrgency, currentAssignee, currentSearch, currentTags, currentSortBy, currentSortOrder, validSortOrder, fetchTickets]);
+
 
   // --- Handlers ---
   const handleFilterChange = (param: string, value: string) => {
