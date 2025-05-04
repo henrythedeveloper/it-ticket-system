@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"database/sql"
 
 	"github.com/henrythedeveloper/it-ticket-system/internal/models" // Correct models import
 	"github.com/jackc/pgx/v5"                                       // Correct pgx import
@@ -145,101 +146,140 @@ func (h *Handler) GetAllTickets(c echo.Context) error {
     return c.JSON(http.StatusOK, response)
 }
 
-// GetTicketByID retrieves details for a single ticket, including related data like updates.
-// This is the *original* simpler version, kept for reference or specific use cases.
+
+// GetTicketByID retrieves details for a single ticket, including related data like updates, tags, and attachments.
 func (h *Handler) GetTicketByID(c echo.Context) error {
-	ctx := context.Background()
-	ticketID := c.Param("id")
+    ctx := context.Background()
+    ticketID := c.Param("id")
     logger := slog.With("handler", "GetTicketByID", "ticketID", ticketID)
 
-
-	// Use the helper to fetch core ticket + user data
-	row := h.db.Pool.QueryRow(ctx, `
+    // --- 1. Fetch Core Ticket Data + User Joins ---
+    ticketQuery := `
         SELECT
             t.id, t.ticket_number, t.submitter_name, t.end_user_email, t.issue_type, t.urgency, t.subject,
             t.description, t.status, t.assigned_to_user_id, t.created_at, t.updated_at,
             t.closed_at, t.resolution_notes,
-            a.id, a.name, a.email, a.role, a.created_at, a.updated_at,
-            s.id, s.name, s.email, s.role, s.created_at, s.updated_at
+            -- Assigned user details (nullable)
+            a.id as assigned_user_id, a.name as assigned_user_name, a.email as assigned_user_email,
+            a.role as assigned_user_role, a.created_at as assigned_user_created_at, a.updated_at as assigned_user_updated_at,
+            -- Submitter details (nullable)
+            s.id as submitter_user_id, s.name as submitter_user_name, s.email as submitter_user_email,
+            s.role as submitter_user_role, s.created_at as submitter_user_created_at, s.updated_at as submitter_user_updated_at
         FROM tickets t
         LEFT JOIN users a ON t.assigned_to_user_id = a.id
-        LEFT JOIN users s ON t.end_user_email = s.email
-        WHERE t.id = $1
-    `, ticketID)
+        LEFT JOIN users s ON t.end_user_email = s.email -- Join submitter based on email
+        WHERE t.id = $1`
+    row := h.db.Pool.QueryRow(ctx, ticketQuery, ticketID)
 
-	ticket, err := scanTicketWithUsersAndSubmitter(row)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			logger.WarnContext(ctx, "Ticket not found")
-			return c.JSON(http.StatusNotFound, map[string]string{"error": "Ticket not found"})
-		}
-		logger.ErrorContext(ctx, "Failed to fetch ticket details", "error", err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch ticket details"})
-	}
+    // Use the scanner helper from utils.go
+    ticket, err := scanTicketWithUsersAndSubmitter(row) // Ensure scanner in utils.go is correct
+    if err != nil {
+        if errors.Is(err, pgx.ErrNoRows) {
+            logger.WarnContext(ctx, "Ticket not found")
+            return c.JSON(http.StatusNotFound, map[string]string{"error": "Ticket not found"})
+        }
+        logger.ErrorContext(ctx, "Failed to fetch core ticket details", "error", err)
+        return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch ticket details"})
+    }
 
-
-	// --- Fetch Tags Separately ---
-	tagsQuery := `SELECT tg.id, tg.name, tg.created_at FROM tags tg JOIN ticket_tags tt ON tg.id = tt.tag_id WHERE tt.ticket_id = $1 ORDER BY tg.name ASC`
-	tagsRows, tagsErr := h.db.Pool.Query(ctx, tagsQuery, ticketID)
-	// Handle tags error similarly to GetTicketByIDOptimized (log but continue)
+    // --- 2. Fetch Tags ---
+    tagsQuery := `
+        SELECT tg.id, tg.name, tg.created_at
+        FROM tags tg
+        JOIN ticket_tags tt ON tg.id = tt.tag_id
+        WHERE tt.ticket_id = $1
+        ORDER BY tg.name ASC`
+    tagsRows, tagsErr := h.db.Pool.Query(ctx, tagsQuery, ticketID)
+    // Handle tags error (log but continue)
     if tagsErr != nil {
         logger.ErrorContext(ctx, "Failed to query tags for ticket", "error", tagsErr)
         ticket.Tags = []models.Tag{}
     } else {
         defer tagsRows.Close()
         tags := make([]models.Tag, 0)
-        for tagsRows.Next() { /* ... scan tags ... */
+        for tagsRows.Next() {
             var tag models.Tag
-			if scanErr := tagsRows.Scan(&tag.ID, &tag.Name, &tag.CreatedAt); scanErr != nil {
-				logger.ErrorContext(ctx, "Failed to scan tag row", "error", scanErr)
-				continue
-			}
-			tags = append(tags, tag)
+            if scanErr := tagsRows.Scan(&tag.ID, &tag.Name, &tag.CreatedAt); scanErr != nil {
+                logger.ErrorContext(ctx, "Failed to scan tag row", "error", scanErr)
+                continue
+            }
+            tags = append(tags, tag)
         }
         if rowsErr := tagsRows.Err(); rowsErr != nil {
             logger.ErrorContext(ctx, "Error iterating tag rows", "error", rowsErr)
         }
         ticket.Tags = tags
+        logger.DebugContext(ctx, "Fetched associated tags", "count", len(ticket.Tags))
     }
 
-
-	// --- Fetch Attachments Separately ---
-	attachmentsQuery := `SELECT id, filename, storage_path, mime_type, size, uploaded_at, uploaded_by_user_id, uploaded_by_role, url FROM attachments WHERE ticket_id = $1 ORDER BY uploaded_at ASC`
-	attachRows, attachErr := h.db.Pool.Query(ctx, attachmentsQuery, ticketID)
-	// Handle attachments error similarly (log but continue)
+    // --- 3. Fetch Attachments ---
+    attachmentsQuery := `
+        SELECT id, filename, storage_path, mime_type, size, uploaded_at, uploaded_by_user_id, uploaded_by_role, url
+        FROM attachments
+        WHERE ticket_id = $1
+        ORDER BY uploaded_at ASC`
+    attachRows, attachErr := h.db.Pool.Query(ctx, attachmentsQuery, ticketID)
+    // Handle attachments error (log but continue)
     if attachErr != nil {
         logger.ErrorContext(ctx, "Failed to query attachments for ticket", "error", attachErr)
         ticket.Attachments = []models.Attachment{}
     } else {
         defer attachRows.Close()
         attachments := make([]models.Attachment, 0)
-        for attachRows.Next() { /* ... scan attachments ... */
+        for attachRows.Next() {
             var att models.Attachment
-			if scanErr := attachRows.Scan(&att.ID, &att.Filename, &att.StoragePath, &att.MimeType, &att.Size, &att.UploadedAt, &att.UploadedByUserID, &att.UploadedByRole, &att.URL); scanErr != nil {
-				logger.ErrorContext(ctx, "Failed to scan attachment row", "error", scanErr)
-				continue
-			}
-            if att.URL == "" { att.URL = fmt.Sprintf("/api/attachments/download/%s", att.ID) }
-			attachments = append(attachments, att)
+            // Use pointers/nullable types for potentially NULL columns
+            var uploadedByUserID sql.NullString // Use sql.NullString
+            var uploadedByRole sql.NullString   // Use sql.NullString
+            var url sql.NullString             // Use sql.NullString
+
+            if scanErr := attachRows.Scan(
+                &att.ID, &att.Filename, &att.StoragePath, &att.MimeType, &att.Size,
+                &att.UploadedAt,
+                &uploadedByUserID, // Scan into nullable type
+                &uploadedByRole,   // Scan into nullable type
+                &url,              // Scan into nullable type
+            ); scanErr != nil {
+                logger.ErrorContext(ctx, "Failed to scan attachment row", "error", scanErr)
+                continue // Skip this attachment if scanning fails
+            }
+
+            // Assign values from nullable types if valid
+            if uploadedByUserID.Valid {
+                att.UploadedByUserID = uploadedByUserID.String
+            }
+            if uploadedByRole.Valid {
+                att.UploadedByRole = uploadedByRole.String
+            }
+            if url.Valid {
+                att.URL = url.String
+            }
+
+            // Generate download URL if not present in DB (optional fallback)
+            if att.URL == "" {
+                 att.URL = fmt.Sprintf("/api/attachments/download/%s", att.ID)
+            }
+            attachments = append(attachments, att)
         }
-         if rowsErr := attachRows.Err(); rowsErr != nil {
+        if rowsErr := attachRows.Err(); rowsErr != nil {
             logger.ErrorContext(ctx, "Error iterating attachment rows", "error", rowsErr)
         }
         ticket.Attachments = attachments
+        logger.DebugContext(ctx, "Fetched associated attachments", "count", len(ticket.Attachments))
     }
 
-	// --- Fetch ticket updates/comments and add to ticket ---
-	updatesQuery := `
-		SELECT
-			tu.id, tu.ticket_id, tu.user_id, tu.comment, tu.is_internal_note, tu.created_at, tu.is_system_update,
-			u.id, u.name, u.email, u.role, u.created_at, u.updated_at
-		FROM ticket_updates tu
-		LEFT JOIN users u ON tu.user_id = u.id
-		WHERE tu.ticket_id = $1
-		ORDER BY tu.created_at DESC
-	`
-	updatesRows, updatesErr := h.db.Pool.Query(ctx, updatesQuery, ticketID)
-	// Handle updates error similarly (log but continue)
+    // --- 4. Fetch Updates (Comments) ---
+    updatesQuery := `
+        SELECT
+            tu.id, tu.ticket_id, tu.user_id, tu.comment, tu.is_internal_note, tu.created_at, tu.is_system_update,
+            u.id, u.name, u.email, u.role, u.created_at, u.updated_at
+        FROM ticket_updates tu
+        LEFT JOIN users u ON tu.user_id = u.id
+        WHERE tu.ticket_id = $1
+        ORDER BY tu.created_at DESC
+    `
+    updatesRows, updatesErr := h.db.Pool.Query(ctx, updatesQuery, ticketID)
+    // Handle updates error (log but continue)
     if updatesErr != nil {
         logger.ErrorContext(ctx, "Failed to query updates for ticket", "error", updatesErr)
         ticket.Updates = []models.TicketUpdate{}
@@ -247,190 +287,20 @@ func (h *Handler) GetTicketByID(c echo.Context) error {
         defer updatesRows.Close()
         updates := make([]models.TicketUpdate, 0)
         for updatesRows.Next() {
-            var update models.TicketUpdate
-            var user models.User
-            var updateUserID *string // User ID from ticket_updates table might be null
-            var userName, userEmail, userRole *string
-            var userCreatedAt, userUpdatedAt *time.Time
-
-            err := updatesRows.Scan(
-                &update.ID, &update.TicketID, &updateUserID, &update.Comment,
-                &update.IsInternalNote, &update.CreatedAt, &update.IsSystemUpdate,
-                // User details (scan into nullable pointers)
-                &user.ID, // Scan directly into user.ID (string)
-                &userName, &userEmail, &userRole,
-                &userCreatedAt, &userUpdatedAt,
-            )
-            if err != nil {
-                 logger.ErrorContext(ctx, "Failed to scan ticket update row", "error", err)
-                 continue // skip this update if error
-            }
-
-            // Populate the nested User struct if the user exists and details were fetched
-            if updateUserID != nil { // Check if the user_id from ticket_updates was not NULL
-                update.UserID = updateUserID // Assign the user ID to the update struct
-                // Check if user details were actually found (LEFT JOIN might return NULLs)
-                if userName != nil {
-                    user.Name = *userName
-                    user.Email = *userEmail
-                    user.Role = models.UserRole(*userRole)
-                    user.CreatedAt = *userCreatedAt
-                    user.UpdatedAt = *userUpdatedAt
-                    update.User = &user // Assign the populated user struct
-                } else {
-                    update.User = &models.User{ID: *updateUserID, Name: "Unknown User"}
-                    logger.WarnContext(ctx, "User details not found for update author", "authorUserID", *updateUserID)
-                }
-            } else {
-                // Handle system comment where user_id might be NULL
-                update.User = &models.User{Name: "System"}
-            }
-            updates = append(updates, update)
-        }
-        if rowsErr := updatesRows.Err(); rowsErr != nil {
-            logger.ErrorContext(ctx, "Error iterating update rows", "error", rowsErr)
-        }
-        ticket.Updates = updates
-    }
-
-	logger.DebugContext(ctx, "Fetched ticket details successfully", "ticketID", ticket.ID)
-	return c.JSON(http.StatusOK, ticket) // Return the fully populated ticket
-}
-
-
-// --- REFACTORED GetTicketByIDOptimized ---
-// Fetches ticket, then related data in separate queries.
-func (h *Handler) GetTicketByIDOptimized(c echo.Context) error {
-	ctx := context.Background()
-	ticketID := c.Param("id")
-	logger := slog.With("handler", "GetTicketByIDOptimized", "ticketID", ticketID)
-
-	// --- 1. Fetch Core Ticket Data ---
-	ticketQuery := `
-		SELECT
-			t.id, t.ticket_number, t.submitter_name, t.end_user_email, t.issue_type, t.urgency, t.subject,
-			t.description, t.status, t.assigned_to_user_id, t.created_at, t.updated_at,
-			t.closed_at, t.resolution_notes,
-            -- Assigned user details (nullable)
-            a.id as assigned_user_id, a.name as assigned_user_name, a.email as assigned_user_email,
-            a.role as assigned_user_role, a.created_at as assigned_user_created_at, a.updated_at as assigned_user_updated_at,
-            -- Submitter details (nullable)
-            s.id as submitter_user_id, s.name as submitter_user_name, s.email as submitter_user_email,
-            s.role as submitter_user_role, s.created_at as submitter_user_created_at, s.updated_at as submitter_user_updated_at
-		FROM tickets t
-		LEFT JOIN users a ON t.assigned_to_user_id = a.id
-		LEFT JOIN users s ON t.end_user_email = s.email -- Join submitter based on email
-		WHERE t.id = $1`
-	row := h.db.Pool.QueryRow(ctx, ticketQuery, ticketID)
-
-	// Use the scanner helper from utils.go
-	ticket, err := scanTicketWithUsersAndSubmitter(row) // Ensure scanner in utils.go is correct
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			logger.WarnContext(ctx, "Ticket not found")
-			return c.JSON(http.StatusNotFound, map[string]string{"error": "Ticket not found"})
-		}
-		logger.ErrorContext(ctx, "Failed to fetch core ticket details", "error", err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch ticket details"})
-	}
-
-	// --- 2. Fetch Tags ---
-	tagsQuery := `
-        SELECT tg.id, tg.name, tg.created_at
-        FROM tags tg
-        JOIN ticket_tags tt ON tg.id = tt.tag_id
-        WHERE tt.ticket_id = $1
-        ORDER BY tg.name ASC`
-	tagsRows, tagsErr := h.db.Pool.Query(ctx, tagsQuery, ticketID)
-	if tagsErr != nil {
-		logger.ErrorContext(ctx, "Failed to query tags for ticket", "error", tagsErr)
-		ticket.Tags = []models.Tag{}
-	} else {
-		defer tagsRows.Close()
-		tags := make([]models.Tag, 0)
-		for tagsRows.Next() {
-			var tag models.Tag
-			if scanErr := tagsRows.Scan(&tag.ID, &tag.Name, &tag.CreatedAt); scanErr != nil {
-				logger.ErrorContext(ctx, "Failed to scan tag row", "error", scanErr)
-				continue
-			}
-			tags = append(tags, tag)
-		}
-		if rowsErr := tagsRows.Err(); rowsErr != nil {
-            logger.ErrorContext(ctx, "Error iterating tag rows", "error", rowsErr)
-        }
-		ticket.Tags = tags
-		logger.DebugContext(ctx, "Fetched associated tags", "count", len(ticket.Tags))
-	}
-
-
-	// --- 3. Fetch Attachments ---
-	attachmentsQuery := `
-		SELECT id, filename, storage_path, mime_type, size, uploaded_at, uploaded_by_user_id, uploaded_by_role, url
-		FROM attachments
-		WHERE ticket_id = $1
-		ORDER BY uploaded_at ASC`
-	attachRows, attachErr := h.db.Pool.Query(ctx, attachmentsQuery, ticketID)
-	if attachErr != nil {
-		logger.ErrorContext(ctx, "Failed to query attachments for ticket", "error", attachErr)
-		ticket.Attachments = []models.Attachment{}
-	} else {
-		defer attachRows.Close()
-		attachments := make([]models.Attachment, 0)
-		for attachRows.Next() {
-			var att models.Attachment
-			if scanErr := attachRows.Scan(
-                &att.ID, &att.Filename, &att.StoragePath, &att.MimeType, &att.Size,
-                &att.UploadedAt, &att.UploadedByUserID, &att.UploadedByRole, &att.URL,
-            ); scanErr != nil {
-				logger.ErrorContext(ctx, "Failed to scan attachment row", "error", scanErr)
-				continue
-			}
-            if att.URL == "" {
-                 att.URL = fmt.Sprintf("/api/attachments/download/%s", att.ID)
-            }
-			attachments = append(attachments, att)
-		}
-		if rowsErr := attachRows.Err(); rowsErr != nil {
-            logger.ErrorContext(ctx, "Error iterating attachment rows", "error", rowsErr)
-        }
-		ticket.Attachments = attachments
-		logger.DebugContext(ctx, "Fetched associated attachments", "count", len(ticket.Attachments))
-	}
-
-    // --- 4. Fetch Updates (Comments) ---
-	// Similar logic to GetTicketByID
-	updatesQuery := `
-		SELECT
-			tu.id, tu.ticket_id, tu.user_id, tu.comment, tu.is_internal_note, tu.created_at, tu.is_system_update,
-			u.id, u.name, u.email, u.role, u.created_at, u.updated_at
-		FROM ticket_updates tu
-		LEFT JOIN users u ON tu.user_id = u.id
-		WHERE tu.ticket_id = $1
-		ORDER BY tu.created_at DESC
-	`
-	updatesRows, updatesErr := h.db.Pool.Query(ctx, updatesQuery, ticketID)
-	if updatesErr != nil {
-        logger.ErrorContext(ctx, "Failed to query updates for ticket", "error", updatesErr)
-        ticket.Updates = []models.TicketUpdate{}
-    } else {
-        defer updatesRows.Close()
-        updates := make([]models.TicketUpdate, 0)
-        for updatesRows.Next() { // ... scan updates and users ...
              var update models.TicketUpdate
             var user models.User
             var updateUserID *string
             var userName, userEmail, userRole *string
             var userCreatedAt, userUpdatedAt *time.Time
 
-            err := updatesRows.Scan(
+            scanErr := updatesRows.Scan(
                 &update.ID, &update.TicketID, &updateUserID, &update.Comment,
                 &update.IsInternalNote, &update.CreatedAt, &update.IsSystemUpdate,
                 &user.ID, &userName, &userEmail, &userRole,
                 &userCreatedAt, &userUpdatedAt,
             )
-            if err != nil {
-                 logger.ErrorContext(ctx, "Failed to scan ticket update row", "error", err)
+            if scanErr != nil {
+                 logger.ErrorContext(ctx, "Failed to scan ticket update row", "error", scanErr)
                  continue
             }
             if updateUserID != nil {
@@ -455,10 +325,12 @@ func (h *Handler) GetTicketByIDOptimized(c echo.Context) error {
          logger.DebugContext(ctx, "Fetched associated updates", "count", len(ticket.Updates))
     }
 
-
-	// --- 5. Return Combined Result ---
-	return c.JSON(http.StatusOK, ticket)
+    // --- 5. Return Combined Result ---
+    logger.InfoContext(ctx, "Fetched ticket details successfully", "ticketID", ticket.ID)
+    return c.JSON(http.StatusOK, ticket)
 }
+
+
 
 
 // GetTicketCounts retrieves counts of tickets grouped by status.

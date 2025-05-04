@@ -39,22 +39,24 @@ const TicketDetailPage: React.FC = () => {
   // --- Effects ---
   useEffect(() => {
     console.log(`[TicketDetailPage] useEffect running. ID dependency: ${ticketId}`);
-
-    if (ticketId && (!currentTicket || currentTicket.id !== ticketId)) {
-      console.log(`[TicketDetailPage] Calling fetchTicketById with ID: ${ticketId} because currentTicket is mismatched or null.`);
+    if (ticketId) {
+      console.log(`[TicketDetailPage] Fetching ticket data for ID: ${ticketId}`);
       fetchTicketById(ticketId)
         .then(ticket => {
-          console.log(`[TicketDetailPage] fetchTicketById promise resolved. Ticket received (or null):`, ticket);
+          // Optional: log success, but the context state update handles UI
+          console.log(`[TicketDetailPage] Fetched ticket data for ID ${ticketId}:`, ticket);
         })
         .catch(err => {
-          console.error('[TicketDetailPage] fetchTicketById promise rejected:', err);
+          // Error state is handled by the context provider
+          console.error(`[TicketDetailPage] Error fetching ticket ${ticketId}:`, err);
         });
-    } else if (ticketId && currentTicket && currentTicket.id === ticketId) {
-        console.log(`[TicketDetailPage] Skipping fetch because currentTicket already matches ticketId (${ticketId}).`);
     } else {
-      console.warn('[TicketDetailPage] useEffect ran but ID is missing or condition not met.');
+      console.warn('[TicketDetailPage] useEffect ran but ticketId is missing.');
+      // Optionally clear the current ticket if ID becomes null/undefined
+      // updateTicket(null); // Assuming updateTicket can handle null or add a specific clear function
     }
-  }, [ticketId, currentTicket, fetchTicketById]);
+    // Depend only on ticketId and the fetch function itself
+  }, [ticketId, fetchTicketById]);
 
 
   React.useEffect(() => {
