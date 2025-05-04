@@ -1,4 +1,5 @@
 // backend/internal/api/handlers/ticket/ticket_update.go
+// REVISED: Added email triggers for 'In Progress' status and new assignments.
 package ticket
 
 import (
@@ -15,47 +16,35 @@ import (
 	"github.com/henrythedeveloper/it-ticket-system/internal/models"              // Data models
 	"github.com/labstack/echo/v4"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn" // Import for pgconn.PgError
 )
 
 // UpdateTicket handles requests to modify a ticket's status, assignee, or resolution notes.
 func (h *Handler) UpdateTicket(c echo.Context) error {
 	ctx := c.Request().Context()
-	ticketID := c.Param("id") // CORRECTED PARAM NAME
+	ticketID := c.Param("id")
 	logger := slog.With("handler", "UpdateTicket", "ticketID", ticketID)
-	var funcErr error // Variable to track errors within the function for rollback logic
+	var funcErr error
 
 	// --- 1. Input Validation & Binding ---
-	if ticketID == "" {
-		logger.WarnContext(ctx, "Missing ticket ID in request path")
-		return echo.NewHTTPError(http.StatusBadRequest, "Missing ticket ID.")
-	}
-
+	if ticketID == "" { return echo.NewHTTPError(http.StatusBadRequest, "Missing ticket ID.") }
 	var update models.TicketStatusUpdate
 	if err := c.Bind(&update); err != nil {
 		logger.WarnContext(ctx, "Failed to bind request body", "error", err)
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body: "+err.Error())
 	}
 
-	// --- 2. Get Requesting User Context & Permissions ---
+	// --- 2. Get Requesting User Context ---
 	updaterUserID, err := auth.GetUserIDFromContext(c)
-	if err != nil {
-		return err // Error logged/returned by helper
-	}
-	updaterRole, err := auth.GetUserRoleFromContext(c)
-	if err != nil {
-		return err // Error logged/returned by helper
-	}
-	logger.DebugContext(ctx, "Update request initiated", "requestingUserID", updaterUserID, "requestingUserRole", updaterRole)
+	if err != nil { return err }
+	logger.DebugContext(ctx, "Update request initiated", "requestingUserID", updaterUserID)
 
-	// --- 3. Authorization Check (Example) ---
+	// --- 3. Authorization Check ---
 	// (Add specific checks if needed)
 
 	// --- 4. Fetch Current Ticket State ---
 	currentState, err := h.getCurrentTicketStateForUpdate(ctx, ticketID)
 	if err != nil {
 		if errors.Is(err, errors.New("ticket not found")) || errors.Is(err, pgx.ErrNoRows) {
-			logger.WarnContext(ctx, "Ticket not found when fetching current state for update")
 			return echo.NewHTTPError(http.StatusNotFound, "Ticket not found.")
 		}
 		logger.ErrorContext(ctx, "Failed to fetch current ticket state", "error", err)
@@ -66,112 +55,135 @@ func (h *Handler) UpdateTicket(c echo.Context) error {
 	query, args, buildErr := h.buildTicketUpdateQuery(ctx, ticketID, &update, currentState)
 	if buildErr != nil {
 		if buildErr.Error() == "no fields to update" {
-			logger.InfoContext(ctx, "No update required, request data matches current ticket state.")
+			// Return current data if no update needed
 			currentTicketDetails, fetchErr := h.getTicketDetailsByID(ctx, ticketID)
 			if fetchErr != nil {
-				logger.ErrorContext(ctx, "Failed to fetch current ticket details after no-op update check", "error", fetchErr)
+				logger.ErrorContext(ctx, "Failed to fetch current ticket details (no-op)", "error", fetchErr)
 				return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve ticket details.")
 			}
-			logger.InfoContext(ctx, "Returning current ticket data as no update was needed.")
 			return c.JSON(http.StatusOK, currentTicketDetails)
 		}
 		logger.ErrorContext(ctx, "Failed to build update query", "error", buildErr)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to build update query: "+buildErr.Error())
 	}
-	if query == "" {
-		logger.ErrorContext(ctx, "Build query returned empty string without error")
-		return echo.NewHTTPError(http.StatusInternalServerError, "Internal error building update query.")
-	}
+	if query == "" { return echo.NewHTTPError(http.StatusInternalServerError, "Internal error building update query.") }
 
-	// --- 6. Execute Update within Transaction (Manual Handling) ---
+	// --- 6. Execute Update within Transaction ---
 	tx, err := h.db.Pool.Begin(ctx)
 	if err != nil {
-		logger.ErrorContext(ctx, "Failed to begin database transaction", "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to start transaction.")
+		logger.ErrorContext(ctx, "Failed to begin transaction", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Database error.")
 	}
-	// Defer rollback logic based on funcErr
 	defer func() {
 		if funcErr != nil {
-			logger.WarnContext(ctx, "Rolling back transaction due to error", "error", funcErr)
-			if rbErr := tx.Rollback(ctx); rbErr != nil {
-				logger.ErrorContext(ctx, "Failed to rollback transaction", "rollbackError", rbErr)
-			}
+			logger.WarnContext(ctx, "Rolling back transaction", "error", funcErr)
+			if rbErr := tx.Rollback(ctx); rbErr != nil { logger.ErrorContext(ctx, "Rollback failed", "rollbackError", rbErr) }
 		}
 	}()
 
-	// Execute the main update query
 	if _, err = tx.Exec(ctx, query, args...); err != nil {
-		logger.ErrorContext(ctx, "Database update execution failed", "error", err)
-		funcErr = fmt.Errorf("database error executing update: %w", err) // Set funcErr for defer
-		// Check for specific DB errors if needed (e.g., fk violation -> bad request?)
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			// Handle specific PostgreSQL errors by code if necessary
-			logger.ErrorContext(ctx,"PostgreSQL Error", "Code", pgErr.Code, "Message", pgErr.Message, "Detail", pgErr.Detail)
-		}
+		logger.ErrorContext(ctx, "Database update failed", "error", err)
+		funcErr = fmt.Errorf("db update failed: %w", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to update ticket.")
 	}
 
-	// Add system comment (still within transaction)
+	// Add system comment
 	updaterName := "System"
 	if updaterUserID != "" {
 		fetchedName, nameErr := h.getUserName(ctx, updaterUserID)
-		if nameErr == nil {
-			updaterName = fetchedName
-		} else {
-			logger.WarnContext(ctx, "Could not fetch updater name for comment", "userID", updaterUserID, "error", nameErr)
-		}
+		if nameErr == nil { updaterName = fetchedName } else { logger.WarnContext(ctx, "Could not fetch updater name", "userID", updaterUserID, "error", nameErr) }
 	}
 	changeDescription := h.generateChangeDescription(ctx, currentState, &update, updaterName)
-	// Only add comment if changes were actually made (or always log 'touched'?)
 	if changeDescription != fmt.Sprintf("Ticket touched by %s (no field changes detected).", updaterName) {
 		if commentErr := h.addSystemComment(ctx, tx, ticketID, updaterUserID, changeDescription); commentErr != nil {
-			logger.ErrorContext(ctx, "Failed to add system comment during update", "error", commentErr)
-			funcErr = fmt.Errorf("failed to record ticket update comment: %w", commentErr) // Set funcErr for defer
+			logger.ErrorContext(ctx, "Failed to add system comment", "error", commentErr)
+			funcErr = fmt.Errorf("system comment failed: %w", commentErr)
 			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to record ticket update.")
 		}
 	}
 
-
 	// --- 7. Commit Transaction ---
-	if err = tx.Commit(ctx); err != nil { // Assign commit error to 'err'
+	if err = tx.Commit(ctx); err != nil {
 		logger.ErrorContext(ctx, "Failed to commit transaction", "error", err)
-		funcErr = fmt.Errorf("failed to commit transaction: %w", err) // Set funcErr for defer
+		funcErr = fmt.Errorf("commit failed: %w", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to save update.")
 	}
 
-	// --- 8. Fetch and Return Updated Ticket Data ---
+	// --- 8. Fetch Updated Ticket Data ---
 	updatedTicket, fetchErr := h.getTicketDetailsByID(ctx, ticketID)
 	if fetchErr != nil {
-		logger.ErrorContext(ctx, "Failed to fetch updated ticket details after successful update", "error", fetchErr)
-		return c.JSON(http.StatusOK, map[string]string{"message": "Ticket updated, but failed to retrieve full updated details."})
+		logger.ErrorContext(ctx, "Failed to fetch updated ticket details", "error", fetchErr)
+		return c.JSON(http.StatusOK, map[string]string{"message": "Ticket updated, but failed to retrieve full details."})
 	}
 
+	// --- 9. Trigger Notifications (AFTER COMMIT) ---
+	// Determine if status changed and if assignee changed
+	statusChangedToClosed := updatedTicket.Status == models.StatusClosed && currentState.Status != models.StatusClosed
+	statusChangedToInProgress := updatedTicket.Status == models.StatusInProgress && currentState.Status != models.StatusInProgress
+	assigneeChanged := (currentState.AssignedToUserID == nil && updatedTicket.AssignedToUserID != nil) ||
+		(currentState.AssignedToUserID != nil && updatedTicket.AssignedToUserID != nil && *currentState.AssignedToUserID != *updatedTicket.AssignedToUserID) ||
+		(currentState.AssignedToUserID != nil && updatedTicket.AssignedToUserID == nil) // Also check for unassignment
+
+	// Send Closure Email (to submitter)
+	if statusChangedToClosed {
+		logger.InfoContext(ctx, "Triggering closure email.", "ticketID", ticketID, "recipient", currentState.EndUserEmail)
+		resolution := ""
+		if updatedTicket.ResolutionNotes != nil { resolution = *updatedTicket.ResolutionNotes }
+		go func(recipient, tID, subj, res string) {
+			bgCtx := context.Background()
+			emailLogger := slog.With("operation", "SendTicketClosure", "ticketID", tID)
+			if emailErr := h.emailService.SendTicketClosure(recipient, tID, subj, res); emailErr != nil {
+				emailLogger.ErrorContext(bgCtx, "Failed to send ticket closure email", "recipient", recipient, "error", emailErr)
+			} else { emailLogger.InfoContext(bgCtx, "Sent ticket closure email", "recipient", recipient) }
+		}(currentState.EndUserEmail, ticketID, updatedTicket.Subject, resolution)
+	}
+
+	// Send In Progress Email (to submitter)
+	if statusChangedToInProgress {
+		logger.InfoContext(ctx, "Triggering 'In Progress' email.", "ticketID", ticketID, "recipient", currentState.EndUserEmail)
+		assigneeName := "Unassigned"
+		if updatedTicket.AssignedToUser != nil { assigneeName = updatedTicket.AssignedToUser.Name }
+		go func(recipient, tID, subj, assignee string) {
+			bgCtx := context.Background()
+			emailLogger := slog.With("operation", "SendTicketInProgress", "ticketID", tID)
+			if emailErr := h.emailService.SendTicketInProgress(recipient, tID, subj, assignee); emailErr != nil {
+				emailLogger.ErrorContext(bgCtx, "Failed to send 'In Progress' email", "recipient", recipient, "error", emailErr)
+			} else { emailLogger.InfoContext(bgCtx, "Sent 'In Progress' email", "recipient", recipient) }
+		}(currentState.EndUserEmail, ticketID, updatedTicket.Subject, assigneeName)
+	}
+
+	// Send Assignment Email (to NEW assignee)
+	if assigneeChanged && updatedTicket.AssignedToUser != nil { // Check if there IS a new assignee
+		logger.InfoContext(ctx, "Triggering assignment email.", "ticketID", ticketID, "recipient", updatedTicket.AssignedToUser.Email)
+		go func(recipient, tID, subj string) {
+			bgCtx := context.Background()
+			emailLogger := slog.With("operation", "SendTicketAssignment", "ticketID", tID)
+			if emailErr := h.emailService.SendTicketAssignment(recipient, tID, subj); emailErr != nil {
+				emailLogger.ErrorContext(bgCtx, "Failed to send assignment email", "recipient", recipient, "error", emailErr)
+			} else { emailLogger.InfoContext(bgCtx, "Sent assignment email", "recipient", recipient) }
+		}(updatedTicket.AssignedToUser.Email, ticketID, updatedTicket.Subject)
+	}
+
+	// --- 10. Return Success Response ---
 	logger.InfoContext(ctx, "Ticket updated successfully", "ticketID", ticketID)
 	return c.JSON(http.StatusOK, updatedTicket)
 }
 
+
 // --- Helper Functions ---
 
 // getCurrentTicketStateForUpdate fetches essential current ticket data before an update.
-// **REVISED**: Added ResolutionNotes
 func (h *Handler) getCurrentTicketStateForUpdate(ctx context.Context, ticketID string) (*models.TicketState, error) {
 	query := `SELECT status, assigned_to_user_id, end_user_email, subject, ticket_number, resolution_notes FROM tickets WHERE id = $1`
-	row := h.db.Pool.QueryRow(ctx, query, ticketID) // Ensure this uses the correct ticketID
+	row := h.db.Pool.QueryRow(ctx, query, ticketID)
 
 	var state models.TicketState
 	err := row.Scan(
-		&state.Status,
-		&state.AssignedToUserID,
-		&state.EndUserEmail,
-		&state.Subject,
-		&state.TicketNumber,
-		&state.ResolutionNotes, // Scan resolution notes
+		&state.Status, &state.AssignedToUserID, &state.EndUserEmail,
+		&state.Subject, &state.TicketNumber, &state.ResolutionNotes,
 	)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, errors.New("ticket not found") // Use specific error text
-		}
+		if errors.Is(err, pgx.ErrNoRows) { return nil, errors.New("ticket not found") }
 		return nil, fmt.Errorf("failed to fetch ticket state: %w", err)
 	}
 	return &state, nil
@@ -184,16 +196,13 @@ func (h *Handler) getUserName(ctx context.Context, userID string) (string, error
 	var name string
 	err := row.Scan(&name)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return "", errors.New("user not found")
-		}
+		if errors.Is(err, pgx.ErrNoRows) { return "", errors.New("user not found") }
 		return "", fmt.Errorf("failed to fetch user name: %w", err)
 	}
 	return name, nil
 }
 
 // buildTicketUpdateQuery constructs the SQL UPDATE statement and arguments dynamically.
-// (Refined version)
 func (h *Handler) buildTicketUpdateQuery(ctx context.Context, ticketID string, update *models.TicketStatusUpdate, currentState *models.TicketState) (string, []interface{}, error) {
 	var setClauses []string
 	var args []interface{}
@@ -210,173 +219,93 @@ func (h *Handler) buildTicketUpdateQuery(ctx context.Context, ticketID string, u
 	if update.AssignedToUserID != nil {
 		newAssigneeID := *update.AssignedToUserID
 		needsUpdate := false
-		if newAssigneeID == "" {
-			if currentState.AssignedToUserID != nil {
-				needsUpdate = true
-				args = append(args, nil)
-			}
-		} else {
-			if currentState.AssignedToUserID == nil || *currentState.AssignedToUserID != newAssigneeID {
-				needsUpdate = true
-				args = append(args, newAssigneeID)
-			}
+		if newAssigneeID == "" { // Unassigning
+			if currentState.AssignedToUserID != nil { needsUpdate = true; args = append(args, nil) }
+		} else { // Assigning
+			if currentState.AssignedToUserID == nil || *currentState.AssignedToUserID != newAssigneeID { needsUpdate = true; args = append(args, newAssigneeID) }
 		}
-		if needsUpdate {
-			setClauses = append(setClauses, fmt.Sprintf("assigned_to_user_id = $%d", argIndex))
-			argIndex++
-		}
+		if needsUpdate { setClauses = append(setClauses, fmt.Sprintf("assigned_to_user_id = $%d", argIndex)); argIndex++ }
 	}
 
 	// Resolution Notes
 	if update.ResolutionNotes != nil {
-		currentNotes := ""
-		if currentState.ResolutionNotes != nil {
-			currentNotes = *currentState.ResolutionNotes
-		}
+		currentNotes := ""; if currentState.ResolutionNotes != nil { currentNotes = *currentState.ResolutionNotes }
 		if *update.ResolutionNotes != currentNotes {
-			setClauses = append(setClauses, fmt.Sprintf("resolution_notes = $%d", argIndex))
-			args = append(args, *update.ResolutionNotes)
-			argIndex++
-            // If setting resolution notes automatically closes ticket, add status change here
-             if update.Status != models.StatusClosed { // Check if status isn't already being set to Closed
-                 setClauses = append(setClauses, fmt.Sprintf("status = $%d", argIndex))
-                 args = append(args, models.StatusClosed) // Set status to closed
-                 argIndex++
-                 setClauses = append(setClauses, fmt.Sprintf("closed_at = $%d", argIndex))
-                 args = append(args, time.Now()) // Set closed timestamp
-                 argIndex++
-             }
+			setClauses = append(setClauses, fmt.Sprintf("resolution_notes = $%d", argIndex)); args = append(args, *update.ResolutionNotes); argIndex++
+            if update.Status != models.StatusClosed { // Auto-close if resolution notes added and not already closing
+                 setClauses = append(setClauses, fmt.Sprintf("status = $%d", argIndex)); args = append(args, models.StatusClosed); argIndex++
+                 setClauses = append(setClauses, fmt.Sprintf("closed_at = $%d", argIndex)); args = append(args, time.Now()); argIndex++
+            }
 		}
 	}
 
-	// Check if there are any actual fields to update before adding updated_at
-	if len(setClauses) == 0 {
-		return "", nil, errors.New("no fields to update")
-	}
+	if len(setClauses) == 0 { return "", nil, errors.New("no fields to update") }
 
-	// Always update the updated_at timestamp
-	setClauses = append(setClauses, fmt.Sprintf("updated_at = $%d", argIndex))
-	args = append(args, time.Now())
-	argIndex++
+	// Always update updated_at
+	setClauses = append(setClauses, fmt.Sprintf("updated_at = $%d", argIndex)); args = append(args, time.Now()); argIndex++
 
-	// Handle closing timestamp if status is set to Closed
+	// Handle closing timestamp if status is explicitly set to Closed
 	if update.Status == models.StatusClosed && currentState.Status != models.StatusClosed {
-		// Check if closed_at is already being set by resolution notes logic
 		alreadySettingClosedAt := false
-		for _, clause := range setClauses {
-			if strings.HasPrefix(clause, "closed_at =") {
-				alreadySettingClosedAt = true
-				break
-			}
-		}
-		if !alreadySettingClosedAt {
-			setClauses = append(setClauses, fmt.Sprintf("closed_at = $%d", argIndex))
-			args = append(args, time.Now())
-			argIndex++
-		}
+		for _, clause := range setClauses { if strings.HasPrefix(clause, "closed_at =") { alreadySettingClosedAt = true; break } }
+		if !alreadySettingClosedAt { setClauses = append(setClauses, fmt.Sprintf("closed_at = $%d", argIndex)); args = append(args, time.Now()); argIndex++ }
 	}
 
-
-	// Construct the final query
-	query := fmt.Sprintf("UPDATE tickets SET %s WHERE id = $%d",
-		strings.Join(setClauses, ", "),
-		argIndex,
-	)
+	query := fmt.Sprintf("UPDATE tickets SET %s WHERE id = $%d", strings.Join(setClauses, ", "), argIndex)
 	args = append(args, ticketID)
-
 	slog.DebugContext(ctx, "Built ticket update query", "query", query, "argsCount", len(args))
 	return query, args, nil
 }
 
 // generateChangeDescription creates a human-readable string describing the changes made.
-// (Refined version)
 func (h *Handler) generateChangeDescription(ctx context.Context, currentState *models.TicketState, update *models.TicketStatusUpdate, updaterName string) string {
 	var description strings.Builder
 	description.WriteString(fmt.Sprintf("Ticket updated by %s: ", updaterName))
 	changed := false
 
 	if update.Status != "" && update.Status != currentState.Status {
-		description.WriteString(fmt.Sprintf("Status changed from '%s' to '%s'. ", currentState.Status, update.Status))
-		changed = true
+		description.WriteString(fmt.Sprintf("Status changed from '%s' to '%s'. ", currentState.Status, update.Status)); changed = true
 	}
-
 	if update.AssignedToUserID != nil {
 		newAssigneeID := *update.AssignedToUserID
 		assigneeChanged := false
-		currentAssigneeDisplay := "Unassigned"
-		newAssigneeDisplay := "Unassigned"
-
+		currentAssigneeDisplay := "Unassigned"; newAssigneeDisplay := "Unassigned"
 		if currentState.AssignedToUserID != nil {
-			// Try to get name, fallback to ID
 			currentName, err := h.getUserName(ctx, *currentState.AssignedToUserID)
-			if err == nil {
-				currentAssigneeDisplay = currentName
-			} else {
-				currentAssigneeDisplay = *currentState.AssignedToUserID
-				slog.WarnContext(ctx,"Could not fetch current assignee name for change description", "userID", *currentState.AssignedToUserID, "error", err)
-			}
+			if err == nil { currentAssigneeDisplay = currentName } else { currentAssigneeDisplay = *currentState.AssignedToUserID; slog.WarnContext(ctx,"Could not fetch current assignee name", "userID", *currentState.AssignedToUserID, "error", err) }
 		}
 		if newAssigneeID != "" {
-            // Try to get name, fallback to ID
-			newName, err := h.getUserName(ctx, newAssigneeID)
-            if err == nil {
-				newAssigneeDisplay = newName
-			} else {
-				newAssigneeDisplay = newAssigneeID
-                slog.WarnContext(ctx,"Could not fetch new assignee name for change description", "userID", newAssigneeID, "error", err)
-			}
+            newName, err := h.getUserName(ctx, newAssigneeID)
+            if err == nil { newAssigneeDisplay = newName } else { newAssigneeDisplay = newAssigneeID; slog.WarnContext(ctx,"Could not fetch new assignee name", "userID", newAssigneeID, "error", err) }
 		}
-
-
 		if newAssigneeID == "" && currentState.AssignedToUserID != nil {
-			assigneeChanged = true
-			description.WriteString(fmt.Sprintf("Assignee removed (was %s). ", currentAssigneeDisplay))
+			assigneeChanged = true; description.WriteString(fmt.Sprintf("Assignee removed (was %s). ", currentAssigneeDisplay))
 		} else if newAssigneeID != "" && (currentState.AssignedToUserID == nil || *currentState.AssignedToUserID != newAssigneeID) {
-			assigneeChanged = true
-			description.WriteString(fmt.Sprintf("Assignee changed from '%s' to '%s'. ", currentAssigneeDisplay, newAssigneeDisplay))
+			assigneeChanged = true; description.WriteString(fmt.Sprintf("Assignee changed from '%s' to '%s'. ", currentAssigneeDisplay, newAssigneeDisplay))
 		}
 		if assigneeChanged { changed = true }
 	}
-
 	if update.ResolutionNotes != nil {
-		currentNotes := ""
-		if currentState.ResolutionNotes != nil {
-			currentNotes = *currentState.ResolutionNotes
-		}
-		if *update.ResolutionNotes != currentNotes {
-			description.WriteString("Resolution notes updated. ")
-			changed = true
-		}
+		currentNotes := ""; if currentState.ResolutionNotes != nil { currentNotes = *currentState.ResolutionNotes }
+		if *update.ResolutionNotes != currentNotes { description.WriteString("Resolution notes updated. "); changed = true }
 	}
 
-	if !changed {
-		return fmt.Sprintf("Ticket touched by %s (no field changes detected).", updaterName)
-	}
-
+	if !changed { return fmt.Sprintf("Ticket touched by %s (no field changes detected).", updaterName) }
 	return strings.TrimSpace(description.String())
 }
 
 // addSystemComment inserts a system-generated comment into the ticket_updates table.
 func (h *Handler) addSystemComment(ctx context.Context, tx pgx.Tx, ticketID, userID, comment string) error {
 	query := `INSERT INTO ticket_updates (ticket_id, user_id, comment, is_internal_note, is_system_update, created_at) VALUES ($1, $2, $3, $4, $5, NOW())`
-	var userIDArg interface{}
-	if userID != "" {
-		userIDArg = userID
-	} else {
-		userIDArg = nil
-	}
+	var userIDArg interface{}; if userID != "" { userIDArg = userID } else { userIDArg = nil }
 	_, err := tx.Exec(ctx, query, ticketID, userIDArg, comment, true, true)
-	if err != nil {
-		return fmt.Errorf("failed to add system comment: %w", err)
-	}
+	if err != nil { return fmt.Errorf("failed to add system comment: %w", err) }
 	return nil
 }
 
-
 // getTicketDetailsByID fetches a single ticket with its related data.
-// ** REVISED to fix unused vars and use logger **
 func (h *Handler) getTicketDetailsByID(ctx context.Context, ticketID string) (*models.Ticket, error) {
-    logger := slog.With("helper", "getTicketDetailsByID", "ticketID", ticketID) // Use logger
+    logger := slog.With("helper", "getTicketDetailsByID", "ticketID", ticketID)
     query := `
         SELECT
             t.id, t.ticket_number, t.submitter_name, t.end_user_email, t.issue_type, t.urgency, t.subject,
@@ -400,8 +329,6 @@ func (h *Handler) getTicketDetailsByID(ctx context.Context, ticketID string) (*m
     `
     row := h.db.Pool.QueryRow(ctx, query, ticketID)
     var ticket models.Ticket
-    // var assignedUser models.User // REMOVED - Unused
-    // var submitterUser models.User // REMOVED - Unused
     var tagsJSON []byte
     var assignedUserIDVal, assignedUserName, assignedUserEmail, assignedUserRole *string
     var assignedUserCreatedAt, assignedUserUpdatedAt *time.Time
@@ -418,41 +345,27 @@ func (h *Handler) getTicketDetailsByID(ctx context.Context, ticketID string) (*m
         &submitterUserCreatedAt, &submitterUserUpdatedAt,
         &tagsJSON,
     )
-
     if scanErr != nil {
-        if errors.Is(scanErr, pgx.ErrNoRows) {
-            logger.WarnContext(ctx, "Ticket not found") // USE logger
-            return nil, errors.New("ticket not found")
-        }
-        logger.ErrorContext(ctx, "Database query failed", "error", scanErr) // USE logger
+        if errors.Is(scanErr, pgx.ErrNoRows) { logger.WarnContext(ctx, "Ticket not found"); return nil, errors.New("ticket not found") }
+        logger.ErrorContext(ctx, "Database query failed", "error", scanErr)
         return nil, fmt.Errorf("failed to fetch ticket details: %w", scanErr)
     }
-
-    // Populate AssignedToUser directly
     if assignedUserIDVal != nil {
-        ticket.AssignedToUser = &models.User{ // Populate directly
-            ID:        *assignedUserIDVal, Name:      *assignedUserName, Email:     *assignedUserEmail,
-            Role:      models.UserRole(*assignedUserRole), CreatedAt: *assignedUserCreatedAt, UpdatedAt: *assignedUserUpdatedAt,
+        ticket.AssignedToUser = &models.User{
+            ID: *assignedUserIDVal, Name: *assignedUserName, Email: *assignedUserEmail,
+            Role: models.UserRole(*assignedUserRole), CreatedAt: *assignedUserCreatedAt, UpdatedAt: *assignedUserUpdatedAt,
         }
-    } else {
-        ticket.AssignedToUser = nil
-    }
-
-    // Populate Submitter directly
+    } else { ticket.AssignedToUser = nil }
     if submitterUserIDVal != nil {
-        ticket.Submitter = &models.User{ // Populate directly
-            ID:        *submitterUserIDVal, Name:      *submitterUserName, Email:     *submitterUserEmail,
-            Role:      models.UserRole(*submitterUserRole), CreatedAt: *submitterUserCreatedAt, UpdatedAt: *submitterUserUpdatedAt,
+        ticket.Submitter = &models.User{
+            ID: *submitterUserIDVal, Name: *submitterUserName, Email: *submitterUserEmail,
+            Role: models.UserRole(*submitterUserRole), CreatedAt: *submitterUserCreatedAt, UpdatedAt: *submitterUserUpdatedAt,
         }
-    } else {
-        ticket.Submitter = nil
-    }
-
-    // Unmarshal Tags
+    } else { ticket.Submitter = nil }
     if err := json.Unmarshal(tagsJSON, &ticket.Tags); err != nil {
-         logger.ErrorContext(ctx, "Failed to unmarshal tags JSON", "error", err) // USE logger
-         ticket.Tags = []models.Tag{}
+         logger.ErrorContext(ctx, "Failed to unmarshal tags JSON", "error", err); ticket.Tags = []models.Tag{}
     }
-
+    // Fetch attachments and updates separately
     return &ticket, nil
 }
+

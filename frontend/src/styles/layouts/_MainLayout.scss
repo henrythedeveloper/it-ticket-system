@@ -2,7 +2,7 @@
 // ==========================================================================
 // Styles for the main application layout (header, sidebar, content area)
 // used for authenticated users.
-// Footer styles are now primarily in _Footer.scss.
+// REVISED: Made sidebar sticky below the fixed header.
 // ==========================================================================
 
 @use '../variables' as *;
@@ -10,10 +10,10 @@
 // Main layout container
 .main-layout {
   display: flex;
-  flex-direction: column;
-  min-height: 100vh; // Use min-height for flexibility
+  flex-direction: column; // Keep column direction for header/container layout
+  min-height: 100vh;
 
-  // --- Header Styles --- (Keep as is)
+  // --- Header Styles --- (Keep fixed)
   .header {
     background-color: var(--surface-tonal-1);
     color: var(--text-primary);
@@ -52,6 +52,9 @@
     }
     .header-right {
       display: flex; align-items: center;
+      .user-info-trigger { // Added class for better targeting if needed
+          display: flex; align-items: center;
+      }
       .user-info {
         display: flex; flex-direction: column; align-items: flex-end;
         margin-right: $spacing-3;
@@ -65,58 +68,193 @@
           &:hover { color: var(--text-primary); }
           &:focus { outline: none; box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.4); }
       }
+      .avatar-placeholder { /* Style for avatar */
+          margin-left: 8px;
+          background: var(--primary);
+          color: var(--text-inverted);
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+      }
     }
   }
 
   // --- Main Container (Holds Sidebar + Content) ---
   .main-container {
-    display: flex;
-    flex-direction: row;
-    flex-grow: 1; // Make this container grow vertically
+    display: flex; // Make this flex row for sidebar + content
+    flex-grow: 1;
     padding-top: $header-height; // Account for fixed header height
+    // We need the container to stretch vertically if content is short
+    // min-height: calc(100vh - #{$header-height}); // Ensure container fills height below header
+    // Let flex-grow handle height based on content
   }
+
+  // --- Sidebar Styles --- (Inside .main-container)
+  .sidebar { // Target sidebar inside the main layout
+    // --- CHANGE: Make sidebar sticky ---
+    position: sticky; // Use sticky relative to main-container
+    top: $header-height; // Stick below the fixed header
+    height: calc(100vh - #{$header-height}); // Set height for sticky scrolling context
+    // --- END CHANGE ---
+
+    background-color: var(--sidebar-bg, var(--surface-bg));
+    width: $sidebar-width; // Default width
+    z-index: $z-index-fixed - 1; // Below header but above content scroll
+    transition: width $transition-medium, transform $transition-medium, background-color $transition-medium, border-color $transition-medium;
+    overflow-y: auto; // Allow sidebar content to scroll independently
+    border-right: 1px solid var(--border-color);
+    flex-shrink: 0; // Prevent sidebar from shrinking horizontally
+
+    .sidebar-nav {
+        padding: $spacing-4 0; // Add padding back here if needed
+        ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          li {
+            margin-bottom: $spacing-1;
+            a {
+              display: flex; // Default display is flex
+              align-items: center;
+              padding: $spacing-3 $spacing-4;
+              color: var(--sidebar-text, var(--text-muted)); // Default to text-muted if sidebar-text not set
+              text-decoration: none;
+              font-weight: $font-weight-medium;
+              transition: background-color $transition-fast, color $transition-fast, border-color $transition-fast, padding $transition-medium, justify-content $transition-medium;
+              border-left: 3px solid transparent;
+              overflow: hidden;
+              width: 100%;
+
+              .icon {
+                margin-right: $spacing-3;
+                font-size: $font-size-lg;
+                width: 20px;
+                text-align: center;
+                flex-shrink: 0;
+                transition: margin $transition-medium, opacity $transition-fast, visibility $transition-fast, width $transition-medium;
+                opacity: 1;
+                visibility: visible;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+              }
+              span { // The text label
+                transition: opacity $transition-fast, visibility $transition-fast, width $transition-medium, margin-left $transition-fast;
+                opacity: 1;
+                visibility: visible;
+                white-space: nowrap;
+                width: auto;
+                margin-left: 0; // Default margin
+              }
+
+              &:hover,
+              &.active {
+                background-color: rgba(var(--primary-rgb), 0.1);
+                color: var(--primary);
+                border-left-color: var(--primary);
+              }
+               &:focus-visible {
+                   outline: none;
+                   box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.5);
+               }
+            }
+          }
+        }
+    }
+
+    // --- Desktop Collapsed State ---
+    // Apply width change based on local class now
+    &.sidebar-closed {
+        @media (min-width: ($breakpoint-md + 1px)) {
+            width: $sidebar-collapsed-width;
+
+            .sidebar-nav ul li a {
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              padding: $spacing-3 0;
+
+              .icon + span { // Hide only the label span
+                display: none;
+                opacity: 0;
+                visibility: hidden;
+                width: 0;
+                margin-left: -$spacing-3;
+              }
+
+              .icon { // Style the icon span
+                margin-right: 0;
+                opacity: 1;
+                visibility: visible;
+                width: auto;
+              }
+            }
+        }
+    }
+
+    // --- Mobile specific styles --- (Keep as is - uses fixed overlay)
+    @media (max-width: $breakpoint-md) {
+        position: fixed;
+        top: 0; left: 0;
+        height: 100vh;
+        transform: translateX(-100%);
+        z-index: $z-index-fixed + 5;
+        width: 280px;
+        padding-top: $header-height; // Add padding back for mobile fixed header
+
+        &.mobile-open { // Class added by JS/React state
+            transform: translateX(0);
+            box-shadow: $shadow-lg;
+        }
+        // Ensure text is visible in mobile overlay mode
+        .sidebar-nav ul li a {
+           display: flex;
+           justify-content: flex-start; // Reset justification for mobile
+           padding: $spacing-3 $spacing-4; // Reset padding
+           text-align: left;
+           span {
+             display: inline; // Ensure text is displayed
+             opacity: 1;
+             visibility: visible;
+             width: auto;
+             margin-left: 0; // Reset margin
+            }
+           .icon {
+             margin-right: $spacing-3; // Restore margin
+             opacity: 1;
+             visibility: visible;
+             width: 20px; // Restore fixed width if needed
+            }
+       }
+    }
+  } // End .sidebar
 
   // --- Main Content Area Styles (Inside .main-container) ---
   .main-content {
-    // No margin-top needed as parent (.main-container) has padding-top
     padding: $spacing-6;
     background-color: var(--surface-tonal);
-    transition: margin-left $transition-medium, width $transition-medium, background-color $transition-medium;
-    flex-grow: 1; // Make content area grow horizontally within .main-container
+    transition: background-color $transition-medium;
+    flex-grow: 1; // Allow content to take remaining space
+    overflow-y: auto; // Important: allow content itself to scroll
   }
 
-  // --- Footer Alignment Styles (Direct child of .main-layout) ---
-  // These rules align the footer horizontally with the main content area
-  &.sidebar-open .public-footer { // Target footer when sidebar is open
-    margin-left: $sidebar-width;
-    width: calc(100% - #{$sidebar-width});
-    transition: margin-left $transition-medium, width $transition-medium;
-  }
+  // --- Footer ---
+  // Place .public-footer directly inside .main-layout if it should be outside the scrollable content
+  // Or adjust styles if it needs to be inside .main-content
 
-  &.sidebar-closed .public-footer { // Target footer when sidebar is closed
-    margin-left: $sidebar-collapsed-width;
-    width: calc(100% - #{$sidebar-collapsed-width});
-    transition: margin-left $transition-medium, width $transition-medium;
-  }
-
-  // --- Responsive Adjustments --- (Keep as is)
+  // --- Responsive Adjustments ---
   @media (max-width: $breakpoint-md) {
-    // Sidebar is handled via transform, content takes full width
-    .main-content {
-      margin-left: 0 !important;
-      width: 100% !important;
-      padding: $spacing-4;
-    }
-    // Footer also takes full width on mobile
-    &.sidebar-open .public-footer,
-    &.sidebar-closed .public-footer {
-      margin-left: 0;
-      width: 100%;
-    }
+    // Sidebar uses transform for mobile, main-content takes full width naturally
+    .main-content { padding: $spacing-4; }
+    // Header adjustments remain
     .header {
       padding: 0 $spacing-3;
       .header-left .logo { font-size: $font-size-lg; }
-      .header-right .user-info { display: none; }
+      .header-right .user-info { display: none; } // Hide user text on mobile
     }
   }
-}
+} // End .main-layout

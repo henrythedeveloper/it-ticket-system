@@ -1,72 +1,81 @@
 // src/components/common/Dropdown.tsx
 // ==========================================================================
-// Reusable Dropdown component (basic example).
-// Shows a menu when a trigger element is hovered or clicked.
-// Note: This is a basic CSS-hover implementation. For robust accessibility
-// and click handling, a library like Headless UI or Radix UI is recommended.
+// Reusable Dropdown component.
+// REVISED: Changed to click-based toggle using state and useEffect for outside clicks.
 // ==========================================================================
 
-import React from 'react';
+import React, { useState, useEffect, useRef, ReactNode } from 'react'; // Import hooks
 
 // --- Component Props ---
-
-/**
- * Props for the Dropdown component.
- */
 interface DropdownProps {
-    /** The element that triggers the dropdown (e.g., a button, user avatar). */
-    trigger: React.ReactNode;
-    /** The content of the dropdown menu. Typically contains links or buttons. */
-    children: React.ReactNode;
-    /** Optional CSS class name for the main dropdown container. */
+    trigger: ReactNode;
+    children: ReactNode;
     className?: string;
-    /** Optional CSS class name for the dropdown menu itself. */
     menuClassName?: string;
-    /** Position of the dropdown menu relative to the trigger. Defaults to 'right'. */
     position?: 'left' | 'right';
-    /** Trigger mechanism. Defaults to 'hover'. */
-    // triggerOn?: 'hover' | 'click'; // Click requires more state/event handling
 }
 
 // --- Component ---
-
-/**
- * Renders a dropdown menu that appears when hovering over a trigger element.
- * NOTE: This is a simplified implementation using CSS :hover.
- * For production use, consider accessibility and click handling.
- *
- * @param {DropdownProps} props - The component props.
- * @returns {React.ReactElement} The rendered Dropdown component.
- */
 const Dropdown: React.FC<DropdownProps> = ({
     trigger,
     children,
     className = '',
     menuClassName = '',
     position = 'right',
-    // triggerOn = 'hover', // Basic implementation only supports hover via CSS
 }) => {
     // --- State ---
-    // State might be needed for click-based trigger or more complex interactions
-    // const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(false); // State to manage dropdown visibility
+    const dropdownRef = useRef<HTMLDivElement>(null); // Ref to the dropdown container
+
+    // --- Event Handlers ---
+    const toggleDropdown = (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent triggering outside click listener
+        setIsOpen(!isOpen);
+    };
+
+    // --- Effects ---
+    // Effect to handle clicks outside the dropdown
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            // Close if clicked outside the dropdown container
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+
+        // Add listener if dropdown is open
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        } else {
+            // Remove listener if dropdown is closed
+            document.removeEventListener('mousedown', handleClickOutside);
+        }
+
+        // Cleanup listener on component unmount or when isOpen changes
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isOpen]); // Re-run effect when isOpen changes
 
     // --- Render ---
-    const dropdownClass = `dropdown ${className}`;
+    // Add 'is-open' class when state is true
+    const dropdownClass = `dropdown ${className} ${isOpen ? 'is-open' : ''}`;
     const menuClass = `dropdown-menu dropdown-menu-${position} ${menuClassName}`;
 
-    // Basic hover implementation relies on CSS: .dropdown:hover .dropdown-menu { display: block; }
     return (
-    <div className={dropdownClass}>
-        {/* The element that triggers the dropdown */}
-        <div className="dropdown-toggle">
-        {trigger}
-        </div>
+        // Attach ref to the main container
+        <div className={dropdownClass} ref={dropdownRef}>
+            {/* Attach onClick handler to the trigger */}
+            <div className="dropdown-toggle" onClick={toggleDropdown} role="button" aria-haspopup="true" aria-expanded={isOpen}>
+                {trigger}
+            </div>
 
-        {/* The dropdown menu content */}
-        <div className={menuClass}>
-        {children}
+            {/* The dropdown menu content (conditionally rendered or hidden via CSS) */}
+            {/* CSS will handle display based on .is-open class */}
+            <div className={menuClass}>
+                {children}
+            </div>
         </div>
-    </div>
     );
 };
 

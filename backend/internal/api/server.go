@@ -4,6 +4,10 @@
 // Initializes middleware, creates handlers, registers routes, and manages
 // server lifecycle (start, shutdown).
 // **REVISED**: Separated public auth routes from protected user management routes.
+// **REVISED AGAIN**: Explicitly separated public GET routes for tags/faq
+//                  from protected POST/PUT/DELETE routes.
+// **REVISED AGAIN**: Adjusted protected routes to grant Staff near-Admin permissions,
+//                    reserving AdminMiddleware only for user deletion.
 // ==========================================================================
 
 package api
@@ -114,48 +118,84 @@ func NewServer(db *db.DB, emailService email.Service, fileService file.Service, 
 
 	// --- Setup Authentication Middleware ---
 	jwtMiddleware := authmw.JWTMiddleware(authService)
-	adminMiddleware := authmw.AdminMiddleware()
+	adminMiddleware := authmw.AdminMiddleware() // Middleware specifically for Admin-only actions
 	slog.Info("Authentication middleware configured")
 
 	// --- Define API Route Groups ---
 	apiGroup := e.Group("/api")
 
-	// --- Public Routes ---
+	// ================== PUBLIC ROUTES ==================
 	slog.Debug("Registering public routes...")
-	// Public Auth Routes
-	authPublicGroup := apiGroup.Group("/auth") // Group for public auth actions
-	user.RegisterAuthRoutes(authPublicGroup, userHandler)
 
-	// Public Ticket Creation
+	// Public Auth Routes (/api/auth/*)
+	authPublicGroup := apiGroup.Group("/auth")
+	user.RegisterAuthRoutes(authPublicGroup, userHandler) // Registers /login, /register, etc.
+
+	// Public Ticket Creation (/api/tickets)
 	apiGroup.POST("/tickets", ticketHandler.CreateTicket)
+	slog.Debug("Registered public route", "method", "POST", "path", "/api/tickets")
 
-	// Public FAQ Routes
+	// Public FAQ Routes (GET only) (/api/faq/*)
 	faqGroupPublic := apiGroup.Group("/faq")
 	faqGroupPublic.GET("", faqHandler.GetAllFAQs)
 	faqGroupPublic.GET("/:id", faqHandler.GetFAQByID)
+	slog.Debug("Registered public routes", "group", "/api/faq", "methods", "GET")
 
-	// Public Tag Routes
+	// Public Tag Routes (GET only) (/api/tags)
 	tagGroupPublic := apiGroup.Group("/tags")
-	tagGroupPublic.GET("", tagHandler.GetAllTags)
+	tagGroupPublic.GET("", tagHandler.GetAllTags) // Explicitly register only public GET for tags
+	slog.Debug("Registered public route", "method", "GET", "path", "/api/tags")
 
-	// Public Attachment Download
+	// Public Attachment Download (/api/attachments/download/:attachmentId)
 	apiGroup.GET("/attachments/download/:attachmentId", ticketHandler.DownloadAttachment)
 	slog.Debug("Registered public route", "method", "GET", "path", "/api/attachments/download/:attachmentId")
 
-	// --- Protected Routes (Require JWT Authentication) ---
-	slog.Debug("Registering protected routes...")
-	// Create a group that applies JWT middleware
-	protectedGroup := apiGroup.Group("", jwtMiddleware)
+	// ================== PROTECTED ROUTES (Staff & Admin) ==================
+	slog.Debug("Registering protected routes (JWT required)...")
+	// Create a group that applies JWT middleware to all routes within it
+	protectedGroup := apiGroup.Group("", jwtMiddleware) // Base JWT check for all below
 
-	// Register resource routes under the protected group
+	// --- Protected Ticket Routes (/api/tickets/*) ---
+	// Assumes ticket management permissions are handled within ticket handlers if needed,
+	// or that all authenticated users (Staff/Admin) can manage tickets.
 	ticket.RegisterRoutes(protectedGroup.Group("/tickets"), ticketHandler)
-	// Register user management routes (these already require JWT via protectedGroup)
-	user.RegisterUserManagementRoutes(protectedGroup.Group("/users"), userHandler, adminMiddleware)
-	// Register protected FAQ/Tag routes (admin-only write operations)
-	faq.RegisterRoutes(protectedGroup.Group("/faq"), faqHandler, adminMiddleware)
-	tag.RegisterRoutes(protectedGroup.Group("/tags"), tagHandler, adminMiddleware)
 
-	logRegisteredRoutes(e)
+	// --- Protected User Management Routes (/api/users/*) ---
+	userGroup := protectedGroup.Group("/users")
+	// GET /api/users - Accessible to Staff & Admin
+	userGroup.GET("", userHandler.GetAllUsers)
+	// GET /api/users/me - Accessible to logged-in user
+	userGroup.GET("/me", userHandler.GetCurrentUser)
+	// GET /api/users/:id - Accessible to Staff & Admin (internal checks might apply)
+	userGroup.GET("/:id", userHandler.GetUserByID)
+	// POST /api/users - Accessible to Staff & Admin
+	userGroup.POST("", userHandler.CreateUser)
+	// PUT /api/users/:id - Accessible to Staff & Admin (internal checks for self vs others)
+	userGroup.PUT("/:id", userHandler.UpdateUser)
+	// DELETE /api/users/:id - *ADMIN ONLY*
+	userGroup.DELETE("/:id", userHandler.DeleteUser, adminMiddleware) // Apply specific adminMiddleware here
+	slog.Debug("Registered user management routes", "group", "/api/users")
+
+	// --- Protected FAQ Management Routes (/api/faq/*) ---
+	faqGroupProtected := protectedGroup.Group("/faq") // JWT applied
+	// GET routes already public
+	// POST, PUT, DELETE Accessible to Staff & Admin
+	faqGroupProtected.POST("", faqHandler.CreateFAQ)
+	faqGroupProtected.PUT("/:id", faqHandler.UpdateFAQ)
+	faqGroupProtected.DELETE("/:id", faqHandler.DeleteFAQ)
+	slog.Debug("Registered protected FAQ routes", "group", "/api/faq", "methods", "POST, PUT, DELETE")
+
+	// --- Protected Tag Management Routes (/api/tags/*) ---
+	tagGroupProtected := protectedGroup.Group("/tags") // JWT applied
+	// GET route already public
+	// POST, DELETE Accessible to Staff & Admin
+	tagGroupProtected.POST("", tagHandler.CreateTag)
+	tagGroupProtected.DELETE("/:id", tagHandler.DeleteTag)
+	slog.Debug("Registered protected Tag routes", "group", "/api/tags", "methods", "POST, DELETE")
+
+
+	// --- Log All Routes and Complete Setup ---
+	logRegisteredRoutes(e) // Log all registered routes at debug level
 	slog.Info("API server setup complete")
 	return &Server{
 		echo:        e,
@@ -166,16 +206,23 @@ func NewServer(db *db.DB, emailService email.Service, fileService file.Service, 
 }
 
 // --- Server Lifecycle Methods ---
+
+// EchoInstance returns the underlying Echo instance.
 func (s *Server) EchoInstance() *echo.Echo { return s.echo }
+
+// Start begins listening for HTTP requests on the configured address.
 func (s *Server) Start(address string) error {
 	slog.Info("Starting server", "address", address)
 	err := s.echo.Start(address)
+	// Don't log ErrServerClosed as an error, as it's expected during graceful shutdown
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		slog.Error("Server failed to start", "error", err)
 		return fmt.Errorf("server startup failed: %w", err)
 	}
 	return nil
 }
+
+// Shutdown gracefully shuts down the server without interrupting active connections.
 func (s *Server) Shutdown(ctx context.Context) error {
 	slog.Info("Initiating graceful server shutdown...")
 	err := s.echo.Shutdown(ctx)
@@ -188,6 +235,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 }
 
 // --- Helper Functions ---
+
+// logRegisteredRoutes iterates through the Echo router and logs all defined routes.
+// Useful for debugging routing issues.
 func logRegisteredRoutes(e *echo.Echo) {
 	slog.Debug("--- Registered Routes ---")
 	routes := e.Routes()
@@ -196,4 +246,3 @@ func logRegisteredRoutes(e *echo.Echo) {
 	}
 	slog.Debug("-------------------------")
 }
-

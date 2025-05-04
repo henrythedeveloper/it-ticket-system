@@ -1,88 +1,74 @@
 // src/styles/components/common/_Dropdown.scss
-// ==========================================================================
-// Styles for the Dropdown component.
-// ==========================================================================
 
-@use '../../variables' as *; // Use variables for spacing, radii, etc.
+@use '../../variables' as *;
 
 .dropdown {
-  position: relative; // Establishes positioning context for the menu
-  display: inline-block; // Allows dropdown to fit content width
+  position: relative;
+  display: inline-block;
 
   .dropdown-toggle {
     cursor: pointer;
-    // Add any specific styling for the trigger element if needed
-    // e.g., padding, border, background for a button-like trigger
+    // Optional: Add styles to indicate it's clickable if not obvious
+    // user-select: none; // Prevent text selection on click
   }
 
   .dropdown-menu {
     position: absolute;
-    top: calc(100% + #{$spacing-1}); // Position below the trigger with a small gap
-    background-color: var(--surface-bg); // Use CSS var for background
-    border: 1px solid var(--border-color); // Use CSS var for border
+    top: calc(100% + #{$spacing-1});
+    background-color: var(--surface-bg);
+    border: 1px solid var(--border-color);
     border-radius: $border-radius;
-    box-shadow: $shadow-lg; // Use CSS var for shadow
-    min-width: 180px; // Minimum width for the dropdown
-    padding: $spacing-2 0; // Vertical padding
-    z-index: $z-index-dropdown; // Ensure it appears above other content
-    display: none; // Hidden by default
-    flex-direction: column; // Stack items vertically
-    transition: background-color $transition-medium, border-color $transition-medium;
+    box-shadow: $shadow-lg;
+    min-width: 180px;
+    padding: $spacing-2 0;
+    z-index: $z-index-dropdown;
+    // --- CHANGE: Hide by default, show with class ---
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px); // Optional: Add slight animation
+    transition: opacity $transition-fast, visibility $transition-fast, transform $transition-fast;
+    // --- END CHANGE ---
+    flex-direction: column; // Keep flex for item alignment
 
-    // Positioning modifiers
-    &.dropdown-menu-right {
-      right: 0;
-      left: auto; // Override default left alignment
-    }
-    &.dropdown-menu-left {
-      left: 0;
-      right: auto; // Override default right alignment
-    }
+    &.dropdown-menu-right { right: 0; left: auto; }
+    &.dropdown-menu-left { left: 0; right: auto; }
 
-    // Styling for items within the dropdown (links or buttons)
     a, button {
-      display: flex; // Use flex for icon alignment
+      // Styles remain the same
+      display: flex;
       align-items: center;
       padding: $spacing-2 $spacing-4;
       text-decoration: none;
-      color: var(--text-secondary); // Use CSS var
+      color: var(--text-secondary);
       text-align: left;
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 100%;
+      background: none; border: none;
+      cursor: pointer; width: 100%;
       font-size: $font-size-sm;
       transition: background-color $transition-fast, color $transition-fast;
-
-      &:hover {
-        background-color: var(--surface-alt-bg); // Use CSS var for hover background
-        color: var(--primary); // Use CSS var for hover text
-      }
-
-      // Style icons within dropdown items if present
-      svg {
-          margin-right: $spacing-2;
-          width: 16px; // Consistent icon size
-          height: 16px;
-          opacity: 0.8;
-      }
+      &:hover { background-color: var(--surface-alt-bg); color: var(--primary); }
+      svg { margin-right: $spacing-2; width: 16px; height: 16px; opacity: 0.8; }
     }
   }
 
-  // Show menu on hover (simple CSS approach)
-  // For click-based dropdowns, you'd control display via React state/classes
-  &:hover .dropdown-menu {
-    display: flex;
+  // --- ADD IS-OPEN RULE ---
+  &.is-open .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0); // Animate back to original position
+    display: flex; // Use display flex when open
   }
+  // --- END ADD IS-OPEN RULE ---
 
-  // Add focus-within styling for keyboard navigation accessibility
+  // Focus-within styling remains useful for keyboard navigation
   &:focus-within .dropdown-menu {
-      display: flex; // Show menu when trigger or an item inside has focus
+      // Keep this rule if you want keyboard nav to open it,
+      // but the click handler is now the primary mechanism.
+      // You might only need focus styling on the items inside.
+      display: flex;
   }
-    &:focus-within .dropdown-toggle {
-      // Optional: Add focus style to trigger when menu is open via keyboard
-        outline: none;
-        box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.4); // Example focus ring
-    }
+  &:focus-within .dropdown-toggle {
+    // Add focus style to trigger when menu is open via keyboard
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.4);
+  }
 }
-
