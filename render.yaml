@@ -2,7 +2,7 @@
 # ==================================================
 # Infrastructure definition for the IT Helpdesk System on Render.
 # Place this file in the root of your repository.
-# ** UPDATED: Keys defined, values to be set in Render UI **
+# ** UPDATED: Added 'value: ""' for env vars set via dashboard **
 # ==================================================
 
 services:
@@ -40,19 +40,38 @@ services:
           property: connectionString
       # --- Secrets (Values MUST be set in Render Dashboard Environment) ---
       - key: JWT_SECRET
+        value: "" # Add empty value, will be overridden by dashboard secret
       - key: S3_ACCESS_KEY # Your Backblaze B2 Key ID
+        value: "" # Add empty value, will be overridden by dashboard secret
       - key: S3_SECRET_KEY # Your Backblaze B2 Application Key
+        value: "" # Add empty value, will be overridden by dashboard secret
       - key: RESEND_API_KEY # Your Resend API Key
+        value: "" # Add empty value, will be overridden by dashboard secret
       # --- Non-Secrets (Values MUST be set in Render Dashboard Environment) ---
       - key: PORT # Internal port the Go app listens on
         value: 8080 # Keep this default internal port
       - key: PORTAL_BASE_URL # Value to be set in Render UI
+        value: "" # Add empty value, will be overridden by dashboard setting
       - key: EMAIL_FROM # Value to be set in Render UI
+        value: "" # Add empty value, will be overridden by dashboard setting
+      # --- Backblaze B2 Configuration (Values MUST be set in Render Dashboard Environment) ---
       - key: S3_ENDPOINT
+        value: "" # Add empty value, will be overridden by dashboard setting
       - key: S3_REGION
+        value: "" # Add empty value, will be overridden by dashboard setting
       - key: S3_BUCKET
+        value: "" # Add empty value, will be overridden by dashboard setting
       - key: S3_DISABLE_SSL # Keep this as a direct value
-        value: false 
+        value: false # Backblaze B2 uses HTTPS
+      # Add other backend env vars as needed (CACHE_*, etc.)
+      # Example for Cache (if using Redis - uncomment and set REDIS_URL secret)
+      # - key: CACHE_ENABLED
+      #   value: true
+      # - key: CACHE_PROVIDER
+      #   value: redis
+      # - key: REDIS_URL # Define key only, set value in Render UI
+      #   value: "" # Add empty value, will be overridden by dashboard secret
+
 # Define the managed PostgreSQL database
 databases:
   - name: it-helpdesk-db # Name for your database service on Render
