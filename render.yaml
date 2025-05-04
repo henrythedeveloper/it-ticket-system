@@ -31,25 +31,24 @@ services:
     # No start command needed if defined in Dockerfile CMD
     # No ports needed as it's accessed internally by Nginx
 
-  # Backend Service (Private Service - accessed via Nginx proxy)
+   # Backend Service (Private Service - accessed via Nginx proxy)
   - name: backend
     type: pserv # Private service
     env: docker
     dockerfilePath: ./backend/Dockerfile
-    # No start command needed if defined in Dockerfile CMD
     envVars:
       # --- Secrets (Set these in Render Dashboard Environment) ---
-      - key: DATABASE_URL # Render injects this from the managed DB below
+      - key: DATABASE_URL
         fromDatabase:
           name: it-helpdesk-db # Must match the database name defined below
           property: connectionString
       - key: JWT_SECRET
         fromSecret: JWT_SECRET # Name of the secret key in Render
-      - key: S3_ACCESS_KEY
+      - key: S3_ACCESS_KEY # Your Backblaze B2 Key ID
         fromSecret: S3_ACCESS_KEY
-      - key: S3_SECRET_KEY
+      - key: S3_SECRET_KEY # Your Backblaze B2 Application Key
         fromSecret: S3_SECRET_KEY
-      - key: RESEND_API_KEY # Assuming you switch to Resend API key
+      - key: RESEND_API_KEY # Your Resend API Key
         fromSecret: RESEND_API_KEY
       # --- Non-Secrets ---
       - key: PORT # Internal port the Go app listens on
@@ -58,15 +57,18 @@ services:
         value: https://your-app-name.onrender.com # Replace with your actual Render URL
       - key: EMAIL_FROM # Your verified sender email
         value: your-verified-email@example.com # Replace with your Resend verified sender
+      # --- Backblaze B2 Configuration ---
       - key: S3_ENDPOINT
-        value: <your_s3_endpoint_url> # e.g., s3.us-west-2.amazonaws.com or B2 endpoint
+        value: s3.us-west-004.backblazeb2.com # Replace with YOUR B2 bucket's endpoint URL
       - key: S3_REGION
-        value: <your_s3_region> # e.g., us-west-2
+        value: us-west-004 # Replace with YOUR B2 bucket's region
       - key: S3_BUCKET
-        value: <your_s3_bucket_name>
-      - key: S3_DISABLE_SSL # Set to false usually for cloud S3, true for local MinIO often
-        value: false
+        value: your-unique-b2-bucket-name # Replace with YOUR B2 bucket name
+      - key: S3_DISABLE_SSL
+        value: false # Backblaze B2 uses HTTPS
       # Add other backend env vars as needed (CACHE_*, etc.)
+
+
 
 # Define the managed PostgreSQL database
 databases:
