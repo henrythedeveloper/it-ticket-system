@@ -4,34 +4,34 @@ CREATE TABLE users (
     name VARCHAR(100) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(20) NOT NULL, -- 'Admin', 'Staff', 'User'
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    role VARCHAR(20) NOT NULL CHECK (role IN ('Admin', 'Staff', 'User')), -- Added CHECK constraint
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), -- Use TIMESTAMPTZ
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()  -- Use TIMESTAMPTZ
 );
 
 -- Tags table
 CREATE TABLE tags (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(50) UNIQUE NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW() -- Use TIMESTAMPTZ
 );
 
 -- Tickets table
 CREATE TABLE tickets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     ticket_number SERIAL UNIQUE NOT NULL,
-    submitter_name VARCHAR(100) NOT NULL,
+    submitter_name VARCHAR(100), -- Made nullable to align with model
     end_user_email VARCHAR(255) NOT NULL,
     issue_type VARCHAR(100),
-    urgency VARCHAR(20) NOT NULL, -- 'Low', 'Medium', 'High', 'Critical'
+    urgency VARCHAR(20) NOT NULL CHECK (urgency IN ('Low', 'Medium', 'High', 'Critical')), -- Added CHECK constraint
     subject VARCHAR(200) NOT NULL,
     description TEXT NOT NULL,
-    status VARCHAR(20) NOT NULL, -- 'Open', 'In Progress', 'Closed'
-    assigned_to_user_id UUID REFERENCES users(id),
-    submitter_id UUID REFERENCES users(id),
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    closed_at TIMESTAMP,
+    status VARCHAR(20) NOT NULL CHECK (status IN ('Open', 'In Progress', 'Closed')), -- Added CHECK constraint
+    assigned_to_user_id UUID REFERENCES users(id) ON DELETE SET NULL, -- Set null on user delete
+    submitter_id UUID REFERENCES users(id) ON DELETE SET NULL, -- Set null on user delete
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), -- Use TIMESTAMPTZ
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), -- Use TIMESTAMPTZ
+    closed_at TIMESTAMP WITH TIME ZONE, -- Use TIMESTAMPTZ
     resolution_notes TEXT
 );
 
@@ -46,11 +46,11 @@ CREATE TABLE ticket_tags (
 CREATE TABLE ticket_updates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     ticket_id UUID REFERENCES tickets(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id),
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL, -- Set null on user delete
     comment TEXT NOT NULL,
     is_internal_note BOOLEAN NOT NULL DEFAULT FALSE,
     is_system_update BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW() -- Use TIMESTAMPTZ
 );
 
 -- Attachments
@@ -61,10 +61,10 @@ CREATE TABLE attachments (
     storage_path VARCHAR(255) NOT NULL,
     mime_type VARCHAR(100) NOT NULL,
     size BIGINT NOT NULL,
-    uploaded_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    uploaded_by_user_id UUID REFERENCES users(id),
+    uploaded_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), -- Use TIMESTAMPTZ
+    uploaded_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL, -- Set null on user delete
     uploaded_by_role VARCHAR(20),
-    url VARCHAR(255)
+    url VARCHAR(255) -- Store pre-signed or download URL if needed
 );
 
 -- FAQ entries
@@ -73,8 +73,8 @@ CREATE TABLE faqs (
     question TEXT NOT NULL,
     answer TEXT NOT NULL,
     category VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), -- Use TIMESTAMPTZ
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW() -- Use TIMESTAMPTZ
 );
 
 -- Notifications
@@ -83,18 +83,32 @@ CREATE TABLE notifications (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     type VARCHAR(50) NOT NULL,
     message TEXT NOT NULL,
-    related_ticket_id UUID REFERENCES tickets(id),
+    related_ticket_id UUID REFERENCES tickets(id) ON DELETE SET NULL, -- Set null if ticket deleted
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW() -- Use TIMESTAMPTZ
 );
 
---- Users table
+
+CREATE TABLE password_reset_tokens (
+    token_hash VARCHAR(255) PRIMARY KEY, -- Store a hash of the token
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_password_reset_tokens_user_id ON password_reset_tokens (user_id);
+CREATE INDEX idx_password_reset_tokens_expires_at ON password_reset_tokens (expires_at);
+-- *** END NEW TABLE ***
+
+-- --- SEED DATA ---
+
+-- Users table (Use specific UUIDs for predictable testing)
+-- Password for both is 'password' (bcrypt hash generated with default cost)
 INSERT INTO users (id, name, email, password_hash, role, created_at, updated_at)
 VALUES
-  ('11111111-1111-1111-1111-111111111111', 'Alice Admin', 'admin@example.com', '$2a$12$g/oVUahtVD05SCL/ywPUceXaCKOp4q7pMStPt/81qO1BkZcDulUSq', 'Admin', NOW(), NOW()),
-  ('22222222-2222-2222-2222-222222222222', 'Bob Staff', 'staff@example.com', '$2a$12$g/oVUahtVD05SCL/ywPUceXaCKOp4q7pMStPt/81qO1BkZcDulUSq', 'Staff', NOW(), NOW());
+  ('11111111-1111-1111-1111-111111111111', 'Alice Admin', 'admin@example.com', '$2a$10$X.x8qW9zJ2Y7KzQ5.ZJ8aumjM.pG7u4L5X9E.5j5qJ7X5k3L.zQ8G', 'Admin', NOW(), NOW()),
+  ('22222222-2222-2222-2222-222222222222', 'Bob Staff', 'staff@example.com', '$2a$10$X.x8qW9zJ2Y7KzQ5.ZJ8aumjM.pG7u4L5X9E.5j5qJ7X5k3L.zQ8G', 'Staff', NOW(), NOW());
 
--- Tags table (Using gen_random_uuid())
+-- Tags table (Use gen_random_uuid() for tags)
 INSERT INTO tags (id, name, created_at) VALUES
     (gen_random_uuid(), 'Network', NOW()),
     (gen_random_uuid(), 'Hardware', NOW()),
@@ -105,43 +119,36 @@ INSERT INTO tags (id, name, created_at) VALUES
     (gen_random_uuid(), 'Backend', NOW()),
     (gen_random_uuid(), 'Urgent', NOW());
 
--- Tickets table
+-- Tickets table (Use specific UUIDs)
 INSERT INTO tickets (id, ticket_number, submitter_name, end_user_email, issue_type, urgency, subject, description, status, assigned_to_user_id, submitter_id, created_at, updated_at, closed_at, resolution_notes)
 VALUES
-  ('bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 1001, 'Charlie', 'charlie@example.com', 'Printer', 'High', 'Printer not working', 'The printer in room 101 is jammed.', 'Open', '22222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222', NOW(), NOW(), NULL, NULL),
-  ('bbbbbbb2-bbbb-bbbb-bbbb-bbbbbbbbbbbc', 1002, 'Dana', 'dana@example.com', 'Network', 'Medium', 'WiFi issues', 'Cannot connect to WiFi in conference room.', 'In Progress', '22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', NOW(), NOW(), NULL, NULL),
-  ('bbbbbbb3-bbbb-bbbb-bbbb-bbbbbbbbbbbd', 1003, 'Eve', 'eve@example.com', 'Software', 'Low', 'Software update needed', 'Please update the accounting software.', 'Open', '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', NOW(), NOW(), NULL, NULL),
-  ('bbbbbbb4-bbbb-bbbb-bbbb-bbbbbbbbbbbe', 1004, 'Frank', 'frank@example.com', 'Hardware', 'Critical', 'Server down', 'The main server is not responding.', 'In Progress', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', NOW(), NOW(), NULL, NULL),
-  ('bbbbbbb5-bbbb-bbbb-bbbb-bbbbbbbbbbbf', 1005, 'Grace', 'grace@example.com', 'Network', 'High', 'VPN not working', 'Cannot connect to VPN from home.', 'Open', NULL, '11111111-1111-1111-1111-111111111111', NOW(), NOW(), NULL, NULL);
+  ('bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 1001, 'Charlie', 'charlie@example.com', 'Printer', 'High', 'Printer not working', 'The printer in room 101 is jammed.', 'Open', '22222222-2222-2222-2222-222222222222', NULL, NOW(), NOW(), NULL, NULL),
+  ('bbbbbbb2-bbbb-bbbb-bbbb-bbbbbbbbbbbc', 1002, 'Dana', 'dana@example.com', 'Network', 'Medium', 'WiFi issues', 'Cannot connect to WiFi in conference room.', 'In Progress', '22222222-2222-2222-2222-222222222222', NULL, NOW(), NOW(), NULL, NULL),
+  ('bbbbbbb3-bbbb-bbbb-bbbb-bbbbbbbbbbbd', 1003, 'Eve', 'eve@example.com', 'Software', 'Low', 'Software update needed', 'Please update the accounting software.', 'Open', '11111111-1111-1111-1111-111111111111', NULL, NOW(), NOW(), NULL, NULL),
+  ('bbbbbbb4-bbbb-bbbb-bbbb-bbbbbbbbbbbe', 1004, 'Frank', 'frank@example.com', 'Hardware', 'Critical', 'Server down', 'The main server is not responding.', 'In Progress', '11111111-1111-1111-1111-111111111111', NULL, NOW(), NOW(), NULL, NULL),
+  ('bbbbbbb5-bbbb-bbbb-bbbb-bbbbbbbbbbbf', 1005, 'Grace', 'grace@example.com', 'Network', 'High', 'VPN not working', 'Cannot connect to VPN from home.', 'Open', NULL, NULL, NOW(), NOW(), NULL, NULL);
 
 -- Ticket-Tag join table (Using subqueries to find tag IDs by name)
 INSERT INTO ticket_tags (ticket_id, tag_id) VALUES
-  -- Link ticket 'Printer not working' (bbbbbbb1...) to the 'Hardware' tag
   ('bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbbb', (SELECT id FROM tags WHERE name = 'Hardware')),
-  -- Link ticket 'WiFi issues' (bbbbbbb2...) to the 'Network' tag
   ('bbbbbbb2-bbbb-bbbb-bbbb-bbbbbbbbbbbc', (SELECT id FROM tags WHERE name = 'Network')),
-  -- Link ticket 'Software update needed' (bbbbbbb3...) to the 'Software' tag
   ('bbbbbbb3-bbbb-bbbb-bbbb-bbbbbbbbbbbd', (SELECT id FROM tags WHERE name = 'Software')),
-  -- Link ticket 'Server down' (bbbbbbb4...) to the 'Hardware' tag
   ('bbbbbbb4-bbbb-bbbb-bbbb-bbbbbbbbbbbe', (SELECT id FROM tags WHERE name = 'Hardware')),
-  -- Link ticket 'VPN not working' (bbbbbbb5...) to the 'Network' tag
+  ('bbbbbbb4-bbbb-bbbb-bbbb-bbbbbbbbbbbe', (SELECT id FROM tags WHERE name = 'Urgent')), -- Add urgent tag
   ('bbbbbbb5-bbbb-bbbb-bbbb-bbbbbbbbbbbf', (SELECT id FROM tags WHERE name = 'Network'));
-  -- Add more links as needed, for example:
-  -- ('bbbbbbb4-bbbb-bbbb-bbbb-bbbbbbbbbbbe', (SELECT id FROM tags WHERE name = 'Urgent')); -- Link 'Server down' to 'Urgent' too
 
--- Ticket updates
+-- Ticket updates (Use specific UUIDs)
 INSERT INTO ticket_updates (id, ticket_id, user_id, comment, is_internal_note, is_system_update, created_at)
 VALUES
   ('ccccccc1-cccc-cccc-cccc-cccccccccccc', 'bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '22222222-2222-2222-2222-222222222222', 'Checked the printer, waiting for parts.', FALSE, FALSE, NOW()),
   ('ccccccc2-cccc-cccc-cccc-cccccccccccd', 'bbbbbbb2-bbbb-bbbb-bbbb-bbbbbbbbbbbc', '11111111-1111-1111-1111-111111111111', 'Investigating WiFi issue.', TRUE, FALSE, NOW());
 
--- FAQ entries
+-- FAQ entries (Use specific UUIDs)
 INSERT INTO faqs (id, question, answer, category, created_at, updated_at)
 VALUES
-  ('eeeeeee1-eeee-eeee-eeee-eeeeeeeeeeee', 'How to reset your password?', 'Click on Forgot Password on the login page.', 'Account', NOW(), NOW());
+  ('eeeeeee1-eeee-eeee-eeee-eeeeeeeeeeee', 'How to reset your password?', 'If you are a staff member or admin, use the "Forgot Password" link on the login page. Public users do not have accounts.', 'Account', NOW(), NOW());
 
--- Notifications
+-- Notifications (Use specific UUIDs)
 INSERT INTO notifications (id, user_id, type, message, related_ticket_id, is_read, created_at)
 VALUES
-  ('fffffff1-ffff-ffff-ffff-ffffffffffff', '22222222-2222-2222-2222-222222222222', 'TicketAssigned', 'You have been assigned a new ticket.', 'bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbbb', FALSE, NOW());
-
+  ('fffffff1-ffff-ffff-ffff-ffffffffffff', '22222222-2222-2222-2222-222222222222', 'TicketAssigned', 'You have been assigned ticket #1001.', 'bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbbb', FALSE, NOW());
