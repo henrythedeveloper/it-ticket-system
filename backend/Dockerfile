@@ -18,8 +18,8 @@ RUN go mod download
 # Consider using a more specific COPY if build times become an issue.
 COPY . .
 
-# Build the Go app using the full module path
-RUN CGO_ENABLED=0 GOOS=linux go build -o helpdesk-api github.com/henrythedeveloper/it-ticket-system/backend/cmd/server
+# Build the Go app using the relative path from WORKDIR (/app)
+RUN CGO_ENABLED=0 GOOS=linux go build -o helpdesk-api ./backend/cmd/server
 
 # Final stage
 FROM alpine:latest
