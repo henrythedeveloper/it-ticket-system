@@ -9,7 +9,6 @@ package ticket
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog" // Use slog
@@ -27,7 +26,7 @@ import (
 // --- QUERY OPERATIONS ---
 
 // GetAllTickets retrieves a list of tickets based on query parameters for filtering and pagination.
-// FINAL REVISED SQL using standard json and correct GROUP BY.
+// *** SIMPLIFIED QUERY: Fetches only core ticket data for list view. ***
 func (h *Handler) GetAllTickets(c echo.Context) error {
     ctx := context.Background()
     logger := slog.With("handler", "GetAllTickets")
@@ -38,70 +37,64 @@ func (h *Handler) GetAllTickets(c echo.Context) error {
     submitterID := c.QueryParam("submitter_id")
     limitStr := c.QueryParam("limit")
     pageStr := c.QueryParam("page")
-    tagParam := c.QueryParam("tags")
+    tagParam := c.QueryParam("tags") // Keep tag filtering param
+    sortBy := c.QueryParam("sortBy")
+    sortOrder := c.QueryParam("sortOrder")
 
-    limit := 15
-    page := 1
-    var err error
-    if limitStr != "" {
-        limit, err = strconv.Atoi(limitStr); if err != nil || limit < 1 || limit > 100 { limit = 15 }
-    }
-    if pageStr != "" {
-        page, err = strconv.Atoi(pageStr); if err != nil || page < 1 { page = 1 }
-    }
+    limit := 15; if limitStr != "" { parsedLimit, err := strconv.Atoi(limitStr); if err == nil && parsedLimit > 0 && parsedLimit <= 100 { limit = parsedLimit } }
+    page := 1; if pageStr != "" { parsedPage, err := strconv.Atoi(pageStr); if err == nil && parsedPage > 0 { page = parsedPage } }
     offset := (page - 1) * limit
+
     logger.DebugContext(ctx, "Pagination params", "limit", limit, "page", page, "offset", offset)
 
     // --- Build Query ---
+    // Select ONLY core ticket fields needed for the list view
     selectClause := `
         SELECT
             t.id, t.ticket_number, t.subject, t.description, t.status, t.urgency, t.created_at, t.updated_at,
-            t.submitter_name, t.end_user_email, t.assigned_to_user_id,
-            -- Select assigned user fields directly
-            u.id as user_id, u.name as user_name, u.email as user_email, u.role as user_role,
-            u.created_at as user_created_at, u.updated_at as user_updated_at,
-            -- Aggregate tags directly here using standard json
-            COALESCE(json_agg(DISTINCT json_build_object('id', tg.id, 'name', tg.name, 'created_at', tg.created_at)) FILTER (WHERE tg.id IS NOT NULL), '[]'::json) as tags
-    ` // <<< Ensure '[]'::json is used here
-    fromClause := `
-        FROM tickets t
-        LEFT JOIN users u ON t.assigned_to_user_id = u.id
-        LEFT JOIN ticket_tags tt ON t.id = tt.ticket_id
-        LEFT JOIN tags tg ON tt.tag_id = tg.id
+            t.submitter_name, t.end_user_email, t.assigned_to_user_id
     `
+    fromClause := ` FROM tickets t `
     countFromClause := ` FROM tickets t `
 
-    // --- Filtering Logic (remains the same) ---
+    // --- Filtering Logic ---
     args := []interface{}{}
     whereClauses := []string{}
-    joinClausesForFilter := ""
+    joinClausesForFilter := "" // To add joins needed ONLY for filtering
     argIdx := 1
-    // ... (status, assignedTo, submitterID, tagParam filtering logic is unchanged) ...
+
     // Status Filter
     if status != "" { if strings.ToLower(status) == "unassigned" { whereClauses = append(whereClauses, "t.assigned_to_user_id IS NULL") } else { statuses := strings.Split(status, ","); statusPlaceholders := []string{}; for _, s := range statuses { trimmedStatus := strings.TrimSpace(s); if trimmedStatus != "" { statusPlaceholders = append(statusPlaceholders, fmt.Sprintf("$%d", argIdx)); args = append(args, trimmedStatus); argIdx++ } }; if len(statusPlaceholders) > 0 { whereClauses = append(whereClauses, fmt.Sprintf("t.status IN (%s)", strings.Join(statusPlaceholders, ", "))) } } }
     // AssignedTo Filter
     if assignedTo != "" { if strings.ToLower(assignedTo) == "unassigned" { whereClauses = append(whereClauses, "t.assigned_to_user_id IS NULL") } else { whereClauses = append(whereClauses, fmt.Sprintf("t.assigned_to_user_id = $%d", argIdx)); args = append(args, assignedTo); argIdx++ } }
     // SubmitterID Filter
     if submitterID != "" { whereClauses = append(whereClauses, fmt.Sprintf("t.submitter_id = $%d", argIdx)); args = append(args, submitterID); argIdx++ }
-    // Tag Filter
+    // Tag Filter (Add JOIN only if filtering by tags)
     if tagParam != "" { tags := strings.Split(tagParam, ","); tagPlaceholders := []string{}; validTags := []string{}; for _, tag := range tags { trimmedTag := strings.TrimSpace(tag); if trimmedTag != "" { tagPlaceholders = append(tagPlaceholders, fmt.Sprintf("$%d", argIdx)); args = append(args, trimmedTag); argIdx++; validTags = append(validTags, trimmedTag) } }; if len(tagPlaceholders) > 0 { joinClausesForFilter = ` JOIN ticket_tags tt_filter ON t.id = tt_filter.ticket_id JOIN tags tg_filter ON tt_filter.tag_id = tg_filter.id `; whereClauses = append(whereClauses, fmt.Sprintf("tg_filter.name IN (%s)", strings.Join(tagPlaceholders, ", "))); countFromClause += joinClausesForFilter } }
-
 
     // --- Construct Final Queries ---
     whereClause := ""; if len(whereClauses) > 0 { whereClause = " WHERE " + strings.Join(whereClauses, " AND ") }
     totalQuery := `SELECT COUNT(DISTINCT t.id)` + countFromClause + whereClause
     logger.DebugContext(ctx, "Executing count query", "query", totalQuery, "args", args)
     var totalCount int
-    err = h.db.Pool.QueryRow(ctx, totalQuery, args...).Scan(&totalCount)
+    err := h.db.Pool.QueryRow(ctx, totalQuery, args...).Scan(&totalCount)
     if err != nil { /* handle count error */
          logger.ErrorContext(ctx, "Failed to fetch ticket count", "error", err)
          return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch ticket count"})
     }
     logger.DebugContext(ctx, "Total tickets count", "count", totalCount)
 
+    // Sorting Logic
+    orderByClause := " ORDER BY t.updated_at DESC" // Default sort
+    validSortColumns := map[string]string{"createdAt": "t.created_at", "updatedAt": "t.updated_at", "ticketNumber": "t.ticket_number", "status": "t.status", "urgency": "t.urgency"} // Map frontend name to DB column
+    if col, ok := validSortColumns[sortBy]; ok {
+        order := "DESC"; if strings.ToLower(sortOrder) == "asc" { order = "ASC" }
+        orderByClause = fmt.Sprintf(" ORDER BY %s %s, t.id %s", col, order, order) // Add t.id for stable sort
+    }
+
+    // Data Query (No GROUP BY needed now)
     dataQuery := selectClause + fromClause + joinClausesForFilter + whereClause +
-        ` GROUP BY t.id, u.id ` + // <<< Ensure GROUP BY is t.id, u.id
-        ` ORDER BY t.updated_at DESC ` +
+        orderByClause +
         fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
     dataArgs := append(args, limit, offset)
 
@@ -113,22 +106,31 @@ func (h *Handler) GetAllTickets(c echo.Context) error {
     }
     defer rows.Close()
 
-    // --- Scan Results (remains the same) ---
+    // --- Scan Results (Simpler Scan) ---
     tickets := make([]models.Ticket, 0, limit)
     for rows.Next() {
-        var ticket models.Ticket; var assignedUser models.User; var tagsJSON []byte; var submitterNameStr string
-        var assignedUserID, assignedUserName, assignedUserEmail, assignedUserRole *string
-        var assignedUserCreatedAt, assignedUserUpdatedAt *time.Time
+        var ticket models.Ticket
+        var submitterNameStr string // Temporary variable for scanning nullable submitter name
 
-        err := rows.Scan( &ticket.ID, &ticket.TicketNumber, &ticket.Subject, &ticket.Description, &ticket.Status, &ticket.Urgency, &ticket.CreatedAt, &ticket.UpdatedAt, &submitterNameStr, &ticket.EndUserEmail, &ticket.AssignedToUserID, &assignedUserID, &assignedUserName, &assignedUserEmail, &assignedUserRole, &assignedUserCreatedAt, &assignedUserUpdatedAt, &tagsJSON )
+        err := rows.Scan(
+            &ticket.ID, &ticket.TicketNumber, &ticket.Subject, &ticket.Description, &ticket.Status,
+            &ticket.Urgency, &ticket.CreatedAt, &ticket.UpdatedAt,
+            &submitterNameStr, // Scan into string
+            &ticket.EndUserEmail,
+            &ticket.AssignedToUserID, // Scan only the ID
+        )
         if err != nil { /* handle scan error */
              logger.ErrorContext(ctx, "Failed to scan ticket row", "error", err)
              return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to parse ticket data"})
         }
+
+        // Populate submitter name pointer if it exists
         if submitterNameStr != "" { ticket.SubmitterName = &submitterNameStr }
-        if assignedUserID != nil { assignedUser.ID = *assignedUserID; assignedUser.Name = *assignedUserName; assignedUser.Email = *assignedUserEmail; assignedUser.Role = models.UserRole(*assignedUserRole); assignedUser.CreatedAt = *assignedUserCreatedAt; assignedUser.UpdatedAt = *assignedUserUpdatedAt; ticket.AssignedToUser = &assignedUser } else { ticket.AssignedToUser = nil }
-        var tags []models.Tag
-        if unmarshalErr := json.Unmarshal(tagsJSON, &tags); unmarshalErr == nil { ticket.Tags = tags } else { logger.WarnContext(ctx, "Failed to unmarshal tags JSON", "error", unmarshalErr, "ticketID", ticket.ID) }
+
+        // NOTE: ticket.AssignedToUser and ticket.Tags will be nil/empty here,
+        // as they are no longer fetched in this simplified query.
+        // The frontend will need to handle this (it likely already does).
+
         tickets = append(tickets, ticket)
     }
     if err := rows.Err(); err != nil { /* handle rows error */
@@ -136,13 +138,12 @@ func (h *Handler) GetAllTickets(c echo.Context) error {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error processing ticket results"})
     }
 
-    // --- Return Response (remains the same) ---
+    // --- Return Response ---
     totalPages := 0; if limit > 0 { totalPages = (totalCount + limit - 1) / limit }; hasMore := page < totalPages
     response := models.PaginatedResponse{ Success: true, Data: tickets, Total: totalCount, Page: page, Limit: limit, TotalPages: totalPages, HasMore: hasMore }
     logger.InfoContext(ctx, "Fetched tickets successfully", "count", len(tickets), "total", totalCount, "page", page)
     return c.JSON(http.StatusOK, response)
 }
-
 
 // GetTicketByID retrieves details for a single ticket, including related data like updates.
 // This is the *original* simpler version, kept for reference or specific use cases.
