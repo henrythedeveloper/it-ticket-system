@@ -98,13 +98,27 @@ func (h *Handler) UploadAttachment(c echo.Context) error {
 
 	// --- 5. Store Metadata in Database ---
 	var attachment models.Attachment
+
+	// Get user info for audit fields
+	uploadedByUserID, err := auth.GetUserIDFromContext(c)
+	if err != nil {
+		logger.WarnContext(ctx, "Failed to get user ID from context", "error", err)
+		uploadedByUserID = "" // fallback to empty
+	}
+	uploadedByRole, err := auth.GetUserRoleFromContext(c)
+	if err != nil {
+		logger.WarnContext(ctx, "Failed to get user role from context", "error", err)
+		uploadedByRole = ""
+	}
+
 	err = h.db.Pool.QueryRow(ctx, `
-        INSERT INTO attachments (ticket_id, filename, storage_path, mime_type, size, uploaded_at)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id, ticket_id, filename, storage_path, mime_type, size, uploaded_at
-    `, ticketID, fileHeader.Filename, storagePath, contentType, fileHeader.Size, time.Now()).Scan(
+	       INSERT INTO attachments (ticket_id, filename, storage_path, mime_type, size, uploaded_at, uploaded_by_user_id, uploaded_by_role)
+	       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	       RETURNING id, ticket_id, filename, storage_path, mime_type, size, uploaded_at, uploaded_by_user_id, uploaded_by_role
+	   `, ticketID, fileHeader.Filename, storagePath, contentType, fileHeader.Size, time.Now(), uploadedByUserID, uploadedByRole).Scan(
 		&attachment.ID, &attachment.TicketID, &attachment.Filename,
 		&attachment.StoragePath, &attachment.MimeType, &attachment.Size, &attachment.UploadedAt,
+		&attachment.UploadedByUserID, &attachment.UploadedByRole,
 	)
 	if err != nil {
 		logger.ErrorContext(ctx, "Failed to store attachment metadata in database", "filename", fileHeader.Filename, "storagePath", storagePath, "error", err)

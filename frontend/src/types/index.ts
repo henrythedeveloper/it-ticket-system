@@ -54,6 +54,8 @@ export interface TicketAttachment {
   url: string;
   uploadedAt: string;
   storagePath?: string;
+  uploadedByUserId?: string;
+  uploadedByRole?: string;
 }
 
 export interface Ticket {

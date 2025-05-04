@@ -136,14 +136,16 @@ type TicketStatusUpdate struct {
 }
 
 type Attachment struct {
-	ID          string    `json:"id"`
-	TicketID    string    `json:"ticket_id"`
-	Filename    string    `json:"filename"`
-	StoragePath string    `json:"storage_path"`
-	MimeType    string    `json:"mime_type"`
-	Size        int64     `json:"size"`
-	UploadedAt  time.Time `json:"uploaded_at"`
-	URL         string    `json:"url,omitempty"` // Added for frontend convenience
+	ID                string    `json:"id"`
+	TicketID          string    `json:"ticket_id"`
+	Filename          string    `json:"filename"`
+	StoragePath       string    `json:"storage_path"`
+	MimeType          string    `json:"mime_type"`
+	Size              int64     `json:"size"`
+	UploadedAt        time.Time `json:"uploaded_at"`
+	URL               string    `json:"url,omitempty"` // Added for frontend convenience
+	UploadedByUserID  string    `json:"uploaded_by_user_id"`
+	UploadedByRole    string    `json:"uploaded_by_role"`
 }
 
 // ==========================================================================

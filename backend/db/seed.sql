@@ -62,6 +62,8 @@ CREATE TABLE attachments (
     mime_type VARCHAR(100) NOT NULL,
     size BIGINT NOT NULL,
     uploaded_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    uploaded_by_user_id UUID REFERENCES users(id),
+    uploaded_by_role VARCHAR(20),
     url VARCHAR(255)
 );
 

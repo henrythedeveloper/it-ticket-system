@@ -144,6 +144,15 @@ const TicketDetailPage: React.FC = () => {
 
   // --- Render Main Content (currentTicket is guaranteed non-null here) ---
   console.log('[TicketDetailPage] Rendering ticket details for ID:', currentTicket.id);
+  // --- Attachment Section Logic ---
+  const attachments = currentTicket.attachments || [];
+  const submitterAttachments = attachments.filter(
+    (a) => a.uploadedByRole !== 'Admin' && a.uploadedByRole !== 'Staff'
+  );
+  const adminStaffAttachments = attachments.filter(
+    (a) => a.uploadedByRole === 'Admin' || a.uploadedByRole === 'Staff'
+  );
+
   return (
     <div className="ticket-detail-page">
       <div className="page-header">
@@ -161,6 +170,26 @@ const TicketDetailPage: React.FC = () => {
           <div className="ticket-card">
             <TicketCard ticket={currentTicket} />
           </div>
+
+          {/* Submitter Attachments */}
+          <div className="ticket-attachments">
+            <h3>Submitter Attachments</h3>
+            {submitterAttachments.length > 0 ? (
+              <ul>
+                {submitterAttachments.map((att) => (
+                  <li key={att.id}>
+                    <a href={att.url} target="_blank" rel="noopener noreferrer">
+                      {att.filename}
+                    </a>{" "}
+                    ({att.mimeType}, {Math.round(att.size / 1024)} KB)
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No attachments from submitter.</p>
+            )}
+          </div>
+
           <div className="ticket-updates">
             <div className="updates-header">
               <h3>Comments & Updates</h3>
@@ -208,6 +237,25 @@ const TicketDetailPage: React.FC = () => {
               onUpdateSuccess={handleTicketUpdate}
               onCancel={() => {}}
             />
+          </div>
+          {/* Admin/Staff Attachments Section */}
+          <div className="sidebar-card" style={{ marginTop: 24 }}>
+            <h3>Admin/Staff Attachments</h3>
+            {adminStaffAttachments.length > 0 ? (
+              <ul>
+                {adminStaffAttachments.map((att) => (
+                  <li key={att.id}>
+                    <a href={att.url} target="_blank" rel="noopener noreferrer">
+                      {att.filename}
+                    </a>{" "}
+                    ({att.mimeType}, {Math.round(att.size / 1024)} KB)
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No admin/staff attachments.</p>
+            )}
+            {/* TODO: Add upload form for admin/staff here */}
           </div>
         </div>
       </div>

@@ -314,9 +314,18 @@ func (h *Handler) GetTicketByIDOptimized(c echo.Context) error {
 			GROUP BY tt.ticket_id
 		) tags_agg ON t.id = tags_agg.ticket_id
 		LEFT JOIN (
-			SELECT at.ticket_id, json_agg(json_build_object('id', at.id, 'filename', at.filename, 'mime_type', at.mime_type, 'size', at.size, 'uploaded_at', at.uploaded_at, 'url', at.url)) AS attachments_json
-			FROM attachments at
-			GROUP BY at.ticket_id
+			SELECT at.ticket_id, json_agg(json_build_object(
+				'id', at.id,
+				'filename', at.filename,
+				'mime_type', at.mime_type,
+				'size', at.size,
+				'uploaded_at', at.uploaded_at,
+				'url', at.url,
+				'uploaded_by_user_id', at.uploaded_by_user_id,
+				'uploaded_by_role', at.uploaded_by_role
+			)) AS attachments_json
+				FROM attachments at
+				GROUP BY at.ticket_id
 		) attachments_agg ON t.id = attachments_agg.ticket_id
 		WHERE t.id = $1
 	`
