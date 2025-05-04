@@ -57,6 +57,10 @@ const TicketsPage: React.FC = () => {
   const currentAssignee = useMemo(() => searchParams.get('assigned_to') || '', [searchParams]);
   const currentSearch = useMemo(() => searchParams.get('search') || '', [searchParams]);
   const currentTags = useMemo(() => searchParams.get('tags')?.split(',').filter(tag => tag) || [], [searchParams]);
+  const currentSortBy = useMemo(() => searchParams.get('sortBy') || 'updatedAt', [searchParams]);
+  const currentSortOrder = useMemo(() => searchParams.get('sortOrder') || 'desc', [searchParams]);
+
+  const validSortOrder = (currentSortOrder === "asc" || currentSortOrder === "desc") ? currentSortOrder : undefined;
 
   // --- Data Fetching ---
   useEffect(() => {
@@ -67,10 +71,12 @@ const TicketsPage: React.FC = () => {
         assignedTo: currentAssignee || undefined,
         search: currentSearch || undefined,
         tags: currentTags.length > 0 ? currentTags : undefined,
+        sortBy: currentSortBy || undefined,
+        sortOrder: validSortOrder,
     };
     fetchTickets(filtersFromUrl);
     return () => { clearError(); };
-  }, [currentPage, currentStatus, currentUrgency, currentAssignee, currentSearch, currentTags, fetchTickets, clearError]);
+  }, [currentPage, currentStatus, currentUrgency, currentAssignee, currentSearch, currentTags, currentSortBy, currentSortOrder, validSortOrder, fetchTickets, clearError]);
 
   // --- Handlers ---
   const handleFilterChange = (param: string, value: string) => {
@@ -107,9 +113,21 @@ const TicketsPage: React.FC = () => {
       window.scrollTo(0, 0);
   };
 
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const [sortBy, sortOrder] = e.target.value.split('-');
+    setSearchParams(prevParams => {
+      const newParams = new URLSearchParams(prevParams);
+      newParams.set('sortBy', sortBy);
+      newParams.set('sortOrder', sortOrder);
+      newParams.set('page', '1');
+      return newParams;
+    }, { replace: true });
+  };
+
   // --- Options for Filters ---
   const assigneeOptions = [
     { value: '', label: 'All Assignees' },
+    { value: 'all', label: 'All Tickets' }, // For parity with TicketListPage
     { value: 'unassigned', label: 'Unassigned' },
     ...(user ? [{ value: 'me', label: 'Assigned to Me' }] : []),
     ...assignableUsers.map(u => ({ value: u.id, label: u.name })),
@@ -122,6 +140,14 @@ const TicketsPage: React.FC = () => {
     { value: '', label: 'All Urgencies' }, { value: 'Low', label: 'Low' },
     { value: 'Medium', label: 'Medium' }, { value: 'High', label: 'High' },
     { value: 'Critical', label: 'Critical' },
+  ];
+  const sortOptions = [
+    { value: 'updatedAt-desc', label: 'Latest Update' },
+    { value: 'createdAt-desc', label: 'Newest First' },
+    { value: 'createdAt-asc', label: 'Oldest First' },
+    { value: 'urgency-desc', label: 'Highest Urgency' },
+    { value: 'urgency-asc', label: 'Lowest Urgency' },
+    { value: 'ticketNumber-asc', label: 'Ticket Number' },
   ];
 
   // --- Table Columns ---
@@ -162,16 +188,15 @@ const TicketsPage: React.FC = () => {
                 placeholder="Search by subject, description, ID, submitter..."
                 value={currentSearch}
                 onChange={handleSearchChange}
-                className="search-input" // Ensure this class applies necessary styles
+                className="search-input"
               />
-              {/* Add Button with Search Icon */}
               <Button
-                type="button" // Type is button as search happens on change
-                variant="secondary" // Or primary, depending on desired style
-                className="search-button" // Add class for specific styling if needed
+                type="button"
+                variant="secondary"
+                className="search-button"
                 aria-label="Search"
               >
-                <Search size={18} /> {/* Use Search Icon */}
+                <Search size={18} />
               </Button>
           </form>
           {/* Dropdown Filters */}
@@ -192,6 +217,12 @@ const TicketsPage: React.FC = () => {
                   <label htmlFor="assignee-filter">Assignee:</label>
                   <select id="assignee-filter" value={currentAssignee} onChange={(e) => handleFilterChange('assigned_to', e.target.value)} className="filter-select">
                       {assigneeOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  </select>
+              </div>
+              <div className="filter-group">
+                  <label htmlFor="sortby-filter">Sort By:</label>
+                  <select id="sortby-filter" value={`${currentSortBy}-${currentSortOrder}`} onChange={handleSortChange} className="filter-select">
+                    {sortOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                   </select>
               </div>
               {filtersActive && (
