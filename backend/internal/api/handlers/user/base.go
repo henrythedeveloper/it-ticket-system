@@ -2,6 +2,8 @@
 // ==========================================================================
 // Base setup for the user handler package. Defines the Handler struct
 // and registers routes for user management and authentication endpoints.
+// **REVISED**: Added registration and password reset routes (public).
+//              Moved login to be registered here for consistency.
 // ==========================================================================
 
 package user
@@ -10,7 +12,9 @@ import (
 	"log/slog" // Use structured logging
 
 	"github.com/henrythedeveloper/it-ticket-system/internal/auth" // Corrected import path
+	"github.com/henrythedeveloper/it-ticket-system/internal/config" // Import config
 	"github.com/henrythedeveloper/it-ticket-system/internal/db"   // Corrected import path
+	"github.com/henrythedeveloper/it-ticket-system/internal/email" // Import email service
 	"github.com/labstack/echo/v4"
 )
 
@@ -18,8 +22,10 @@ import (
 
 // Handler holds dependencies for user-related request handlers.
 type Handler struct {
-	db          *db.DB       // Database connection pool
-	authService auth.Service // Service for authentication logic (hashing, tokens)
+	db           *db.DB        // Database connection pool
+	authService  auth.Service  // Service for authentication logic (hashing, tokens)
+	emailService email.Service // Service for sending emails (needed for registration/reset)
+	config       *config.Config // Access to config (e.g., for PortalBaseURL)
 }
 
 // --- Constructor ---
@@ -30,39 +36,49 @@ type Handler struct {
 // Parameters:
 //   - db: The database connection pool (*db.DB).
 //   - authService: The authentication service (auth.Service).
+//   - emailService: The email service (email.Service).
+//   - cfg: The application configuration (*config.Config).
 //
 // Returns:
 //   - *Handler: A pointer to the newly created Handler.
-func NewHandler(db *db.DB, authService auth.Service) *Handler {
+func NewHandler(db *db.DB, authService auth.Service, emailService email.Service, cfg *config.Config) *Handler {
 	return &Handler{
-		db:          db,
-		authService: authService,
+		db:           db,
+		authService:  authService,
+		emailService: emailService, // Add email service
+		config:       cfg,          // Add config
 	}
 }
 
 // --- Route Registration ---
 
-// RegisterRoutes defines and registers all API routes managed by this user handler.
-// It maps HTTP methods and paths to specific handler functions and applies necessary middleware.
+// RegisterAuthRoutes registers public authentication-related routes.
+// These routes should NOT have JWT middleware applied.
 //
 // Parameters:
-//   - g: The echo group to register routes onto (*echo.Group). This group might already
-//     have authentication middleware applied (e.g., for /api/users).
-//   - h: The user Handler instance containing the handler functions (*Handler).
-//   - adminMiddleware: The middleware function to restrict access to Admins only.
-//   - authMiddleware: The middleware function to ensure user is authenticated (applied by caller).
-func RegisterRoutes(g *echo.Group, h *Handler, adminMiddleware echo.MiddlewareFunc) {
-	// Log route registration at Debug level for clarity
-	slog.Debug("Registering user routes")
+//   - g: The echo group (e.g., /api/auth) to register routes onto (*echo.Group).
+//   - h: The user Handler instance (*Handler).
+func RegisterAuthRoutes(g *echo.Group, h *Handler) {
+	slog.Debug("Registering public authentication routes")
+	g.POST("/login", h.Login)                   // POST /api/auth/login
+	g.POST("/register", h.RegisterUser)         // POST /api/auth/register
+	g.POST("/forgot-password", h.RequestPasswordReset) // POST /api/auth/forgot-password
+	g.POST("/reset-password", h.ResetPassword)   // POST /api/auth/reset-password
+	slog.Debug("Finished registering public authentication routes")
+}
 
-	// --- Public Auth Routes (Typically registered outside the main '/users' group) ---
-	// Example: If login is under /api/auth/login, it's registered in server.go
-	// g.POST("/auth/login", h.Login) // This line assumes login is NOT under /api/users
+// RegisterUserManagementRoutes registers routes for managing user resources.
+// These routes typically require authentication and potentially admin privileges.
+//
+// Parameters:
+//   - g: The echo group (e.g., /api/users) which should have JWT middleware applied.
+//   - h: The user Handler instance (*Handler).
+//   - adminMiddleware: Middleware to restrict access to Admins only.
+func RegisterUserManagementRoutes(g *echo.Group, h *Handler, adminMiddleware echo.MiddlewareFunc) {
+	slog.Debug("Registering user management routes")
 
-	// --- Authenticated User Routes (Assume 'g' is already protected by JWT middleware) ---
-
-	// Get current user's profile
-	g.GET("/me", h.GetCurrentUser) // GET /api/users/me (or /api/auth/profile)
+	// Get current user's profile (already authenticated via group middleware)
+	g.GET("/me", h.GetCurrentUser) // GET /api/users/me
 
 	// Get all users (Admin only)
 	g.GET("", h.GetAllUsers, adminMiddleware) // GET /api/users
@@ -79,19 +95,6 @@ func RegisterRoutes(g *echo.Group, h *Handler, adminMiddleware echo.MiddlewareFu
 	// Delete a user (Admin only)
 	g.DELETE("/:id", h.DeleteUser, adminMiddleware) // DELETE /api/users/{id}
 
-	// --- Log Registered Routes within this Group ---
-	// Note: Logging individual routes as they are registered above is usually sufficient.
-	// The block below attempting to log all routes from the group is removed
-	// as g.Echo() and g.Prefix are not accessible.
-	/*
-		routes := g.Echo().Routes() // This line causes: g.Echo undefined
-		for _, r := range routes {
-			// Only log routes that start with the current group's prefix to avoid duplication
-			if strings.HasPrefix(r.Path, g.Prefix) { // This line causes: g.Prefix undefined
-				slog.Debug("Registered user route", "method", r.Method, "path", r.Path)
-			}
-		}
-	*/
-
-	slog.Debug("Finished registering user routes")
+	slog.Debug("Finished registering user management routes")
 }
+

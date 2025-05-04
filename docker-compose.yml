@@ -5,14 +5,14 @@ services:
   nginx:
     build: ./nginx
     ports:
-      - "80:80"
+      - "80:80" # Main entry point is port 80
       - "443:443"
     restart: unless-stopped
     depends_on:
       - frontend
       - backend
     volumes:
-      - ./nginx/certs:/etc/nginx/certs
+      - ./nginx/certs:/etc/nginx/certs # Optional for HTTPS
     networks:
       - helpdesk-network
 
@@ -22,7 +22,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - PUBLIC_API_URL=/api
+        - PUBLIC_API_URL=/api # This is for API calls *from* frontend JS
     environment:
       - NODE_ENV=production
       - PUBLIC_API_URL=/api
@@ -30,7 +30,7 @@ services:
       - helpdesk-network
     depends_on:
       - backend
-      
+
   # Add MailDev Service
   maildev:
     image: maildev/maildev # Use the official image
@@ -47,7 +47,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      - PORTAL_BASE_URL=${PORTAL_BASE_URL}
+      # *** CORRECTED PORTAL_BASE_URL ***
+      - PORTAL_BASE_URL=http://localhost # Use port 80 base URL
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${DB_USER}
@@ -55,7 +56,7 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_SSL_MODE=disable
       - EMAIL_PROVIDER=smtp # Change provider name
-      - EMAIL_FROM=${EMAIL_FROM:-test@helpdesk.local} # Use a local/dummy from address
+      - EMAIL_FROM=${EMAIL_FROM:-ithelpdesk@example.com} # Use a local/dummy from address
       - SMTP_HOST=maildev # Service name in Docker network
       - SMTP_PORT=1025 # Default MailDev SMTP port
       - SMTP_USER= # MailDev default has no auth
@@ -66,7 +67,7 @@ services:
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
       - JWT_SECRET=${JWT_SECRET}
-      - PORT=8080
+      - PORT=8080 # Internal port the Go app listens on
     restart: unless-stopped
     depends_on:
       postgres:
@@ -87,7 +88,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
       - ./backend/db/seed.sql:/docker-entrypoint-initdb.d/seed.sql
     ports:
-      - "5433:5432"
+      - "5433:5432" # Expose DB on host 5433 for external tools if needed
     networks:
       - helpdesk-network
     healthcheck:
@@ -104,7 +105,7 @@ services:
     environment:
       - MINIO_ROOT_USER=${S3_ACCESS_KEY}
       - MINIO_ROOT_PASSWORD=${S3_SECRET_KEY}
-      - MINIO_SERVER_URL=http://localhost:9000
+      - MINIO_SERVER_URL=http://localhost:9000 # URL for accessing MinIO console/API from host
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"  # API
@@ -138,3 +139,4 @@ networks:
 volumes:
   postgres-data:
   minio-data:
+

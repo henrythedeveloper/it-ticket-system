@@ -1,6 +1,7 @@
 // src/types/index.ts
 // ==========================================================================
 // Centralized type definitions for the application.
+// **REVISED**: Changed PasswordResetPayload keys to camelCase.
 // ==========================================================================
 
 // --- User & Auth ---
@@ -78,7 +79,6 @@ export interface Ticket {
   resolutionNotes?: string | null;
   updates?: TicketUpdate[];
   attachments?: TicketAttachment[];
-  tagNames?: string;
 }
 
 // --- Ticket Context Types ---
@@ -111,10 +111,10 @@ export interface TicketContextType {
   isLoading: boolean;
   error: string | null;
   filters: TicketFilter;
-  notifications: Notification[]; 
+  notifications: Notification[];
   hasNewNotifications: boolean;
   assignableUsers: Pick<User, 'id' | 'name'>[];
-  availableTags: Tag[]; 
+  availableTags: Tag[];
   // Actions / Handlers
   markNotificationsAsRead: () => void;
   checkForNewNotifications: () => Promise<void>;
@@ -124,11 +124,8 @@ export interface TicketContextType {
   refreshCurrentTicket: () => Promise<void>;
   setFilters: (newFilters: Partial<TicketFilter>) => void;
   clearError: () => void;
-  loadFiltersData: () => Promise<void>; 
+  loadFiltersData: () => Promise<void>;
 }
-
-
-
 
 // --- Notification ---
 export interface Notification {
@@ -194,12 +191,33 @@ export interface LoginFormInputs { email: string; password?: string; }
 export interface TicketCommentFormInputs { content: string; isInternalNote?: boolean; }
 export interface TicketStatusFormInputs { status: TicketStatus; assignedToId?: string | null; resolutionNotes?: string; }
 
+// *** Exports for New Types ***
+export interface UserRegister {
+    name: string;
+    email: string;
+    password?: string; // Optional for update, required for create
+    confirmPassword?: string; // Only for frontend validation
+}
+
+export interface PasswordResetRequest {
+    email: string;
+}
+
+export interface PasswordResetPayload {
+    token: string;
+    // *** FIXED: Use camelCase to match backend json tags and frontend form ***
+    newPassword?: string;
+    confirmPassword?: string;
+}
+// *** End Exports ***
+
+
 // --- UI Context ---
 export interface ThemeState { theme: 'light' | 'dark'; }
 export interface ThemeContextType extends ThemeState { toggleTheme: () => void; }
 export interface SidebarState { isOpen: boolean; }
-export interface SidebarContextType extends SidebarState { 
-  toggleSidebar: () => void; 
-  openSidebar: () => void; 
-  closeSidebar: () => void; 
+export interface SidebarContextType extends SidebarState {
+  toggleSidebar: () => void;
+  openSidebar: () => void;
+  closeSidebar: () => void;
 }

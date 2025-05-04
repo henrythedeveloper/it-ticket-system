@@ -1,11 +1,11 @@
 // src/services/authService.ts
 // ==========================================================================
 // Service functions for handling authentication-related API calls.
-// **FIXED**: Changed fetchUserProfile endpoint from /auth/profile to /users/me.
+// **REVISED**: Added register, requestPasswordReset, resetPassword functions.
 // ==========================================================================
 
 import api from './api'; // Import the configured Axios instance
-import { User, LoginFormInputs } from '../types'; // Import relevant types
+import { User, LoginFormInputs, UserRegister, PasswordResetRequest, PasswordResetPayload, APIResponse } from '../types'; // Import relevant types
 import { keysToCamel } from '../utils/helpers'; // Import keysToCamel
 
 /**
@@ -26,25 +26,29 @@ interface LoginResponse {
 export const login = async (credentials: LoginFormInputs): Promise<LoginResponse> => {
     try {
         // Define the expected structure of the backend's login API response
-        interface APIResponse {
+        interface APILoginResponse {
             success: boolean;
             message: string;
             data: {
                 access_token: string;
                 token_type: string;
                 expires_at: string;
-                user: User;
+                user: any; // Use 'any' initially, then map
             };
         }
 
         // Make the POST request to the login endpoint
-        const response = await api.post<APIResponse>('/auth/login', credentials);
+        const response = await api.post<APILoginResponse>('/auth/login', credentials);
         const { data } = response.data; // Extract the nested data object
+
+        if (!data || !data.access_token || !data.user) {
+            throw new Error("Invalid login response structure from API.");
+        }
 
         // Return the token and user details in the expected LoginResponse format
         return {
             token: data.access_token,
-            user: keysToCamel(data.user)
+            user: keysToCamel<User>(data.user) // Map user data
         };
     } catch (error: any) {
         // Handle potential errors during login
@@ -67,16 +71,82 @@ export const login = async (credentials: LoginFormInputs): Promise<LoginResponse
 export const fetchUserProfile = async (): Promise<User> => {
     try {
         // The token is automatically added by the interceptor
-        const response = await api.get('/users/me');
-        // The backend returns { success, data }, so return only the user object
-        return keysToCamel(response.data.data);
-    } catch (error) {
+        // Backend returns { success, data: User }
+        const response = await api.get<APIResponse<any>>('/users/me');
+
+        if (!response.data?.success || !response.data.data) {
+             throw new Error(response.data?.message || "Failed to fetch user profile.");
+        }
+        return keysToCamel<User>(response.data.data);
+    } catch (error: any) {
         // Handle potential errors during profile fetch
-        console.error('Fetch user profile API error:', error);
+        const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch profile.';
+        console.error('Fetch user profile API error:', { message: errorMessage, error });
         // Re-throw the error to be handled by the calling code (e.g., AuthContext)
-        throw error;
+        throw new Error(errorMessage);
     }
 };
 
-// TODO: Add other auth-related functions if needed (e.g., register, refreshToken, forgotPassword)
+/**
+ * Sends registration details to the API.
+ * @param registrationData - User's name, email, and password.
+ * @returns A Promise resolving with the newly created User object.
+ */
+export const register = async (registrationData: UserRegister): Promise<User> => {
+    try {
+        // Backend returns { success, message, data: User }
+        const response = await api.post<APIResponse<any>>('/auth/register', registrationData);
+
+        if (!response.data?.success || !response.data.data) {
+            throw new Error(response.data?.message || "Registration failed.");
+        }
+        return keysToCamel<User>(response.data.data);
+    } catch (error: any) {
+        const errorMessage = error.response?.data?.message || error.message || 'Registration failed.';
+        console.error('Registration API error:', { message: errorMessage, error });
+        throw new Error(errorMessage);
+    }
+};
+
+/**
+ * Sends a request to the API to initiate the password reset process for an email.
+ * @param resetRequest - Object containing the user's email.
+ * @returns A Promise resolving with the API response message.
+ */
+export const requestPasswordReset = async (resetRequest: PasswordResetRequest): Promise<string> => {
+    try {
+        // Backend returns { success, message }
+        const response = await api.post<APIResponse<never>>('/auth/forgot-password', resetRequest);
+
+        if (!response.data?.success) {
+            throw new Error(response.data?.message || "Password reset request failed.");
+        }
+        return response.data.message || "Password reset request sent successfully."; // Return the success message
+    } catch (error: any) {
+        const errorMessage = error.response?.data?.message || error.message || 'Password reset request failed.';
+        console.error('Request password reset API error:', { message: errorMessage, error });
+        throw new Error(errorMessage);
+    }
+};
+
+/**
+ * Sends the password reset token and new password to the API.
+ * @param resetPayload - Object containing the token and new password details.
+ * @returns A Promise resolving with the API response message.
+ */
+export const resetPassword = async (resetPayload: PasswordResetPayload): Promise<string> => {
+    try {
+        // Backend returns { success, message }
+        const response = await api.post<APIResponse<never>>('/auth/reset-password', resetPayload);
+
+        if (!response.data?.success) {
+            throw new Error(response.data?.message || "Password reset failed.");
+        }
+        return response.data.message || "Password reset successfully."; // Return the success message
+    } catch (error: any) {
+        const errorMessage = error.response?.data?.message || error.message || 'Password reset failed.';
+        console.error('Reset password API error:', { message: errorMessage, error });
+        throw new Error(errorMessage);
+    }
+};
 

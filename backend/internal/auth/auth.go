@@ -2,11 +2,14 @@
 // ==========================================================================
 // Provides services for handling authentication tasks: password hashing/checking
 // and JWT generation/validation.
+// **REVISED**: Added GenerateSecureRandomToken helper function.
 // ==========================================================================
 
 package auth
 
 import (
+	"crypto/rand" // For generating secure random tokens
+	"encoding/base64" // For encoding the token
 	"errors"
 	"fmt"
 	"log/slog" // Use structured logging
@@ -31,6 +34,8 @@ type Service interface {
 	GenerateToken(user models.User) (models.Token, error)
 	// ValidateToken parses and validates a JWT string, returning the claims if valid.
 	ValidateToken(tokenString string) (*Claims, error)
+	// GenerateSecureRandomToken generates a cryptographically secure random token string.
+	GenerateSecureRandomToken(length int) (string, error)
 }
 
 // --- Service Implementation ---
@@ -141,7 +146,6 @@ func (s *AuthService) GenerateToken(user models.User) (models.Token, error) {
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Subject:   user.ID,       // Use user ID as the subject
 			Issuer:    "HelpdeskAPI", // Optional: Identify the issuer
-			// Audience: []string{"HelpdeskFrontend"}, // Optional: Specify intended audience
 		},
 	}
 
@@ -213,4 +217,26 @@ func (s *AuthService) ValidateToken(tokenString string) (*Claims, error) {
 	// Token is valid, return the extracted claims
 	s.logger.Debug("JWT validated successfully", "userID", claims.UserID, "role", claims.Role)
 	return claims, nil
+}
+
+// GenerateSecureRandomToken generates a URL-safe, base64-encoded random token.
+// Useful for password resets or email confirmations.
+//
+// Parameters:
+//   - length: The desired length of the raw random bytes before encoding (e.g., 32).
+//
+// Returns:
+//   - string: The base64 URL-encoded random token string.
+//   - error: An error if reading random bytes fails.
+func (s *AuthService) GenerateSecureRandomToken(length int) (string, error) {
+	randomBytes := make([]byte, length)
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		s.logger.Error("Failed to read random bytes for token generation", "error", err)
+		return "", fmt.Errorf("failed to generate secure token: %w", err)
+	}
+	// Use URL-safe base64 encoding without padding
+	token := base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(randomBytes)
+	s.logger.Debug("Generated secure random token", "byteLength", length)
+	return token, nil
 }

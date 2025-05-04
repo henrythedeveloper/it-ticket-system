@@ -1,7 +1,8 @@
-// src/components/layouts/AuthLayout.tsx
+// src/layouts/AuthLayout.tsx
 // ==========================================================================
 // Layout component specifically for authentication pages (e.g., Login).
 // Provides a centered container structure.
+// **REVISED**: Added Login link to the footer links.
 // ==========================================================================
 
 import React from 'react';
@@ -12,6 +13,7 @@ import { Outlet, Link } from 'react-router-dom'; // Renders nested routes
 /**
  * Renders the layout structure for authentication pages.
  * Centers the content (rendered via <Outlet />) within a container.
+ * Includes links for login, registration, and password recovery.
  */
 const AuthLayout: React.FC = () => {
   return (
@@ -26,16 +28,25 @@ const AuthLayout: React.FC = () => {
 
         {/* Main content area where nested routes (like LoginPage) will render */}
         <main className="auth-content">
-          <Outlet />
+          <Outlet /> {/* Renders LoginPage, RegisterPage, etc. */}
         </main>
 
-        {/* Optional: Footer section within the auth container */}
-        {/* <footer className="auth-footer">
-          <p>&copy; {new Date().getFullYear()} HelpDesk System</p>
-        </footer> */}
+        {/* Footer section within the auth container */}
+        <footer className="auth-footer">
+          <div className="auth-links">
+            {/* Added Login Link */}
+            <Link to="/login">Login</Link>
+            <span className="link-separator">|</span>
+            <Link to="/register">Register New Account</Link>
+            <span className="link-separator">|</span>
+            <Link to="/forgot-password">Forgot Password?</Link>
+          </div>
+          <p className="copyright">&copy; {new Date().getFullYear()} HelpDesk System</p>
+        </footer>
       </div>
     </div>
   );
 };
 
 export default AuthLayout;
+

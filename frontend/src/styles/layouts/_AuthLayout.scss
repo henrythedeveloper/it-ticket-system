@@ -2,7 +2,7 @@
 // ==========================================================================
 // Styles for the authentication layout (Login page).
 // Centers content vertically and horizontally.
-// **REVISED: Ensured all colors use CSS variables.**
+// **REVISED**: Added styles for .auth-links and .copyright in the footer.
 // ==========================================================================
 
 @use '../variables' as *; // Needed for layout vars like $spacing, $breakpoint
@@ -20,10 +20,10 @@
   // Centered container for the auth form
   .auth-container {
     background-color: var(--surface-bg); // Use CSS variable
-    border: 1px solid var(--border-color); // Use CSS variable
+    border: 1px solid var(--border-color); // Use CSS var
     padding: $spacing-8;
     border-radius: $border-radius-lg;
-    box-shadow: $shadow; // Shadow might need adjustment for dark mode
+    box-shadow: var(--shadow); // Shadow might need adjustment for dark mode
     width: 100%;
     max-width: 450px; // Max width for the form container
     text-align: center;
@@ -46,6 +46,7 @@
 
     // Main content area (where the form goes)
     .auth-content {
+        margin-bottom: $spacing-6; // Add space between form and footer links
         // Styles for elements inside Outlet (e.g., LoginPage)
         h1 {
           color: var(--text-primary); // Use CSS variable
@@ -60,22 +61,35 @@
 
     // Footer section (Copyright, links)
     .auth-footer {
-      margin-top: $spacing-6;
+      margin-top: $spacing-4; // Reduced top margin
       padding-top: $spacing-4;
       border-top: 1px solid var(--border-color); // Use CSS variable
       transition: border-color $transition-medium;
 
-      p {
-        color: var(--text-muted); // Use CSS variable
-        font-size: $font-size-sm;
-        margin-bottom: $spacing-1;
-        transition: color $transition-medium;
-        a { // Link styling within footer
-            color: var(--text-link); // Use CSS variable
-            &:hover {
-              color: var(--text-link-hover); // Use CSS variable
-            }
+      // Styles for Register/Forgot Password links
+      .auth-links {
+        margin-bottom: $spacing-3; // Space between links and copyright
+        a {
+          color: var(--text-link); // Use CSS variable
+          font-size: $font-size-sm;
+          text-decoration: none; // Remove underline by default
+          &:hover {
+            color: var(--text-link-hover); // Use CSS variable
+            text-decoration: underline; // Add underline on hover
+          }
         }
+        .link-separator {
+          color: var(--text-muted); // Use CSS variable
+          margin: 0 $spacing-2; // Space around separator
+        }
+      }
+
+      // Style for copyright text
+      .copyright {
+        color: var(--text-muted); // Use CSS variable
+        font-size: $font-size-xs; // Smaller font size
+        margin: 0; // Remove default paragraph margin
+        transition: color $transition-medium;
       }
     }
   }

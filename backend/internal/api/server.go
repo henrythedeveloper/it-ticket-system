@@ -3,9 +3,7 @@
 // Configures and manages the main Echo web server instance.
 // Initializes middleware, creates handlers, registers routes, and manages
 // server lifecycle (start, shutdown).
-// **REVISED**: Added attachment download route.
-// **REVISED AGAIN**: Fixed import paths.
-// **UPDATED**: Integrated caching system.
+// **REVISED**: Separated public auth routes from protected user management routes.
 // ==========================================================================
 
 package api
@@ -21,7 +19,7 @@ import (
 	"github.com/henrythedeveloper/it-ticket-system/internal/api/handlers/faq"
 	"github.com/henrythedeveloper/it-ticket-system/internal/api/handlers/tag"
 	"github.com/henrythedeveloper/it-ticket-system/internal/api/handlers/ticket"
-	"github.com/henrythedeveloper/it-ticket-system/internal/api/handlers/user"
+	"github.com/henrythedeveloper/it-ticket-system/internal/api/handlers/user" // User handler package
 	authmw "github.com/henrythedeveloper/it-ticket-system/internal/api/middleware/auth" // Auth middleware
 
 	// Import core services and config
@@ -66,7 +64,6 @@ func NewServer(db *db.DB, emailService email.Service, fileService file.Service, 
 			RedisURL:          cfg.Cache.RedisURL,
 			UseMemoryCache:    cfg.Cache.Provider == "memory",
 		}
-
 		var err error
 		cacheService, err = cache.NewCache(cacheOptions)
 		if err != nil {
@@ -81,35 +78,20 @@ func NewServer(db *db.DB, emailService email.Service, fileService file.Service, 
 	}
 
 	// --- Setup Middleware ---
-	// Request Logger configuration (assuming it was correct)
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
-		LogStatus:    true,
-		LogURI:       true,
-		LogMethod:    true,
-		LogLatency:   true,
-		LogError:     true,
-		LogRemoteIP:  true,
+		LogStatus:    true, LogURI:       true, LogMethod:    true,
+		LogLatency:   true, LogError:     true, LogRemoteIP:  true,
 		LogUserAgent: true,
 		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
-			level := slog.LevelInfo
-			var errMsg string
-			if v.Error != nil {
-				errMsg = v.Error.Error()
-			}
-			if v.Status >= 500 {
-				level = slog.LevelError
-			}
-			if v.Status >= 400 {
-				level = slog.LevelWarn
-			}
+			level := slog.LevelInfo; var errMsg string
+			if v.Error != nil { errMsg = v.Error.Error() }
+			if v.Status >= 500 { level = slog.LevelError } else if v.Status >= 400 { level = slog.LevelWarn }
 			attrs := []slog.Attr{
 				slog.String("ip", v.RemoteIP), slog.String("method", v.Method),
 				slog.String("uri", v.URI), slog.Int("status", v.Status),
 				slog.Duration("latency", v.Latency), slog.String("user_agent", v.UserAgent),
 			}
-			if errMsg != "" {
-				attrs = append(attrs, slog.String("error", errMsg))
-			}
+			if errMsg != "" { attrs = append(attrs, slog.String("error", errMsg)) }
 			slog.LogAttrs(context.Background(), level, "HTTP Request", attrs...)
 			return nil
 		},
@@ -125,7 +107,8 @@ func NewServer(db *db.DB, emailService email.Service, fileService file.Service, 
 	// --- Initialize Handlers ---
 	faqHandler := faq.NewHandler(db)
 	tagHandler := tag.NewHandler(db)
-	userHandler := user.NewHandler(db, authService)
+	// Pass emailService and config to userHandler
+	userHandler := user.NewHandler(db, authService, emailService, cfg)
 	ticketHandler := ticket.NewHandler(db, emailService, fileService)
 	slog.Info("API handlers initialized")
 
@@ -139,24 +122,38 @@ func NewServer(db *db.DB, emailService email.Service, fileService file.Service, 
 
 	// --- Public Routes ---
 	slog.Debug("Registering public routes...")
-	apiGroup.POST("/auth/login", userHandler.Login)
+	// Public Auth Routes
+	authPublicGroup := apiGroup.Group("/auth") // Group for public auth actions
+	user.RegisterAuthRoutes(authPublicGroup, userHandler)
+
+	// Public Ticket Creation
 	apiGroup.POST("/tickets", ticketHandler.CreateTicket)
+
+	// Public FAQ Routes
 	faqGroupPublic := apiGroup.Group("/faq")
 	faqGroupPublic.GET("", faqHandler.GetAllFAQs)
 	faqGroupPublic.GET("/:id", faqHandler.GetFAQByID)
+
+	// Public Tag Routes
 	tagGroupPublic := apiGroup.Group("/tags")
 	tagGroupPublic.GET("", tagHandler.GetAllTags)
+
+	// Public Attachment Download
 	apiGroup.GET("/attachments/download/:attachmentId", ticketHandler.DownloadAttachment)
 	slog.Debug("Registered public route", "method", "GET", "path", "/api/attachments/download/:attachmentId")
 
 	// --- Protected Routes (Require JWT Authentication) ---
 	slog.Debug("Registering protected routes...")
-	authGroup := apiGroup.Group("", jwtMiddleware)
+	// Create a group that applies JWT middleware
+	protectedGroup := apiGroup.Group("", jwtMiddleware)
 
-	ticket.RegisterRoutes(authGroup.Group("/tickets"), ticketHandler)
-	user.RegisterRoutes(authGroup.Group("/users"), userHandler, adminMiddleware)
-	faq.RegisterRoutes(authGroup.Group("/faq"), faqHandler, adminMiddleware)
-	tag.RegisterRoutes(authGroup.Group("/tags"), tagHandler, adminMiddleware)
+	// Register resource routes under the protected group
+	ticket.RegisterRoutes(protectedGroup.Group("/tickets"), ticketHandler)
+	// Register user management routes (these already require JWT via protectedGroup)
+	user.RegisterUserManagementRoutes(protectedGroup.Group("/users"), userHandler, adminMiddleware)
+	// Register protected FAQ/Tag routes (admin-only write operations)
+	faq.RegisterRoutes(protectedGroup.Group("/faq"), faqHandler, adminMiddleware)
+	tag.RegisterRoutes(protectedGroup.Group("/tags"), tagHandler, adminMiddleware)
 
 	logRegisteredRoutes(e)
 	slog.Info("API server setup complete")
@@ -199,3 +196,4 @@ func logRegisteredRoutes(e *echo.Echo) {
 	}
 	slog.Debug("-------------------------")
 }
+
