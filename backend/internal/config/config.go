@@ -109,7 +109,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("PORT", 8080)
 	viper.SetDefault("JWT_EXPIRES", "24h")
 	viper.SetDefault("S3_DISABLE_SSL", false)
-	viper.SetDefault("EMAIL_PROVIDER", "smtp")
+	viper.SetDefault("EMAIL_PROVIDER", "resend")
 	viper.SetDefault("SMTP_HOST", "localhost") // Default for local dev (e.g., MailDev)
 	viper.SetDefault("SMTP_PORT", 1025)
 	viper.SetDefault("CACHE_ENABLED", true)
