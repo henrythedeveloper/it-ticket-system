@@ -2,11 +2,14 @@
 // ==========================================================================
 // Component representing the page for viewing and managing a single ticket.
 // Displays ticket details, updates, attachments, and allows actions.
-// **REVISED**: Added explicit null checks to satisfy TypeScript.
+// **REVISED**: Reordered attachment sections: Admin/Staff now above Submitter
+//              within the main ticket card area. Upload moved accordingly.
+// **REVISED**: Added sidebar-card class to attachment upload container.
+// **REVISED**: Adjusted renderAttachmentItem for better filename display.
 // ==========================================================================
 
-import React, { useEffect } from 'react';
-import AttachmentUpload from '../../components/forms/AttachmentUpload';
+import React, { useEffect, useState } from 'react';
+import AttachmentUpload from '../../components/forms/AttachmentUpload'; // Import AttachmentUpload
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTickets } from '../../context/TicketContext';
 import TicketCard from '../../components/tickets/TicketCard';
@@ -14,8 +17,11 @@ import TicketStatusForm from '../../components/forms/TicketStatusForm';
 import TicketCommentForm from '../../components/forms/TicketCommentForm';
 import Loader from '../../components/common/Loader';
 import Alert from '../../components/common/Alert';
+import Modal from '../../components/common/Modal'; // Import Modal component
 import { fetchUsers } from '../../services/userService';
-import { User, TicketUpdate, Ticket } from '../../types';
+import { User, TicketUpdate, Ticket, TicketAttachment } from '../../types';
+import { Download, Trash2, Paperclip } from 'lucide-react'; // Import icons
+import { formatBytes } from '../../utils/helpers'; // Import helper
 
 const TicketDetailPage: React.FC = () => {
   // --- Hooks & Params ---
@@ -31,172 +37,211 @@ const TicketDetailPage: React.FC = () => {
   } = useTickets();
 
   // --- State ---
-  const [assignableUsers, setAssignableUsers] = React.useState<Pick<User, 'id' | 'name'>[]>([]);
-
-  // --- Debugging Log ---
-  console.log(`[TicketDetailPage] Component rendered. ID from useParams: ${ticketId}`);
+  const [assignableUsers, setAssignableUsers] = useState<Pick<User, 'id' | 'name'>[]>([]);
+  const [previewAttachment, setPreviewAttachment] = useState<TicketAttachment | null>(null); // State for modal content
+  const [hoveredAttachmentId, setHoveredAttachmentId] = useState<string | null>(null); // State for hover preview
 
   // --- Effects ---
   useEffect(() => {
-    console.log(`[TicketDetailPage] useEffect running. ID dependency: ${ticketId}`);
     if (ticketId) {
-      console.log(`[TicketDetailPage] Fetching ticket data for ID: ${ticketId}`);
-      fetchTicketById(ticketId)
-        .then(ticket => {
-          // Optional: log success, but the context state update handles UI
-          console.log(`[TicketDetailPage] Fetched ticket data for ID ${ticketId}:`, ticket);
-        })
-        .catch(err => {
-          // Error state is handled by the context provider
-          console.error(`[TicketDetailPage] Error fetching ticket ${ticketId}:`, err);
-        });
-    } else {
-      console.warn('[TicketDetailPage] useEffect ran but ticketId is missing.');
-      // Optionally clear the current ticket if ID becomes null/undefined
-      // updateTicket(null); // Assuming updateTicket can handle null or add a specific clear function
+      fetchTicketById(ticketId);
     }
-    // Depend only on ticketId and the fetch function itself
   }, [ticketId, fetchTicketById]);
 
-
-  React.useEffect(() => {
-    console.log('[TicketDetailPage] Fetching assignable users...');
+  useEffect(() => {
     fetchUsers({ role: 'Admin,Staff', limit: 100 })
-      .then(res => {
-        console.log('[TicketDetailPage] Assignable users fetched:', res.data);
-        setAssignableUsers(res.data.map(u => ({ id: u.id, name: u.name })));
-      })
+      .then(res => setAssignableUsers(res.data.map(u => ({ id: u.id, name: u.name }))))
       .catch(err => console.error('[TicketDetailPage] Failed to load assignable users:', err));
   }, []);
 
   // --- Handlers ---
-  const handleTicketUpdate = (updatedTicketData: Partial<Ticket> & { assignedToUserId?: string | null }) => { // Expect potential assignedToUserId
-    console.log(`[TicketDetailPage] handleTicketUpdate called. Received updated ticket data:`, updatedTicketData);
-
-    // --- ADD THIS LOGIC ---
-    // Reconstruct the assignedTo object based on the ID and the assignableUsers list
-    let fullUpdatedTicket: Ticket = { ...currentTicket, ...updatedTicketData } as Ticket; // Start with current + updates
-
+  const handleTicketUpdate = (updatedTicketData: Partial<Ticket> & { assignedToUserId?: string | null }) => {
+    let fullUpdatedTicket: Ticket = { ...currentTicket, ...updatedTicketData } as Ticket;
     if (updatedTicketData.assignedToUserId) {
-        // Find the user object from the list fetched earlier
-        const assignedUser = assignableUsers.find(u => u.id === updatedTicketData.assignedToUserId);
-        if (assignedUser) {
-            fullUpdatedTicket.assignedTo = assignedUser; // Set the nested object
-        } else {
-            // User ID present but not found in the list (edge case?)
-            console.warn(`Assignee with ID ${updatedTicketData.assignedToUserId} not found in assignableUsers list.`);
-// Debug: Log assignableUsers and assignedToUserId for troubleshooting
-            console.error(
-              '[TicketDetailPage] Assignee not found in assignableUsers!',
-              { assignedToUserId: updatedTicketData.assignedToUserId, assignableUsers }
-            );
-            // Keep assignedTo as null or handle appropriately
-             fullUpdatedTicket.assignedTo = null;
-        }
-    } else if (updatedTicketData.hasOwnProperty('assignedToUserId')) { // Check if the property exists, even if null/undefined
-         // Explicitly set to unassigned
-// Refresh ticket data to ensure UI is up-to-date
-    refreshCurrentTicket();
-         fullUpdatedTicket.assignedTo = null;
-         fullUpdatedTicket.assignedToUserId = null; // Also clear the ID field
+      const assignedUser = assignableUsers.find(u => u.id === updatedTicketData.assignedToUserId);
+      fullUpdatedTicket.assignedTo = assignedUser || null;
+    } else if (updatedTicketData.hasOwnProperty('assignedToUserId')) {
+      fullUpdatedTicket.assignedTo = null;
+      fullUpdatedTicket.assignedToUserId = null;
     }
-    // Remove the potentially temporary assignedToUserId property if it exists at the top level
-    // delete fullUpdatedTicket.assignedToUserId; // This might cause issues if Ticket type expects it. Check your type. Assuming Ticket type has both assignedTo and assignedToUserId.
-
-    console.log(`[TicketDetailPage] handleTicketUpdate: Reconstructed ticket object for context:`, fullUpdatedTicket);
-    // --- END ADDED LOGIC ---
-
-    // Pass the *reconstructed* ticket object to the context update function
     const success: boolean = updateTicket(fullUpdatedTicket);
-
-    if (success) {
-      console.log(`[TicketDetailPage] Context state updated successfully for ticket ID: ${fullUpdatedTicket.id}`);
-      // Ensure UI is in sync by re-fetching the ticket from backend
-      refreshCurrentTicket();
-    } else {
-      console.error(`[TicketDetailPage] Failed to update context state for ticket ID: ${fullUpdatedTicket.id}`);
-    }
+    if (success) refreshCurrentTicket();
   };
 
   const handleCommentAdded = (newUpdate: TicketUpdate) => {
-    console.log('[TicketDetailPage] handleCommentAdded called. Refreshing ticket data. New update:', newUpdate);
     refreshCurrentTicket();
   };
 
+  // --- Attachment Handlers ---
+  const handleAttachmentClick = (attachment: TicketAttachment) => {
+    if (attachment.mimeType.startsWith('image/')) {
+      setPreviewAttachment(attachment); // Set attachment for modal view
+    } else {
+      // Directly download non-image files
+      window.open(attachment.url, '_blank');
+    }
+  };
+
+  const closePreviewModal = () => {
+    setPreviewAttachment(null); // Clear attachment to close modal
+  };
+
+  const handleAttachmentMouseEnter = (attachment: TicketAttachment) => {
+    if (attachment.mimeType.startsWith('image/')) {
+        setHoveredAttachmentId(attachment.id); // Set ID to show hover preview
+    }
+  };
+
+  const handleAttachmentMouseLeave = () => {
+    setHoveredAttachmentId(null); // Clear ID to hide hover preview
+  };
+
+  const handleAttachmentDelete = async (attachmentId: string) => {
+    if (!currentTicket) return;
+    if (window.confirm("Are you sure you want to delete this attachment?")) {
+      try {
+        // TODO: Replace with actual API call: await deleteTicketAttachment(currentTicket.id, attachmentId);
+        console.log(`Simulating delete for attachment ${attachmentId} on ticket ${currentTicket.id}`);
+        alert(`Attachment ${attachmentId} deletion simulated. Implement API call.`);
+        await refreshCurrentTicket(); // Refresh ticket data after deletion
+      } catch (error) {
+        console.error("Failed to delete attachment:", error);
+        alert("Failed to delete attachment.");
+      }
+    }
+  };
+
   // --- Render Logic ---
-  console.log(`[TicketDetailPage] Rendering. isLoading=${isLoading}, error=${error}, currentTicket ID=${currentTicket?.id}`);
+  if (isLoading && !currentTicket) return <Loader />;
+  if (error) return <Alert type="error" message={error} />;
+  if (!currentTicket) return <Alert type="error" message="Ticket not found" />;
 
-  // 1. Handle Loading State (especially initial load where currentTicket is null)
-  if (isLoading && !currentTicket) {
-    console.log('[TicketDetailPage] Rendering Loader (initial load)');
-    return <Loader />;
-  }
+  console.log("TicketDetailPage: Raw attachments:", currentTicket.attachments);
 
-  // 2. Handle Error State
-  if (error) {
-    console.log(`[TicketDetailPage] Rendering Alert for error: ${error}`);
-    return <Alert type="error" message={error} />;
-  }
-
-  // 3. Handle Not Found State (explicitly check for null *after* loading/error)
-  //    This check guarantees currentTicket is non-null for the code below.
-  if (!currentTicket) {
-    console.warn(`[TicketDetailPage] Rendering 'Ticket not found'. isLoading=${isLoading}, error=${error}, currentTicket is null.`);
-    return <Alert type="error" message="Ticket not found" />;
-  }
-
-  // --- Render Main Content (currentTicket is guaranteed non-null here) ---
-  console.log('[TicketDetailPage] Rendering ticket details for ID:', currentTicket.id);
-  // --- Attachment Section Logic ---
-  // --- DEBUG: Log attachments to verify keys ---
-  console.log("TicketDetailPage: Raw attachments from API:", currentTicket.attachments);
-
-
+  // Group attachments
   const attachments = currentTicket.attachments || [];
-  const submitterAttachments = attachments.filter(
-    (a) => a.uploadedByRole !== 'Admin' && a.uploadedByRole !== 'Staff'
-  );
   const adminStaffAttachments = attachments.filter(
     (a) => a.uploadedByRole === 'Admin' || a.uploadedByRole === 'Staff'
   );
+  const submitterAttachments = attachments.filter(
+    (a) => a.uploadedByRole !== 'Admin' && a.uploadedByRole !== 'Staff'
+  );
 
+
+  // --- Reusable Attachment Item Renderer ---
+  const renderAttachmentItem = (att: TicketAttachment) => {
+      const isImage = att.mimeType.startsWith('image/');
+      return (
+        <li
+          key={att.id}
+          className="attachment-item" // Ensure you have styles for this class
+          onMouseEnter={() => handleAttachmentMouseEnter(att)}
+          onMouseLeave={handleAttachmentMouseLeave}
+        >
+          {/* Container for Icon/Thumb + Filename */}
+          <div className="attachment-info">
+            {isImage ? (
+              <img
+                src={att.url} // Use URL directly for thumbnail
+                alt={`Thumbnail for ${att.filename}`}
+                className="attachment-thumbnail" // Style this class
+                onClick={() => handleAttachmentClick(att)} // Open modal on image click
+                style={{ cursor: 'pointer' }}
+              />
+            ) : (
+              <Paperclip size={24} className="attachment-icon"/> // Icon for non-images
+            )}
+            {/* Display filename next to icon/thumb */}
+            <span className="attachment-filename" title={att.filename}>{att.filename}</span>
+          </div>
+
+          {/* Container for Size + Actions */}
+          <div className="attachment-meta">
+            <span className="attachment-size">({formatBytes(att.size)})</span>
+            <div className="attachment-actions">
+              {/* Download button always available */}
+              <a href={att.url} target="_blank" rel="noopener noreferrer" title="Download Attachment">
+                <Download size={16} className="download-icon-btn" />
+              </a>
+              {/* Delete button - show based on permissions if needed */}
+              {/* TODO: Add permission check here (e.g., if user is Admin/Staff) */}
+              <button
+                onClick={() => handleAttachmentDelete(att.id)}
+                className="delete-icon-btn"
+                title="Delete Attachment"
+                // disabled={isDeleting} // Add state for disabling during delete
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Hover Preview (only for images) */}
+          {isImage && hoveredAttachmentId === att.id && (
+            <div className="attachment-hover-preview"> {/* Style this class */}
+              <img src={att.url} alt={`Preview of ${att.filename}`} />
+            </div>
+          )}
+        </li>
+      );
+  };
+
+  // --- Main Component Render ---
   return (
     <div className="ticket-detail-page">
       <div className="page-header">
         <h1>Ticket #{currentTicket.ticketNumber}</h1>
-        <button
-          className="btn btn-secondary"
-          onClick={() => navigate('/tickets')}
-        >
+        <button className="btn btn-secondary" onClick={() => navigate('/tickets')}>
           Back to Tickets
         </button>
       </div>
 
       <div className="ticket-grid">
+        {/* --- Main Content Area --- */}
         <div className="ticket-main">
+          {/* Ticket Info Card - Contains Ticket Details AND Attachments */}
           <div className="ticket-card">
+            {/* Core Ticket Details */}
             <TicketCard ticket={currentTicket} />
-          </div>
 
-          {/* Submitter Attachments */}
-          <div className="ticket-attachments">
-            <h3>Submitter Attachments</h3>
-            {submitterAttachments.length > 0 ? (
-              <ul>
-                {submitterAttachments.map((att) => (
-                  <li key={att.id}>
-                    <a href={att.url} target="_blank" rel="noopener noreferrer">
-                      {att.filename}
-                    </a>{" "}
-                    ({att.mimeType}, {Math.round(att.size / 1024)} KB)
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No attachments from submitter.</p>
+            {/* --- START: Attachment Sections (Reordered and inside ticket-card) --- */}
+
+            {/* Admin/Staff Attachments - DISPLAYED FIRST */}
+            <div className="ticket-attachments"> {/* Use common class */}
+              <h3>Admin/Staff Attachments</h3>
+              {adminStaffAttachments.length > 0 ? (
+                <ul className="attachment-list"> {/* Use common class */}
+                  {adminStaffAttachments.map(renderAttachmentItem)}
+                </ul>
+              ) : (
+                <p className="no-attachments">No attachments from admin or staff.</p>
+              )}
+            </div>
+
+            {/* Submitter Attachments - DISPLAYED SECOND */}
+            <div className="ticket-attachments"> {/* Use common class */}
+              <h3>Submitter Attachments</h3>
+              {submitterAttachments.length > 0 ? (
+                <ul className="attachment-list"> {/* Use common class */}
+                  {submitterAttachments.map(renderAttachmentItem)}
+                </ul>
+              ) : (
+                <p className="no-attachments">No attachments from submitter.</p>
+              )}
+            </div>
+
+            {/* Resolution Notes Section */}
+            {currentTicket.resolutionNotes && (
+                <div className="resolution-notes">
+                    <h3>Resolution Notes</h3>
+                    <p>{currentTicket.resolutionNotes}</p>
+                </div>
             )}
-          </div>
 
+            {/* --- END: Attachment Sections --- */}
+          </div> {/* End .ticket-card */}
+
+          {/* Comments/Updates Section (Remains outside ticket-card but in ticket-main) */}
           <div className="ticket-updates">
             <div className="updates-header">
               <h3>Comments & Updates</h3>
@@ -206,16 +251,16 @@ const TicketDetailPage: React.FC = () => {
                 currentTicket.updates.map((update) => (
                   <div
                     key={update.id}
-                    className={`update-item${update.isInternalNote ? ' internal-note' : ''}`}
+                    className={`update-item${update.isInternalNote ? ' internal-note' : ''} ${update.isSystemUpdate ? 'system-update' : ''}`}
                   >
                     <div className="update-header">
-                      <span className="update-author">{update.user?.name || 'System'}</span>
+                      <span className="update-author">
+                        <strong>{update.user?.name || 'System'}</strong>
+                        {update.isInternalNote && <span className="internal-badge">Internal</span>}
+                      </span>
                       <span className="update-time">
                         {new Date(update.createdAt).toLocaleString()}
                       </span>
-                      {update.isInternalNote && (
-                        <span className="internal-badge">Internal Note</span>
-                      )}
                     </div>
                     <div className="update-content">{update.comment}</div>
                   </div>
@@ -224,8 +269,10 @@ const TicketDetailPage: React.FC = () => {
                 <p className="no-updates">No comments or updates yet.</p>
               )}
             </div>
+            {/* Comment Form */}
             {ticketId && (
               <div className="comment-form-container">
+                <h4>Add Comment / Note</h4>
                 <TicketCommentForm
                   ticketId={ticketId}
                   onCommentAdded={handleCommentAdded}
@@ -233,9 +280,12 @@ const TicketDetailPage: React.FC = () => {
                 />
               </div>
             )}
-          </div>
-        </div>
+          </div> {/* End .ticket-updates */}
+        </div> {/* End .ticket-main */}
+
+        {/* --- Sidebar Area (Only Ticket Management now) --- */}
         <div className="ticket-sidebar">
+          {/* Ticket Management Card */}
           <div className="sidebar-card">
             <h3>Ticket Management</h3>
             <TicketStatusForm
@@ -245,35 +295,36 @@ const TicketDetailPage: React.FC = () => {
               onCancel={() => {}}
             />
           </div>
-          {/* Admin/Staff Attachment Upload */}
-          <div className="sidebar-card" style={{ marginTop: 24 }}>
-            <h3>Upload Admin/Staff Attachment</h3>
-            <AttachmentUpload
-              uploadUrl={`tickets/${currentTicket.id}/attachments`}
-              onUploadSuccess={refreshCurrentTicket}
-              buttonLabel="Upload"
-            />
-          </div>
-          {/* Admin/Staff Attachments Section */}
-          <div className="sidebar-card" style={{ marginTop: 24 }}>
-            <h3>Admin/Staff Attachments</h3>
-            {adminStaffAttachments.length > 0 ? (
-              <ul>
-                {adminStaffAttachments.map((att) => (
-                  <li key={att.id}>
-                    <a href={att.url} target="_blank" rel="noopener noreferrer">
-                      {att.filename}
-                    </a>{" "}
-                    ({att.mimeType}, {Math.round(att.size / 1024)} KB)
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No admin/staff attachments.</p>
-            )}
-          </div>
-        </div>
-      </div>
+          {/* Upload Form for Admin/Staff - Moved here */}
+          {ticketId && (
+                // Add sidebar-card class here for card styling
+                <div className="sidebar-card attachment-upload-form-container">
+                  <h4>Upload New Attachment</h4>
+                  <AttachmentUpload
+                    uploadUrl={`tickets/${currentTicket.id}/attachments`}
+                    onUploadSuccess={refreshCurrentTicket}
+                    buttonLabel="Upload File"
+                  />
+                </div>
+              )}
+        </div> {/* End .ticket-sidebar */}
+      </div> {/* End .ticket-grid */}
+
+      {/* Image Preview Modal */}
+      <Modal
+        isOpen={!!previewAttachment}
+        onClose={closePreviewModal}
+        title={`Preview: ${previewAttachment?.filename ?? 'Attachment'}`}
+        className="image-preview-modal"
+      >
+        {previewAttachment && (
+          <img
+            src={previewAttachment.url}
+            alt={`Preview of ${previewAttachment.filename}`}
+            style={{ maxWidth: '100%', maxHeight: '80vh', display: 'block', margin: '0 auto' }}
+          />
+        )}
+      </Modal>
     </div>
   );
 };

@@ -2,6 +2,8 @@
 // ==========================================================================
 // Handler functions for managing ticket attachments (upload, download, metadata).
 // Interacts with the file storage service and database.
+// **REVISED**: Changed expected form field name from "file" to "attachments".
+//              Updated to handle potential multiple file uploads under the same key.
 // ==========================================================================
 
 package ticket
@@ -16,7 +18,9 @@ import (
 	"net/http"
 	"path/filepath"
 	"time"
+	"database/sql" // Import for sql.NullString
 
+	"github.com/google/uuid" // Import UUID package
 	"github.com/henrythedeveloper/it-ticket-system/internal/api/middleware/auth"
 	"github.com/henrythedeveloper/it-ticket-system/internal/models" // Data models
 	"github.com/jackc/pgx/v5"
@@ -30,17 +34,17 @@ const (
 
 // --- Handler Functions ---
 
-// UploadAttachment handles requests to upload a file and attach it to a ticket.
-// It validates the file, uploads it via the fileService, and stores metadata in the DB.
+// UploadAttachment handles requests to upload one or more files and attach them to a ticket.
+// It validates the files, uploads them via the fileService, and stores metadata in the DB.
 //
 // Path Parameters:
-//   - id: The UUID of the ticket to attach the file to.
+//   - id: The UUID of the ticket to attach the file(s) to.
 //
 // Form Data:
-//   - Expects a multipart/form-data request with a file field named "file".
+//   - Expects a multipart/form-data request with file field(s) named "attachments".
 //
 // Returns:
-//   - JSON response with the created Attachment metadata or an error response.
+//   - JSON response with an array of created Attachment metadata objects or an error response.
 func (h *Handler) UploadAttachment(c echo.Context) error {
 	ctx := c.Request().Context()
 	ticketID := c.Param("id")
@@ -63,86 +67,143 @@ func (h *Handler) UploadAttachment(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "Ticket not found.")
 	}
 
-	// --- 2. Get File from Request ---
-	file, fileHeader, err := c.Request().FormFile("file") // "file" is the expected form field name
+	// --- 2. Get Files from Request ---
+	// Use MultipartForm() to handle multiple files under the same key
+	form, err := c.MultipartForm()
 	if err != nil {
-		logger.ErrorContext(ctx, "Failed to get file from request form", "error", err)
-		return echo.NewHTTPError(http.StatusBadRequest, "Failed to read file from request. Ensure the field name is 'file'.")
+		logger.ErrorContext(ctx, "Failed to parse multipart form", "error", err)
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form data: "+err.Error())
 	}
-	defer file.Close() // Ensure the uploaded file reader is closed
-
-	// --- 3. Validate File ---
-	if err := h.validateAttachment(fileHeader); err != nil {
-		logger.WarnContext(ctx, "Attachment validation failed", "filename", fileHeader.Filename, "error", err)
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error()) // Return specific validation error
-	}
-
-	contentType := fileHeader.Header.Get("Content-Type")
-	if contentType == "" {
-		contentType = "application/octet-stream" // Default if not provided
-	}
-	logger.DebugContext(ctx, "Attachment details", "filename", fileHeader.Filename, "size", fileHeader.Size, "contentType", contentType)
-
-	// --- 4. Upload File to Storage Service ---
-	// Generate a unique storage path (e.g., tickets/{ticket_id}/{timestamp}_{filename})
-	storagePath := fmt.Sprintf("tickets/%s/%d_%s", ticketID, time.Now().UnixNano(), filepath.Base(fileHeader.Filename)) // Use Base to avoid path traversal issues
-
-	// Use the injected fileService to handle the upload
-	storagePath, err = h.fileService.UploadFile(ctx, storagePath, file, fileHeader.Size, contentType)
-	if err != nil {
-		// Error should be logged within fileService.UploadFile, log context here
-		logger.ErrorContext(ctx, "Failed to upload attachment via file service", "filename", fileHeader.Filename, "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to store attachment.")
-	}
-	logger.DebugContext(ctx, "File uploaded to storage", "storagePath", storagePath)
-
-	// --- 5. Store Metadata in Database ---
-	var attachment models.Attachment
-
-	// Get user info for audit fields
-	uploadedByUserID, err := auth.GetUserIDFromContext(c)
-	if err != nil {
-		logger.WarnContext(ctx, "Failed to get user ID from context", "error", err)
-		uploadedByUserID = "" // fallback to empty
-	}
-	uploadedByRole, err := auth.GetUserRoleFromContext(c)
-	if err != nil {
-		logger.WarnContext(ctx, "Failed to get user role from context", "error", err)
-		uploadedByRole = ""
+	// *** CHANGE: Look for "attachments" key ***
+	files := form.File["attachments"]
+	if len(files) == 0 {
+		logger.WarnContext(ctx, "No files found under the 'attachments' key in the form")
+		// *** CHANGE: Expecting "attachments" now ***
+		return echo.NewHTTPError(http.StatusBadRequest, "No files uploaded. Ensure files are sent under the 'attachments' field name.")
 	}
 
-	err = h.db.Pool.QueryRow(ctx, `
-	       INSERT INTO attachments (ticket_id, filename, storage_path, mime_type, size, uploaded_at, uploaded_by_user_id, uploaded_by_role)
-	       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-	       RETURNING id, ticket_id, filename, storage_path, mime_type, size, uploaded_at, uploaded_by_user_id, uploaded_by_role
-	   `, ticketID, fileHeader.Filename, storagePath, contentType, fileHeader.Size, time.Now(), uploadedByUserID, uploadedByRole).Scan(
-		&attachment.ID, &attachment.TicketID, &attachment.Filename,
-		&attachment.StoragePath, &attachment.MimeType, &attachment.Size, &attachment.UploadedAt,
-		&attachment.UploadedByUserID, &attachment.UploadedByRole,
-	)
-	if err != nil {
-		logger.ErrorContext(ctx, "Failed to store attachment metadata in database", "filename", fileHeader.Filename, "storagePath", storagePath, "error", err)
-		// --- Cleanup Attempt ---
-		// If DB insert fails after successful upload, try to delete the orphaned file from storage.
-		logger.WarnContext(ctx, "Attempting to clean up orphaned file from storage", "storagePath", storagePath)
-		if cleanupErr := h.fileService.DeleteFile(context.Background(), storagePath); cleanupErr != nil { // Use background context for cleanup
-			logger.ErrorContext(ctx, "Failed to clean up orphaned file from storage", "storagePath", storagePath, "cleanupError", cleanupErr)
+	// Get user info for audit fields (once before the loop)
+	uploadedByUserID, _ := auth.GetUserIDFromContext(c) // Ignore error for now, default to ""
+	uploadedByRole, _ := auth.GetUserRoleFromContext(c) // Ignore error for now, default to ""
+
+	// --- 3. Process Each File ---
+	attachmentsMetadata := make([]models.Attachment, 0, len(files))
+	var processingError error // To capture the first error encountered
+
+	// Use a transaction for database operations
+	tx, txErr := h.db.Pool.Begin(ctx)
+	if txErr != nil {
+		logger.ErrorContext(ctx, "Failed to begin database transaction", "error", txErr)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: failed to start transaction.")
+	}
+	// Defer rollback logic
+	defer func() {
+		if p := recover(); p != nil { // Catch panics
+			_ = tx.Rollback(ctx)
+			panic(p) // Re-throw panic after Rollback
+		} else if processingError != nil { // Rollback on explicit error
+			logger.WarnContext(ctx, "Rolling back transaction due to processing error", "error", processingError)
+			if rbErr := tx.Rollback(ctx); rbErr != nil {
+				logger.ErrorContext(ctx, "Failed to rollback transaction", "rollbackError", rbErr)
+			}
+		} else { // Commit if no error
+			commitErr := tx.Commit(ctx)
+			if commitErr != nil {
+				logger.ErrorContext(ctx, "Failed to commit transaction", "error", commitErr)
+				// Set processingError so the final response indicates failure
+				processingError = fmt.Errorf("database error: failed to save attachments: %w", commitErr)
+			}
 		}
-		// --- End Cleanup ---
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to save attachment metadata.")
+	}()
+
+	for _, fileHeader := range files {
+		logger.DebugContext(ctx, "Processing file", "filename", fileHeader.Filename, "size", fileHeader.Size)
+
+		// --- 3a. Validate File ---
+		if err := h.validateAttachment(fileHeader); err != nil {
+			logger.WarnContext(ctx, "Attachment validation failed", "filename", fileHeader.Filename, "error", err)
+			processingError = echo.NewHTTPError(http.StatusBadRequest, err.Error()) // Return specific validation error
+			return processingError // Stop processing further files on validation error
+		}
+
+		// --- 3b. Open File ---
+		file, openErr := fileHeader.Open()
+		if openErr != nil {
+			logger.ErrorContext(ctx, "Failed to open uploaded file", "filename", fileHeader.Filename, "error", openErr)
+			processingError = echo.NewHTTPError(http.StatusInternalServerError, "Failed to process uploaded file: "+fileHeader.Filename)
+			return processingError // Stop processing
+		}
+
+		// --- 3c. Upload File to Storage Service ---
+		contentType := fileHeader.Header.Get("Content-Type")
+		if contentType == "" { contentType = "application/octet-stream" }
+		safeFilename := filepath.Base(fileHeader.Filename) // Sanitize filename
+		// Generate a unique ID for the storage path part to avoid collisions even with same names/timestamps
+		uniqueID := uuid.New().String()
+		storagePath := fmt.Sprintf("tickets/%s/%s_%s", ticketID, uniqueID, safeFilename)
+
+		storagePath, uploadErr := h.fileService.UploadFile(ctx, storagePath, file, fileHeader.Size, contentType)
+		file.Close() // Close the file *after* uploading
+		if uploadErr != nil {
+			logger.ErrorContext(ctx, "Failed to upload attachment via file service", "filename", safeFilename, "error", uploadErr)
+			processingError = echo.NewHTTPError(http.StatusInternalServerError, "Failed to store attachment: "+safeFilename)
+			return processingError // Stop processing
+		}
+		logger.DebugContext(ctx, "File uploaded to storage", "storagePath", storagePath)
+
+		// --- 3d. Store Metadata in Database (within transaction) ---
+		var attachment models.Attachment
+		var uploadedByUserIDNullable sql.NullString
+		var uploadedByRoleNullable sql.NullString
+
+		if uploadedByUserID != "" { uploadedByUserIDNullable = sql.NullString{String: uploadedByUserID, Valid: true} }
+		if string(uploadedByRole) != "" { uploadedByRoleNullable = sql.NullString{String: string(uploadedByRole), Valid: true} }
+
+		// Insert metadata into the database using the transaction (tx)
+		dbErr := tx.QueryRow(ctx, `
+            INSERT INTO attachments (ticket_id, filename, storage_path, mime_type, size, uploaded_at, uploaded_by_user_id, uploaded_by_role)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING id, ticket_id, filename, storage_path, mime_type, size, uploaded_at, uploaded_by_user_id, uploaded_by_role
+        `, ticketID, safeFilename, storagePath, contentType, fileHeader.Size, time.Now(), uploadedByUserIDNullable, uploadedByRoleNullable).Scan(
+			&attachment.ID, &attachment.TicketID, &attachment.Filename,
+			&attachment.StoragePath, &attachment.MimeType, &attachment.Size, &attachment.UploadedAt,
+			&attachment.UploadedByUserID, &attachment.UploadedByRole, // Scan directly now
+		)
+		if dbErr != nil {
+			logger.ErrorContext(ctx, "Failed to store attachment metadata in database", "filename", safeFilename, "storagePath", storagePath, "error", dbErr)
+			// Attempt to clean up the file uploaded just before the DB error
+			logger.WarnContext(ctx, "Attempting to clean up orphaned file from storage due to DB error", "storagePath", storagePath)
+			if cleanupErr := h.fileService.DeleteFile(context.Background(), storagePath); cleanupErr != nil {
+				logger.ErrorContext(ctx, "Failed to clean up orphaned file", "storagePath", storagePath, "cleanupError", cleanupErr)
+			}
+			processingError = echo.NewHTTPError(http.StatusInternalServerError, "Failed to save attachment metadata for: "+safeFilename)
+			return processingError // Stop processing
+		}
+
+		attachment.URL = fmt.Sprintf("/api/attachments/download/%s", attachment.ID) // Add download URL
+		attachmentsMetadata = append(attachmentsMetadata, attachment)
+		logger.DebugContext(ctx, "Attachment metadata stored", "attachmentID", attachment.ID)
+	} // End of file processing loop
+
+	// If loop finished but an error occurred during commit (checked by defer), return error
+	if processingError != nil {
+		// The defer function already tried to rollback
+		// Return the appropriate error status code based on the error type
+		if httpErr, ok := processingError.(*echo.HTTPError); ok {
+			return httpErr
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, processingError.Error())
 	}
 
-	// --- 6. Return Success Response ---
-	logger.InfoContext(ctx, "Attachment uploaded and metadata stored successfully", "attachmentID", attachment.ID, "filename", attachment.Filename)
-	// Add download URL before returning
-	attachment.URL = fmt.Sprintf("/api/attachments/download/%s", attachment.ID) // Construct download URL
-
+	// --- 4. Return Success Response ---
+	logger.InfoContext(ctx, "Attachments uploaded and metadata stored successfully", "count", len(attachmentsMetadata))
 	return c.JSON(http.StatusCreated, models.APIResponse{
 		Success: true,
-		Message: "File uploaded successfully.",
-		Data:    attachment,
+		Message: fmt.Sprintf("%d file(s) uploaded successfully.", len(attachmentsMetadata)),
+		Data:    attachmentsMetadata, // Return array of metadata
 	})
 }
+
 
 // GetAttachment retrieves metadata for a specific attachment.
 //
@@ -166,13 +227,19 @@ func (h *Handler) GetAttachment(c echo.Context) error {
 
 	// --- 2. Fetch Metadata from Database ---
 	var attachment models.Attachment
+	// Use pointers/nullable types for potentially NULL columns
+	var uploadedByUserIDNullable sql.NullString
+	var uploadedByRoleNullable sql.NullString
+	var urlNullable sql.NullString
+
 	err := h.db.Pool.QueryRow(ctx, `
-        SELECT id, ticket_id, filename, storage_path, mime_type, size, uploaded_at
+        SELECT id, ticket_id, filename, storage_path, mime_type, size, uploaded_at, uploaded_by_user_id, uploaded_by_role, url
         FROM attachments
         WHERE id = $1 AND ticket_id = $2 -- Ensure attachment belongs to the ticket
     `, attachmentID, ticketID).Scan(
 		&attachment.ID, &attachment.TicketID, &attachment.Filename,
 		&attachment.StoragePath, &attachment.MimeType, &attachment.Size, &attachment.UploadedAt,
+		&uploadedByUserIDNullable, &uploadedByRoleNullable, &urlNullable,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -183,8 +250,17 @@ func (h *Handler) GetAttachment(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve attachment metadata.")
 	}
 
+	// Assign values from nullable types if valid
+	if uploadedByUserIDNullable.Valid { attachment.UploadedByUserID = uploadedByUserIDNullable.String }
+	if uploadedByRoleNullable.Valid { attachment.UploadedByRole = uploadedByRoleNullable.String }
+	if urlNullable.Valid { attachment.URL = urlNullable.String }
+
+
 	// --- 3. Add Download URL & Return Response ---
-	attachment.URL = fmt.Sprintf("/api/attachments/download/%s", attachment.ID) // Construct download URL
+	// Generate download URL if not present in DB (optional fallback)
+	if attachment.URL == "" {
+	    attachment.URL = fmt.Sprintf("/api/attachments/download/%s", attachment.ID) // Construct download URL
+	}
 	logger.DebugContext(ctx, "Attachment metadata retrieved successfully")
 	return c.JSON(http.StatusOK, models.APIResponse{
 		Success: true,

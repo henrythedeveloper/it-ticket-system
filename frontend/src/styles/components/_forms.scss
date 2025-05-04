@@ -1,8 +1,7 @@
 // src/styles/components/_forms.scss
 // ==========================================================================
 // Styles for forms and form elements, utilizing variables and mixins.
-// **REVISED: Use accent/secondary colors more deliberately.**
-// **REVISED AGAIN: Added styles for attachment input/preview.**
+// **REVISED**: Removed attachment-specific styles (moved to _AttachmentUpload.scss).
 // ==========================================================================
 
 @use '../variables' as *; // Needed for non-color vars like spacing, breakpoints
@@ -131,138 +130,54 @@
     }
   }
 
-  // --- Attachment Input Styles (Shared for TicketForm & AttachmentUpload) ---
-  .attachment-upload-form,
-  .form-group .attachment-input-area {
-    margin-top: $spacing-1;
-    margin-bottom: $spacing-3;
-  }
-
-  .attachment-upload-form {
-    padding: 0;
-    background: none;
-    box-shadow: none;
-    border: none;
-  }
-
-  .attachment-upload-form .attachment-input-area,
-  .form-group .attachment-input-area {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: $spacing-2;
-    margin-bottom: $spacing-2;
-  }
-
-  .file-input-hidden {
-    width: 0.1px;
-    height: 0.1px;
-    opacity: 0;
-    overflow: hidden;
-    position: absolute;
-    z-index: -1;
-  }
-
-  .file-input-trigger {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 1.25rem 0.75rem;
-    border: 2px dashed var(--border-color-strong);
-    border-radius: var(--border-radius-lg);
-    background-color: var(--surface-alt-bg);
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: center;
-    min-height: 80px;
-
-    svg {
-      margin-bottom: 0.5rem;
-      color: var(--primary);
-    }
-
-    &:hover {
-      border-color: var(--primary);
-      background-color: var(--surface-bg);
-      color: var(--text-secondary);
-    }
-    &.drag-over {
-      border-color: var(--primary);
-      background-color: rgba(var(--primary-rgb), 0.07);
-      color: var(--primary);
-
-      svg {
-        color: var(--primary-dark);
-      }
-    }
-  }
-
-  .file-preview-list {
-    margin-top: 0.5rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    padding: 0.5rem;
-    background-color: var(--surface-bg);
-    max-height: 120px;
-    overflow-y: auto;
-  }
-
-  .file-preview-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.25rem 0.5rem;
-    font-size: $font-size-sm;
-    color: var(--text-secondary);
-    border-bottom: 1px solid var(--border-color);
-
-    &:last-child {
-      border-bottom: none;
-    }
-
-    .file-name {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-right: 0.5rem;
-      flex-grow: 1;
-    }
-
-    .file-size {
-      color: var(--text-muted);
-      font-size: $font-size-xs;
-      white-space: nowrap;
-      margin-right: 0.5rem;
-      flex-shrink: 0;
-    }
-
-    .remove-file-btn {
-      background: none;
-      border: none;
-      color: var(--error);
-      cursor: pointer;
-      padding: 0.25rem;
-      line-height: 1;
-      border-radius: 50%;
-      transition: background-color 0.15s;
-      flex-shrink: 0;
-
-      &:hover {
-        background-color: rgba(var(--error-rgb), 0.13);
-      }
-
-      &:disabled {
-        color: var(--text-muted);
-        cursor: not-allowed;
-        background-color: transparent;
-      }
-    }
-  }
-  // --- End Attachment Input Styles ---
+  // --- Attachment Styles Removed ---
+  // Styles for .attachment-upload-form, .attachment-input-area,
+  // .file-input-hidden, .file-input-trigger, .file-preview-list,
+  // .file-preview-item are now in _AttachmentUpload.scss
+  // --- End Attachment Styles Removed ---
 
 } // End .form-group
+
+// Specific styling for the attachment upload *container* when inside a sidebar card
+// This rule remains here as it styles the container, not the component internals.
+.sidebar-card {
+    .attachment-upload-form-container {
+        // The container already has card styling from .sidebar-card
+        // No extra border/padding needed on the container itself
+        padding: 0; // Remove padding if added by default
+        border: none;
+        box-shadow: none;
+        background: none;
+
+        h4 { // Style the heading inside this container
+            font-size: $font-size-lg; // Match other card headings
+            color: var(--text-primary);
+            margin-bottom: $spacing-4;
+            padding-bottom: $spacing-2;
+            border-bottom: 1px solid var(--border-color);
+            transition: color $transition-medium, border-color $transition-medium;
+        }
+
+        // Target the form *inside* the container
+        .attachment-upload-form {
+            // Styles for the form element itself, if needed
+            // e.g., remove margins if they cause issues
+            margin-top: 0;
+
+            // Ensure the input area and preview list have appropriate backgrounds/borders
+            // These styles are now defined in _AttachmentUpload.scss
+            // .attachment-input-area { ... }
+            // .file-input-trigger { ... }
+            // .file-preview-list { ... }
+
+            .btn { // Style the submit button
+                margin-top: $spacing-4; // Add space above button
+                width: 100%; // Make button full width inside card
+            }
+        }
+    }
+}
+
 
 // Form divided in columns
 .form-row {
@@ -367,4 +282,3 @@
     }
   }
 }
-

@@ -2,12 +2,15 @@
 // ==========================================================================
 // Styles specific to the Ticket Detail page.
 // Includes main ticket info, sidebar, updates, attachments.
-// **REVISED**: Removed modal-specific styles (handled globally).
+// **REVISED**: Updated attachment item styling to resemble CreateTicketPage preview.
+//              Ensured download/delete buttons are consistent size.
+// **REVISED**: Further refined attachment item styles for closer resemblance
+//              to the file upload preview list style.
+// **REVISED**: Adjusted attachment-info to align filename next to icon/thumb.
 // ==========================================================================
 
 @use '../../variables' as *;
 @use '../../mixins';
-// Removed: @use '../../components/common/Modal'; // Base modal styles handled globally now
 
 .ticket-detail-page {
   width: 100%;
@@ -15,9 +18,14 @@
 
   // --- Page Header ---
   .page-header {
-    // ... (styles remain the same) ...
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: $spacing-6;
+
     .header-left {
-      display: flex; flex-direction: column;
+      display: flex;
+      flex-direction: column;
       .back-button {
         background: none; border: none; color: var(--text-link);
         font-weight: $font-weight-medium; cursor: pointer; padding: 0;
@@ -25,13 +33,12 @@
         transition: color $transition-fast;
         &:hover { color: var(--text-link-hover); text-decoration: underline; }
       }
-        h1 { color: var(--text-primary); }
+      h1 { color: var(--text-primary); margin-bottom: 0; transition: color $transition-medium; }
     }
   }
 
   // --- Main Grid Layout (Ticket Content + Sidebar) ---
   .ticket-grid {
-    // ... (styles remain the same) ...
     display: grid;
     grid-template-columns: 3fr 1fr;
     gap: $spacing-6;
@@ -45,185 +52,172 @@
     }
   }
 
-  // --- Ticket Information Card ---
+  // --- Ticket Information Card (in .ticket-main) ---
   .ticket-card {
-    // ... (styles remain the same) ...
     @include mixins.card-base;
     padding: $spacing-6;
 
-    .ticket-header {
-      margin-bottom: $spacing-4;
-      h2 { font-size: $font-size-2xl; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; }
-      .ticket-meta { display: flex; gap: $spacing-3; }
-    }
-
-    .ticket-body {
-      .ticket-description {
-        color: var(--text-secondary); line-height: 1.6; white-space: pre-line;
-        margin-bottom: $spacing-4; transition: color $transition-medium;
-        max-height: 300px; overflow-y: auto; padding-right: $spacing-2;
-      }
-      .ticket-tags {
-        display: flex; flex-wrap: wrap; gap: $spacing-2; margin-bottom: $spacing-4;
-        strong { margin-right: $spacing-2; color: var(--text-muted); font-weight: $font-weight-medium; }
-        .tag { background-color: var(--surface-alt-bg); color: var(--text-secondary); padding: $spacing-1 $spacing-3; border-radius: $border-radius-full; font-size: $font-size-sm; transition: background-color $transition-medium, color $transition-medium; }
-      }
-    }
-
-    // --- Attachments Section ---
+    // --- Submitter Attachments Section (in .ticket-main .ticket-card) ---
     .ticket-attachments {
-      // ... (styles remain the same) ...
-      margin-top: $spacing-6; padding-top: $spacing-4;
-      border-top: 1px solid var(--border-color); transition: border-color $transition-medium;
+      margin-top: $spacing-6;
+      padding-top: $spacing-4;
+      border-top: 1px solid var(--border-color);
+      transition: border-color $transition-medium;
 
-      h3 { 
-        font-size: $font-size-lg; 
-        color: var(--text-primary); 
-        margin-bottom: $spacing-3; 
-        transition: color $transition-medium; 
+      h3 {
+        font-size: $font-size-lg;
+        color: var(--text-primary);
+        margin-bottom: $spacing-3;
+        transition: color $transition-medium;
       }
-        .no-attachments { 
-          color: var(--text-muted); 
-          font-style: italic; 
-          padding: $spacing-3 0; 
-        }
-        .attachment-list { 
-          list-style: none; 
-          padding: 0; 
-          margin: $spacing-2 0 0 0; 
-        }
-        .attachment-item { 
-          display: flex; 
-          align-items: center; 
-          justify-content: space-between; 
-          padding: $spacing-2 0; 
-          border-bottom: 1px solid var(--border-color); 
-          transition: border-color $transition-medium;
-          position: relative; 
+      .no-attachments {
+        color: var(--text-muted);
+        font-style: italic;
+        padding: $spacing-3 0;
+      }
 
-          &:last-child { 
-            border-bottom: none; 
-          } 
-        }
+      // --- Attachment List Styles (Applies to Submitter & Admin/Staff lists) ---
+      .attachment-list {
+        list-style: none;
+        padding: 0; // Remove padding from ul itself
+        margin: $spacing-2 0 0 0;
+        max-height: 200px; // Fixed height
+        overflow-y: auto;  // Enable scroll
+        border: 1px solid var(--border-color); // Add border like preview list
+        border-radius: $border-radius; // Add border radius
+        background-color: var(--surface-bg); // Match preview list background
 
-        // --- Hover Preview Element ---
-        .attachment-hover-preview {
-          position: absolute;
-          bottom: 100%; // Position above the list item
-          left: 0; // Align with the left edge of the list item
-          margin-bottom: $spacing-2; // Small gap between item and preview
-          width: 250px; // Fixed width for preview
-          height: 250px; // Fixed height for preview
-          background-color: var(--surface-bg);
-          border: 1px solid var(--border-color-strong);
-          border-radius: $border-radius;
-          box-shadow: $shadow-md;
-          z-index: 10; // Ensure it appears above sibling list items
-          pointer-events: none; // Prevent hover preview from blocking mouse events on the item itself
-          display: flex; // Center image inside
+        // --- Updated Attachment Item Styles (Resembling .file-preview-item) ---
+        .attachment-item {
+          display: flex;
           align-items: center;
-          justify-content: center;
-          overflow: hidden; // Hide parts of image that don't fit
+          justify-content: space-between;
+          padding: $spacing-2 $spacing-3; // Match padding from preview item
+          border-bottom: 1px solid var(--border-color); // Separator
+          transition: background-color $transition-fast, border-color $transition-medium;
+          position: relative;
+          gap: $spacing-3; // Add gap between main info and meta
 
-          img {
-              display: block;
-              max-width: 100%;
-              max-height: 100%;
-              object-fit: contain; // Show the whole image, scaled down
-          }
-      }
-        .attachment-info { 
-          display: flex; 
-          align-items: center; 
-          gap: $spacing-3; 
-          flex-grow: 1; 
-          overflow: hidden; 
-          pointer-events: auto; 
-        }
-        .attachment-icon { 
-          color: var(--text-muted); 
-          flex-shrink: 0; 
-          width: 40px; 
-          text-align: center; 
-          pointer-events: none; 
-        }
-        .attachment-thumbnail { 
-          width: 40px; 
-          height: 40px; 
-          object-fit: cover; 
-          border-radius: $border-radius-sm; 
-          border: 1px solid var(--border-color); 
-          cursor: pointer; 
-          flex-shrink: 0; 
-          transition: transform 0.2s ease, 
-          box-shadow 0.2s ease; 
-          pointer-events: auto;
+          &:last-child { border-bottom: none; }
+          &:hover { background-color: var(--surface-alt-bg); } // Subtle hover
 
-          &:hover { 
-            transform: scale(1.1); 
-            box-shadow: $shadow; 
-        } 
-      }
-        .attachment-filename { 
-          color: var(--text-secondary); 
-          font-size: $font-size-sm; 
-          white-space: nowrap; 
-          overflow: hidden; 
-          text-overflow: ellipsis; 
-          flex-grow: 1; 
-          pointer-events: none; 
-        }
+          .attachment-info { // Container for icon/thumbnail + filename
+            display: flex;
+            align-items: center;
+            gap: $spacing-2; // Gap between icon/thumb and name
+            flex-grow: 1; // Allow info section to grow
+            overflow: hidden; // Prevent overflow
 
-        .attachment-size { 
-          color: var(--text-muted); 
-          font-size: $font-size-xs; 
-          white-space: nowrap; 
-          margin-left: $spacing-2; 
-          flex-shrink: 0; 
-          pointer-events: none; 
-        }
+            .attachment-thumbnail { // Image thumbnail
+               width: 32px;
+               height: 32px;
+               object-fit: cover;
+               border-radius: $border-radius-sm;
+               border: 1px solid var(--border-color);
+               cursor: pointer;
+               flex-shrink: 0;
+               transition: transform 0.2s ease, box-shadow 0.2s ease;
+               &:hover { transform: scale(1.1); box-shadow: $shadow; }
+            }
 
-        .attachment-actions { 
-          display: flex; 
-          align-items: center; 
-          gap: $spacing-2; 
-          flex-shrink: 0; 
-          margin-left: $spacing-3; 
-          pointer-events: auto; 
-          
-          & > * { 
-            pointer-events: auto; 
-          } 
-        }
+            .attachment-icon { // Icon for non-images
+                flex-shrink: 0;
+                color: var(--text-muted);
+                width: 24px; // Match Paperclip size
+                height: 24px; // Match Paperclip size
+            }
 
-        .download-icon-btn, .delete-icon-btn { 
-          background: none; 
-          border: none; 
-          cursor: pointer; 
-          padding: $spacing-1; 
-          color: var(--text-muted); 
-          transition: color $transition-fast; 
-          line-height: 1; 
+            .attachment-filename { // Filename text (always shown)
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              flex-grow: 1;
+              font-size: $font-size-sm; // Match preview item font size
+              color: var(--text-secondary); // Match preview item text color
+            }
+          } // End .attachment-info
 
-          &:hover { 
-            color: var(--primary); 
-        } 
-      }
+           .attachment-meta { // Container for size and actions
+             display: flex;
+             align-items: center;
+             gap: $spacing-3; // Keep gap between size and actions
+             flex-shrink: 0; // Prevent shrinking
 
-        .delete-icon-btn { 
-          &:hover { 
-          color: var(--error); 
-        } 
-        &:disabled { 
-          color: var(--text-muted); 
-          opacity: 0.5; cursor: not-allowed; 
-        } 
-      }
+             .attachment-size { // Style like .file-size
+               color: var(--text-muted);
+               font-size: $font-size-xs; // Match preview size font
+               white-space: nowrap;
+             }
+
+             .attachment-actions { // Container for action buttons
+                 display: flex;
+                 align-items: center;
+                 gap: $spacing-2; // Keep gap between buttons
+
+                 // --- Consistent Icon Button Styling (like .remove-file-btn) ---
+                 .download-icon-btn, .delete-icon-btn {
+                      background: none;
+                      border: none;
+                      cursor: pointer;
+                      padding: $spacing-1;
+                      color: var(--text-muted);
+                      transition: color $transition-fast, background-color $transition-fast;
+                      line-height: 1;
+                      border-radius: 50%;
+                      width: 28px;
+                      height: 28px;
+                      display: inline-flex;
+                      align-items: center;
+                      justify-content: center;
+
+                      svg { width: 16px; height: 16px; }
+
+                      &:hover {
+                          background-color: rgba(var(--primary-rgb), 0.1);
+                          color: var(--primary);
+                      }
+                 }
+                 .delete-icon-btn {
+                     &:hover {
+                         background-color: rgba(var(--error-rgb), 0.1);
+                         color: var(--error);
+                     }
+                     &:disabled {
+                         color: var(--text-muted);
+                         opacity: 0.5;
+                         cursor: not-allowed;
+                         background-color: transparent;
+                     }
+                 }
+             } // End .attachment-actions
+           } // End .attachment-meta
+
+
+          // Hover Preview Styles (shared)
+          .attachment-hover-preview {
+              position: absolute;
+              bottom: calc(100% + #{$spacing-2});
+              left: 0;
+              width: 150px;
+              height: 150px;
+              background-color: var(--surface-bg);
+              border: 1px solid var(--border-color-strong);
+              border-radius: $border-radius;
+              box-shadow: $shadow-lg;
+              z-index: 10;
+              pointer-events: none;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              overflow: hidden;
+              img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
+          } // End .attachment-hover-preview
+        } // End .attachment-item
+      } // End .attachment-list (Submitter & Admin/Staff)
     } // End .ticket-attachments
 
     // --- Resolution Notes Section ---
     .resolution-notes {
-      // ... (styles remain the same) ...
       margin-top: $spacing-6; padding-top: $spacing-4;
       border-top: 1px solid var(--border-color); transition: border-color $transition-medium;
       h3 { font-size: $font-size-lg; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; }
@@ -231,9 +225,8 @@
     }
   } // End .ticket-card
 
-  // --- Ticket Updates/Comments Section ---
+  // --- Ticket Updates/Comments Section (in .ticket-main) ---
   .ticket-updates {
-    // ... (styles remain the same) ...
     @include mixins.card-base;
     padding: $spacing-6; display: flex; flex-direction: column;
 
@@ -243,25 +236,25 @@
       padding-bottom: $spacing-3; transition: border-color $transition-medium;
       flex-shrink: 0;
       h3 { font-size: $font-size-lg; color: var(--text-primary); margin: 0; transition: color $transition-medium; }
-      .add-comment-btn { padding: $spacing-2 $spacing-3; font-size: $font-size-sm; }
     }
 
-    .comment-form-container, .status-form-container {
-      background-color: var(--surface-alt-bg); border-radius: $border-radius;
-      padding: $spacing-4; margin-bottom: $spacing-4;
-      border: 1px solid var(--border-color-strong);
-      transition: background-color $transition-medium, border-color $transition-medium;
-      flex-shrink: 0;
-
-      h4 { font-size: $font-size-base; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; }
-      .comment-form, .status-form {
-        .form-group { margin-bottom: $spacing-3; textarea { min-height: 100px; } }
-      }
+    .comment-form-container { // Container for adding comment
+       background-color: var(--surface-alt-bg); border-radius: $border-radius;
+       padding: $spacing-4; margin-bottom: $spacing-4;
+       border: 1px solid var(--border-color-strong);
+       transition: background-color $transition-medium, border-color $transition-medium;
+       flex-shrink: 0;
+       h4 { font-size: $font-size-base; color: var(--text-primary); margin-bottom: $spacing-3; transition: color $transition-medium; }
+       .comment-form {
+         .form-group { margin-bottom: $spacing-3; textarea { min-height: 100px; } }
+         .form-actions { justify-content: flex-end; }
+       }
     }
 
     .updates-timeline {
       max-height: 50vh;
       overflow-y: auto; flex-grow: 1;
+      padding-right: $spacing-2;
 
       .update-item {
         padding: $spacing-4 0 $spacing-4 $spacing-5; border-left: 3px solid var(--border-color);
@@ -297,46 +290,30 @@
 
   // --- Sidebar Section ---
   .ticket-sidebar {
-    // ... (styles remain the same) ...
     display: flex; flex-direction: column; gap: $spacing-6;
-    .sidebar-card {
-      @include mixins.card-base; padding: $spacing-4;
 
-      h3 {
+    // Style for ALL cards in the sidebar
+    .sidebar-card {
+      @include mixins.card-base;
+      padding: $spacing-4;
+
+      h3, h4 { // Apply to both h3 and h4
         font-size: $font-size-lg; color: var(--text-primary); margin-bottom: $spacing-4;
         padding-bottom: $spacing-2; border-bottom: 1px solid var(--border-color);
         transition: color $transition-medium, border-color $transition-medium;
       }
-      .info-group { display: flex; margin-bottom: $spacing-3;
-        label { width: 120px; font-weight: $font-weight-medium; color: var(--text-muted); transition: color $transition-medium; flex-shrink: 0; }
-        span { flex-grow: 1; color: var(--text-secondary); transition: color $transition-medium;
-        }
-      }
-      .sidebar-actions { display: flex; flex-direction: column; gap: $spacing-3;
-        .file-upload-container { position: relative;
-          .file-upload-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            padding: 0.5rem 0.75rem;
-            text-align: center;
-            background-color: var(--surface-alt-bg);
-            color: var(--text-secondary);
-            border: 1px dashed var(--border-color-strong);
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 0.875rem;
 
-            &.disabled { opacity: 0.6; cursor: not-allowed; background-color: var(--surface-tonal-2); border-color: var(--surface-tonal-3); color: var(--text-muted); }
-            &:not(.disabled):hover { background-color: var(--surface-bg); border-color: var(--primary); color: var(--primary); }
-          }
-          .file-input { position: absolute; width: 0.1px; height: 0.1px; opacity: 0; overflow: hidden; z-index: -1; }
+      // Specific styles for the Ticket Management Form card
+      &:first-child { // Assuming Ticket Management is always first
+        .status-form { // Target the form inside specifically
+            .form-actions { justify-content: flex-end; } // Align buttons right
         }
-        button { width: 100%; }
       }
-    }
+
+      // Remove specific styles for AttachmentUpload component here,
+      // as they are handled by the component itself and _forms.scss
+      // .attachment-upload-form { ... }
+    } // End .sidebar-card
   } // End .ticket-sidebar
 
   // --- Badge Styles ---
@@ -346,9 +323,24 @@
     min-width: 80px;
   }
 
-  // --- Specific Image Preview Modal Styles ---
-  // Removed - Styles are now in _Modal.scss and applied via .modal class
-  // .image-preview-modal { ... }
+  // --- Image Preview Modal Styles (Overrides for specific context) ---
+  .image-preview-modal {
+    .modal-content {
+      max-width: 80vw;
+      background-color: rgba(var(--background-rgb, 0, 0, 0), 0.8);
+      padding: $spacing-2;
+    }
+    .modal-body {
+      padding: 0;
+    }
+    .modal-header .modal-title {
+      color: var(--text-inverted);
+    }
+    .modal-header .modal-close-btn {
+      color: var(--text-inverted);
+      &:hover { color: var(--text-muted); }
+    }
+  }
 
 } // End .ticket-detail-page
 
@@ -357,11 +349,18 @@
   .ticket-detail-page {
     .ticket-grid { grid-template-columns: 1fr; }
     .ticket-card, .ticket-updates, .sidebar-card { padding: $spacing-4; }
-    .updates-timeline .update-item { padding: $spacing-3 0 $spacing-3 $spacing-4; margin-left: $spacing-1;
+
+    .updates-timeline .update-item {
+      padding: $spacing-3 0 $spacing-3 $spacing-4;
+      margin-left: $spacing-1;
       &:before { left: -6.5px; top: $spacing-3; }
       .update-header { flex-direction: column; align-items: flex-start; gap: $spacing-1; }
     }
-    .form-actions { flex-direction: column; button { width: 100%; margin-bottom: $spacing-2; } }
+
+    .comment-form .form-actions,
+    .status-form .form-actions {
+         flex-direction: column;
+         button { width: 100%; margin-bottom: $spacing-2; &:last-child { margin-bottom: 0; } }
+    }
   }
 }
-

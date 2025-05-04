@@ -63,7 +63,10 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-require github.com/redis/go-redis/v9 v9.8.0
+require (
+	github.com/google/uuid v1.4.0
+	github.com/redis/go-redis/v9 v9.8.0
+)
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
