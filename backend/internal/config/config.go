@@ -2,6 +2,7 @@
 // ==========================================================================
 // Handles loading and validation of application configuration from environment
 // variables using the Viper library. Defines configuration structures.
+// **REVISED**: Changed DatabaseConfig to use a single DatabaseURL instead of individual fields.
 // ==========================================================================
 
 package config
@@ -21,7 +22,7 @@ import (
 // Config aggregates all configuration sections for the application.
 type Config struct {
 	Server   ServerConfig   // Server-related settings
-	Database DatabaseConfig // Database connection details
+	Database DatabaseConfig // Database connection details (now uses URL)
 	Auth     AuthConfig     // Authentication (JWT) settings
 	Email    EmailConfig    // Email service configuration
 	Storage  StorageConfig  // File storage (S3/MinIO) configuration
@@ -34,14 +35,9 @@ type ServerConfig struct {
 	PortalBaseURL string // Base URL of the frontend portal (used in emails)
 }
 
-// DatabaseConfig holds database connection parameters.
+// DatabaseConfig now holds the single connection URL.
 type DatabaseConfig struct {
-	Host     string // Database host address
-	Port     int    // Database port number
-	User     string // Database username
-	Password string // Database password
-	Name     string // Database name
-	SSLMode  string // SSL mode for connection (e.g., "disable", "require")
+	URL string // Database connection URL (e.g., "postgres://user:pass@host:port/db?sslmode=...")
 }
 
 // AuthConfig holds authentication settings.
@@ -85,12 +81,7 @@ type CacheConfig struct {
 // Environment Variables Expected:
 //   - PORT (optional, default: 8080)
 //   - PORTAL_BASE_URL (required)
-//   - DB_HOST (required)
-//   - DB_PORT (required)
-//   - DB_USER (required)
-//   - DB_PASSWORD (required)
-//   - DB_NAME (required)
-//   - DB_SSL_MODE (optional, default: "disable")
+//   - DATABASE_URL (required)  <-- Changed
 //   - JWT_SECRET (required)
 //   - JWT_EXPIRES (optional, default: "24h")
 //   - EMAIL_PROVIDER (optional, e.g., "resend")
@@ -115,43 +106,33 @@ func Load() (*Config, error) {
 	logger.Info("Loading application configuration from environment variables...")
 
 	// --- Set Defaults ---
-	// Use viper.SetDefault for values that should have a fallback.
 	viper.SetDefault("PORT", 8080)
-	viper.SetDefault("JWT_EXPIRES", "24h") // Default JWT expiration to 24 hours
+	viper.SetDefault("JWT_EXPIRES", "24h")
 	viper.SetDefault("S3_DISABLE_SSL", false)
-	viper.SetDefault("DB_SSL_MODE", "disable") // Common default for local development
-	viper.SetDefault("EMAIL_PROVIDER", "smtp") // Default to smtp/maildev
-	viper.SetDefault("SMTP_HOST", "localhost")
-	viper.SetDefault("SMTP_PORT", 1025) // Default MailDev SMTP port
+	viper.SetDefault("EMAIL_PROVIDER", "smtp")
+	viper.SetDefault("SMTP_HOST", "localhost") // Default for local dev (e.g., MailDev)
+	viper.SetDefault("SMTP_PORT", 1025)
 	viper.SetDefault("CACHE_ENABLED", true)
 	viper.SetDefault("CACHE_PROVIDER", "memory")
 	viper.SetDefault("CACHE_DEFAULT_EXPIRATION", "5m")
 
 	// --- Read Environment Variables ---
-	// Automatically read environment variables that match or have underscores
-	// (e.g., DB_HOST will be read for Database.Host if not explicitly bound).
 	viper.AutomaticEnv()
-	// Optional: Use viper.BindEnv to explicitly map env vars to config keys if needed.
-	// viper.BindEnv("Server.Port", "PORT")
+	// Explicitly bind DATABASE_URL to ensure it's read correctly
+	viper.BindEnv("DATABASE_URL")
 
 	// --- Populate Config Struct ---
-	// Create the config struct and populate it using viper.Get* methods.
 	config := &Config{
 		Server: ServerConfig{
-			Port:          viper.GetInt("PORT"), // Reads PORT env var
+			Port:          viper.GetInt("PORT"),
 			PortalBaseURL: viper.GetString("PORTAL_BASE_URL"),
 		},
 		Database: DatabaseConfig{
-			Host:     viper.GetString("DB_HOST"),
-			Port:     viper.GetInt("DB_PORT"), // Ensure DB_PORT is set as a number
-			User:     viper.GetString("DB_USER"),
-			Password: viper.GetString("DB_PASSWORD"),
-			Name:     viper.GetString("DB_NAME"),
-			SSLMode:  viper.GetString("DB_SSL_MODE"),
+			URL: viper.GetString("DATABASE_URL"), // Read the DATABASE_URL env var
 		},
 		Auth: AuthConfig{
 			JWTSecret:  viper.GetString("JWT_SECRET"),
-			JWTExpires: viper.GetDuration("JWT_EXPIRES"), // Parses duration strings (e.g., "1h", "30m")
+			JWTExpires: viper.GetDuration("JWT_EXPIRES"),
 		},
 		Email: EmailConfig{
 			From:         viper.GetString("EMAIL_FROM"),
@@ -177,35 +158,20 @@ func Load() (*Config, error) {
 	}
 
 	// --- Validate Required Fields ---
-	// Check for essential configuration values.
 	var missingConfig []string
 	validateField(config.Server.PortalBaseURL, "PORTAL_BASE_URL", &missingConfig)
-	validateField(config.Database.Host, "DB_HOST", &missingConfig)
-	if config.Database.Port <= 0 {
-		missingConfig = append(missingConfig, "DB_PORT (must be > 0)")
-	}
-	validateField(config.Database.User, "DB_USER", &missingConfig)
-	validateField(config.Database.Password, "DB_PASSWORD", &missingConfig)
-	validateField(config.Database.Name, "DB_NAME", &missingConfig)
+	validateField(config.Database.URL, "DATABASE_URL", &missingConfig) // Validate DATABASE_URL
 	validateField(config.Auth.JWTSecret, "JWT_SECRET", &missingConfig)
-
-	// Validate Email/SMTP settings (always required now)
 	validateField(config.Email.From, "EMAIL_FROM", &missingConfig)
 	validateField(config.Email.SMTPHost, "SMTP_HOST", &missingConfig)
 	if config.Email.SMTPPort <= 0 {
 		missingConfig = append(missingConfig, "SMTP_PORT (must be > 0)")
 	}
-	// Note: SMTP User/Pass are optional
 
-	if len(missingConfig) > 0 {
-		errMsg := fmt.Sprintf("missing required configuration variables: %s", strings.Join(missingConfig, ", "))
-		logger.Error(errMsg)
-		return nil, errors.New(errMsg)
-	}
-
+	// Storage validation (only if endpoint is set)
 	if config.Storage.Endpoint != "" {
 		logger.Debug("Storage endpoint specified, validating storage config", "endpoint", config.Storage.Endpoint)
-		validateField(config.Storage.Region, "S3_REGION", &missingConfig) // Region might be optional depending on provider
+		validateField(config.Storage.Region, "S3_REGION", &missingConfig)
 		validateField(config.Storage.Bucket, "S3_BUCKET", &missingConfig)
 		validateField(config.Storage.AccessKey, "S3_ACCESS_KEY", &missingConfig)
 		validateField(config.Storage.SecretKey, "S3_SECRET_KEY", &missingConfig)
@@ -213,6 +179,7 @@ func Load() (*Config, error) {
 		logger.Info("Storage endpoint not specified, skipping storage config validation.")
 	}
 
+	// Cache validation (only if provider is redis)
 	if config.Cache.Provider == "redis" {
 		validateField(config.Cache.RedisURL, "REDIS_URL", &missingConfig)
 	}
@@ -226,18 +193,14 @@ func Load() (*Config, error) {
 
 	// --- Log Loaded Configuration (Safely) ---
 	logger.Info("Configuration loaded successfully.")
-	// Log non-sensitive values at Debug level for verification
 	logger.Debug("Loaded configuration details",
 		slog.Group("server",
 			slog.Int("port", config.Server.Port),
 			slog.String("portalBaseURL", config.Server.PortalBaseURL),
 		),
 		slog.Group("database",
-			slog.String("host", config.Database.Host),
-			slog.Int("port", config.Database.Port),
-			slog.String("user", config.Database.User),
-			slog.String("name", config.Database.Name),
-			slog.String("sslMode", config.Database.SSLMode),
+			// DO NOT log the full Database.URL as it contains the password
+			slog.Bool("url_set", config.Database.URL != ""),
 		),
 		slog.Group("auth",
 			slog.Duration("jwtExpires", config.Auth.JWTExpires),
@@ -247,7 +210,7 @@ func Load() (*Config, error) {
 			slog.String("from", config.Email.From),
 			slog.String("smtp_host", config.Email.SMTPHost),
 			slog.Int("smtp_port", config.Email.SMTPPort),
-			slog.Bool("smtp_user_set", config.Email.SMTPUser != ""), // Don't log user/pass
+			slog.Bool("smtp_user_set", config.Email.SMTPUser != ""),
 		),
 		slog.Group("storage",
 			slog.String("endpoint", config.Storage.Endpoint),
