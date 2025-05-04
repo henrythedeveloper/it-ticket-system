@@ -82,11 +82,18 @@ const TicketDetailPage: React.FC = () => {
         } else {
             // User ID present but not found in the list (edge case?)
             console.warn(`Assignee with ID ${updatedTicketData.assignedToUserId} not found in assignableUsers list.`);
+// Debug: Log assignableUsers and assignedToUserId for troubleshooting
+            console.error(
+              '[TicketDetailPage] Assignee not found in assignableUsers!',
+              { assignedToUserId: updatedTicketData.assignedToUserId, assignableUsers }
+            );
             // Keep assignedTo as null or handle appropriately
              fullUpdatedTicket.assignedTo = null;
         }
     } else if (updatedTicketData.hasOwnProperty('assignedToUserId')) { // Check if the property exists, even if null/undefined
          // Explicitly set to unassigned
+// Refresh ticket data to ensure UI is up-to-date
+    refreshCurrentTicket();
          fullUpdatedTicket.assignedTo = null;
          fullUpdatedTicket.assignedToUserId = null; // Also clear the ID field
     }
@@ -101,6 +108,8 @@ const TicketDetailPage: React.FC = () => {
 
     if (success) {
       console.log(`[TicketDetailPage] Context state updated successfully for ticket ID: ${fullUpdatedTicket.id}`);
+      // Ensure UI is in sync by re-fetching the ticket from backend
+      refreshCurrentTicket();
     } else {
       console.error(`[TicketDetailPage] Failed to update context state for ticket ID: ${fullUpdatedTicket.id}`);
     }
@@ -138,7 +147,6 @@ const TicketDetailPage: React.FC = () => {
   return (
     <div className="ticket-detail-page">
       <div className="page-header">
-        {/* Safe to access properties now */}
         <h1>Ticket #{currentTicket.ticketNumber}</h1>
         <button
           className="btn btn-secondary"
@@ -148,60 +156,58 @@ const TicketDetailPage: React.FC = () => {
         </button>
       </div>
 
-      <div className="ticket-detail-content">
-        <div className="ticket-info-section">
-          {/* Passing non-null currentTicket */}
-          <TicketCard ticket={currentTicket} />
-        </div>
-
-        <div className="ticket-actions-section">
-          <div className="card">
-            <div className="card-header">
-              <h3>Ticket Management</h3>
-            </div>
-            <div className="card-body">
-              {/* Passing non-null currentTicket */}
-              <TicketStatusForm
-                ticket={currentTicket}
-                assignableUsers={assignableUsers}
-                onUpdateSuccess={handleTicketUpdate}
-                onCancel={() => {}}
-              />
-            </div>
+      <div className="ticket-grid">
+        <div className="ticket-main">
+          <div className="ticket-card">
+            <TicketCard ticket={currentTicket} />
           </div>
-        </div>
-
-        <div className="ticket-comments-section">
-          <div className="card">
-            <div className="card-header">
+          <div className="ticket-updates">
+            <div className="updates-header">
               <h3>Comments & Updates</h3>
             </div>
-            <div className="card-body">
-              <div className="update-history">
-                {/* Safe to access properties now */}
-                {currentTicket.updates && currentTicket.updates.length > 0 ? (
-                  currentTicket.updates.map((update) => (
-                    <div key={update.id} className={`update-item ${update.isInternalNote ? 'internal-note' : ''}`}>
-                      <div className="update-header">
-                        {/* Optional chaining still good practice for nested user */}
-                        <span className="update-author">{update.user?.name || 'System'}</span>
-                        <span className="update-time">
-                          {new Date(update.createdAt).toLocaleString()}
-                        </span>
-                        {update.isInternalNote && (
-                          <span className="internal-badge">Internal Note</span>
-                        )}
-                      </div>
-                      <div className="update-content">{update.comment}</div>
+            <div className="updates-timeline">
+              {currentTicket.updates && currentTicket.updates.length > 0 ? (
+                currentTicket.updates.map((update) => (
+                  <div
+                    key={update.id}
+                    className={`update-item${update.isInternalNote ? ' internal-note' : ''}`}
+                  >
+                    <div className="update-header">
+                      <span className="update-author">{update.user?.name || 'System'}</span>
+                      <span className="update-time">
+                        {new Date(update.createdAt).toLocaleString()}
+                      </span>
+                      {update.isInternalNote && (
+                        <span className="internal-badge">Internal Note</span>
+                      )}
                     </div>
-                  ))
-                ) : (
-                  <p className="no-updates">No comments or updates yet.</p>
-                )}
-              </div>
-              {/* Ensure id exists before rendering comment form */}
-              {ticketId && <TicketCommentForm ticketId={ticketId} onCommentAdded={handleCommentAdded} onCancel={() => {}} />}
+                    <div className="update-content">{update.comment}</div>
+                  </div>
+                ))
+              ) : (
+                <p className="no-updates">No comments or updates yet.</p>
+              )}
             </div>
+            {ticketId && (
+              <div className="comment-form-container">
+                <TicketCommentForm
+                  ticketId={ticketId}
+                  onCommentAdded={handleCommentAdded}
+                  onCancel={() => {}}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="ticket-sidebar">
+          <div className="sidebar-card">
+            <h3>Ticket Management</h3>
+            <TicketStatusForm
+              ticket={currentTicket}
+              assignableUsers={assignableUsers}
+              onUpdateSuccess={handleTicketUpdate}
+              onCancel={() => {}}
+            />
           </div>
         </div>
       </div>

@@ -222,7 +222,76 @@ func (h *Handler) GetTicketByID(c echo.Context) error {
 	json.Unmarshal(tags, &tagsArr)
 	ticket["tags"] = tagsArr
 
-	return c.JSON(http.StatusOK, ticket)
+	// --- Fetch ticket updates/comments and add to ticket map ---
+	updatesQuery := `
+		SELECT
+			tu.id, tu.ticket_id, tu.user_id, tu.comment, tu.is_internal_note, tu.created_at,
+			u.id, u.name, u.email, u.role, u.created_at, u.updated_at
+		FROM ticket_updates tu
+		LEFT JOIN users u ON tu.user_id = u.id
+		WHERE tu.ticket_id = $1
+		ORDER BY tu.created_at DESC
+	`
+	rows, err := h.db.Pool.Query(ctx, updatesQuery, id)
+	if err != nil {
+		c.Logger().Errorf("Failed to fetch ticket updates: %v", err)
+		// Still return ticket, but with empty updates
+		ticket["updates"] = []interface{}{}
+	} else {
+		defer rows.Close()
+		var updates []map[string]interface{}
+		for rows.Next() {
+			var updateID, updateTicketID, updateComment string
+			var updateUserID *string
+			var isInternalNote bool
+			var createdAt time.Time
+			var userID, userName, userEmail, userRole *string
+			var userCreatedAt, userUpdatedAt *time.Time
+
+			err := rows.Scan(
+				&updateID, &updateTicketID, &updateUserID, &updateComment, &isInternalNote, &createdAt,
+				&userID, &userName, &userEmail, &userRole, &userCreatedAt, &userUpdatedAt,
+			)
+			if err != nil {
+				continue // skip this update if error
+			}
+			update := map[string]interface{}{
+				"id":              updateID,
+				"ticket_id":       updateTicketID,
+				"user_id":         updateUserID,
+				"comment":         updateComment,
+				"is_internal_note": isInternalNote,
+				"created_at":      createdAt.Format(time.RFC3339),
+			}
+			// Populate user object if present
+			if userID != nil && userName != nil {
+				update["user"] = map[string]interface{}{
+					"id":         *userID,
+					"name":       *userName,
+					"email":      userEmail,
+					"role":       userRole,
+					"created_at": userCreatedAt,
+					"updated_at": userUpdatedAt,
+				}
+			} else if updateUserID != nil {
+				update["user"] = map[string]interface{}{
+					"id":   *updateUserID,
+					"name": "Unknown User",
+				}
+			} else {
+				update["user"] = map[string]interface{}{
+					"name": "System",
+				}
+			}
+			updates = append(updates, update)
+		}
+		ticket["updates"] = updates
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success": true,
+		"data":    ticket,
+	})
 }
 
 // GetTicketByIDOptimized retrieves ticket details with optimized queries that combine related data.
