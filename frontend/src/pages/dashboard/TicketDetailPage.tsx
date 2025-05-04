@@ -16,7 +16,6 @@ import Alert from '../../components/common/Alert';
 import { fetchUsers } from '../../services/userService';
 import { User, TicketUpdate, Ticket } from '../../types';
 
-
 const TicketDetailPage: React.FC = () => {
   // --- Hooks & Params ---
   const { ticketId } = useParams<{ ticketId: string }>();
@@ -38,16 +37,10 @@ const TicketDetailPage: React.FC = () => {
   console.log(`[TicketDetailPage] Component rendered. ID from useParams: ${ticketId}`);
 
   // --- Effects ---
-  // --- Effects ---
   useEffect(() => {
     console.log(`[TicketDetailPage] useEffect running. ID dependency: ${ticketId}`);
 
-    // Only fetch if ticketId is present AND EITHER:
-    // 1. There's no currentTicket loaded yet OR
-    // 2. The currentTicket's ID doesn't match the ticketId from the URL
-    // This prevents fetching again right after a successful update via context.
     if (ticketId && (!currentTicket || currentTicket.id !== ticketId)) {
-
       console.log(`[TicketDetailPage] Calling fetchTicketById with ID: ${ticketId} because currentTicket is mismatched or null.`);
       fetchTicketById(ticketId)
         .then(ticket => {
@@ -61,12 +54,12 @@ const TicketDetailPage: React.FC = () => {
     } else {
       console.warn('[TicketDetailPage] useEffect ran but ID is missing or condition not met.');
     }
+  }, [ticketId, currentTicket, fetchTicketById]);
 
-    return () => {
-      console.log('[TicketDetailPage] Cleanup effect running.');
-      clearError();
-    };
-  }, [ticketId, currentTicket, fetchTicketById, clearError]);
+  // Clear error only on initial mount
+  useEffect(() => {
+    clearError();
+  }, [clearError]);
 
   React.useEffect(() => {
     console.log('[TicketDetailPage] Fetching assignable users...');
@@ -107,7 +100,6 @@ const TicketDetailPage: React.FC = () => {
 
     console.log(`[TicketDetailPage] handleTicketUpdate: Reconstructed ticket object for context:`, fullUpdatedTicket);
     // --- END ADDED LOGIC ---
-
 
     // Pass the *reconstructed* ticket object to the context update function
     const success: boolean = updateTicket(fullUpdatedTicket);
