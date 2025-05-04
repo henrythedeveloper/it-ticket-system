@@ -9,7 +9,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { AuthProvider } from './context/AuthContext'; // Adjust path
 import { ThemeProvider } from './context/ThemeContext'; // Adjust path
-import { SidebarProvider } from './context/SidebarContext'; // Adjust path
+import { SidebarProvider } from './context/SideBarContext'; // Adjust path
 import './styles/global.scss'; // Import global styles
 
 // --- Render Application ---

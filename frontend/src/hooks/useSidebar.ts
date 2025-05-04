@@ -5,7 +5,7 @@
 // ==========================================================================
 
 import { useContext } from 'react';
-import { SidebarContext } from '../context/SidebarContext'; // Adjust path if needed
+import { SidebarContext } from '../context/SideBarContext'; // Adjust path if needed
 import { SidebarContextType } from '../types'; // Adjust path if needed
 
 /**
