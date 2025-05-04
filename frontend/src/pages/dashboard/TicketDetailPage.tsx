@@ -6,6 +6,7 @@
 // ==========================================================================
 
 import React, { useEffect } from 'react';
+import AttachmentUpload from '../../components/forms/AttachmentUpload';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTickets } from '../../context/TicketContext';
 import TicketCard from '../../components/tickets/TicketCard';
@@ -145,7 +146,21 @@ const TicketDetailPage: React.FC = () => {
   // --- Render Main Content (currentTicket is guaranteed non-null here) ---
   console.log('[TicketDetailPage] Rendering ticket details for ID:', currentTicket.id);
   // --- Attachment Section Logic ---
-  const attachments = currentTicket.attachments || [];
+  // --- DEBUG: Log attachments to verify keys ---
+  console.log("TicketDetailPage: Raw attachments from API:", currentTicket.attachments);
+
+  function mapAttachmentKeys(att: any) {
+    return {
+      ...att,
+      uploadedByRole: att.uploaded_by_role,
+      uploadedByUserId: att.uploaded_by_user_id,
+      mimeType: att.mime_type,
+      uploadedAt: att.uploaded_at,
+      storagePath: att.storage_path,
+      // Add other fields as needed
+    };
+  }
+  const attachments = (currentTicket.attachments || []).map(mapAttachmentKeys);
   const submitterAttachments = attachments.filter(
     (a) => a.uploadedByRole !== 'Admin' && a.uploadedByRole !== 'Staff'
   );
@@ -238,6 +253,15 @@ const TicketDetailPage: React.FC = () => {
               onCancel={() => {}}
             />
           </div>
+          {/* Admin/Staff Attachment Upload */}
+          <div className="sidebar-card" style={{ marginTop: 24 }}>
+            <h3>Upload Admin/Staff Attachment</h3>
+            <AttachmentUpload
+              uploadUrl={`tickets/${currentTicket.id}/attachments`}
+              onUploadSuccess={refreshCurrentTicket}
+              buttonLabel="Upload"
+            />
+          </div>
           {/* Admin/Staff Attachments Section */}
           <div className="sidebar-card" style={{ marginTop: 24 }}>
             <h3>Admin/Staff Attachments</h3>
@@ -255,7 +279,6 @@ const TicketDetailPage: React.FC = () => {
             ) : (
               <p>No admin/staff attachments.</p>
             )}
-            {/* TODO: Add upload form for admin/staff here */}
           </div>
         </div>
       </div>
