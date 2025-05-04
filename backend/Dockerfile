@@ -6,17 +6,21 @@ WORKDIR /app
 # Install build dependencies
 RUN apk add --no-cache git
 
-# Copy go.mod and go.sum files
-COPY go.mod go.sum ./
+# Copy go.mod and go.sum files from the 'backend' subdirectory in the build context
+COPY backend/go.mod backend/go.sum ./
 
 # Download dependencies
+# This command now expects go.mod and go.sum to be in /app (which they are after the corrected COPY)
 RUN go mod download
 
-# Copy the source code
+# Copy the rest of the source code FROM THE REPO ROOT into the container's /app directory
+# Note: This copies everything, including frontend, nginx etc. into the backend build stage.
+# Consider using a more specific COPY if build times become an issue.
 COPY . .
 
-# Build the Go app
-RUN CGO_ENABLED=0 GOOS=linux go build -o helpdesk-api ./cmd/server
+# Build the Go app - Ensure the path to main.go is correct relative to /app
+# Since we copied everything from the root, the path is now backend/cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -o helpdesk-api ./backend/cmd/server
 
 # Final stage
 FROM alpine:latest
@@ -29,7 +33,7 @@ RUN apk --no-cache add ca-certificates tzdata
 # Copy the binary from the build stage
 COPY --from=build /app/helpdesk-api .
 
-# Expose the port
+# Expose the port the Go app listens on
 EXPOSE 8080
 
 # Run the binary
