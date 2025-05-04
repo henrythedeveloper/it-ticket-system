@@ -5,8 +5,7 @@
 // ==========================================================================
 
 import React from 'react';
-import { Outlet } from 'react-router-dom'; // Renders nested routes
-import { Link } from 'react-router-dom'; // For logo link
+import { Outlet, Link } from 'react-router-dom'; // Renders nested routes
 
 // --- Component ---
 
@@ -15,8 +14,6 @@ import { Link } from 'react-router-dom'; // For logo link
  * Centers the content (rendered via <Outlet />) within a container.
  */
 const AuthLayout: React.FC = () => {
-  // --- Render ---
-  // Assumes SCSS file (_AuthLayout.scss) defines the layout styles
   return (
     <div className="auth-layout">
       <div className="auth-container">

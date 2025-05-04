@@ -5,7 +5,7 @@
 // **SIMPLIFIED**: Removed task-related sections and streamlined dashboard.
 // ==========================================================================
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Loader from '../../components/common/Loader';
 import Alert from '../../components/common/Alert';

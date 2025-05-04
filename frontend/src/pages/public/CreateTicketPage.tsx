@@ -7,7 +7,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Button from '../../components/common/Button';
-import { Link } from 'react-router-dom';
 import TicketForm from '../../components/forms/TicketForm'; // The actual form component
 import Loader from '../../components/common/Loader'; // Reusable Loader
 import Alert from '../../components/common/Alert'; // Reusable Alert

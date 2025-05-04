@@ -6,7 +6,8 @@
 // ==========================================================================
 
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
+import { Outlet as RouterOutlet } from 'react-router-dom';
 
 // --- Layout Components ---
 import MainLayout from '../../layouts/MainLayout'; // Adjusted path for authenticated routes
@@ -86,7 +87,7 @@ const AppRouter: React.FC = () => {
             path="/" // Nested under the protected route base
             element={
             <AdminRoute> {/* Ensures user is Admin */}
-                <Outlet /> {/* Renders the nested admin routes */}
+                <RouterOutlet /> {/* Renders the nested admin routes */}
             </AdminRoute>
             }
         >
@@ -108,11 +109,5 @@ const AppRouter: React.FC = () => {
     </Routes>
     );
 };
-
-    // Helper component needed for nested AdminRoute structure
-    // Alternatively, structure routes differently if Outlet isn't desired here.
-    const Outlet: React.FC = () => <React.Fragment><Routes><Route path="*" element={null} /></Routes><RouterOutlet /></React.Fragment>;
-    import { Outlet as RouterOutlet } from 'react-router-dom';
-
 
 export default AppRouter;

@@ -113,13 +113,14 @@ const FAQPage: React.FC = () => {
         <h1>Frequently Asked Questions</h1>
         <p>Find answers to common questions about our helpdesk system and support process.</p>
         <form onSubmit={handleSearchSubmit} className="search-form">
-            {/* Using standard input for simplicity, could use Input component */}
-            <input
+            <Input
+              id="faq-search"
+              label="Search FAQs"
               type="search"
               placeholder="Search questions..."
               value={searchTerm}
               onChange={handleSearchChange}
-              className="search-input" // Assumes styling in SCSS
+              className="search-input"
               aria-label="Search FAQs"
             />
             <Button type="submit" variant="primary" aria-label="Search">
@@ -133,10 +134,7 @@ const FAQPage: React.FC = () => {
 
       {/* --- Error State --- */}
       {error && !isLoading && (
-          <div className="error-message"> {/* Uses global style */}
-            <p>Error: {error}</p>
-            {/* Optional: Add a retry button */}
-          </div>
+          <Alert type="error" title="Error" message={error} className="mt-6" />
       )}
 
       {/* --- FAQ Content --- */}

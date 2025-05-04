@@ -214,6 +214,7 @@ const UsersPage: React.FC = () => {
       {/* Page Header */}
       <div className="page-header">
         <h1>Manage Users</h1>
+        <span className="user-count">{`Total Users: ${totalUsers}`}</span>
         <div className="header-actions">
           <Link to="/users/new">
             <Button variant="primary" leftIcon={<PlusCircle size={18} />}>
@@ -225,7 +226,7 @@ const UsersPage: React.FC = () => {
 
       {/* Search Filter */}
       <section className="search-filter">
-          <form onSubmit={(e) => e.preventDefault()}>
+          <form onSubmit={(e) => e.preventDefault()} className="search-form">
               <Input
                 label="" // Hide label visually if needed, use aria-label
                 aria-label="Search users by name or email"
@@ -236,7 +237,9 @@ const UsersPage: React.FC = () => {
                 onChange={handleSearchChange}
                 className="search-input" // Ensure this class applies necessary styles
               />
-              {/* Optional: Add explicit search button if not searching on change */}
+              <button type="submit" className="search-btn" aria-label="Search">
+                <Search size={18} />
+              </button>
           </form>
       </section>
 

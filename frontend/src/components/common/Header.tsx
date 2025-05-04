@@ -14,7 +14,7 @@ import { useTheme } from '../../hooks/useTheme'; // Theme context hook
 import { useSidebar } from '../../hooks/useSidebar'; // Sidebar context hook
 import Dropdown from './Dropdown'; // Dropdown component
 import NotificationBell from '../notifications/NotificationBell'; // Added notification bell
-import { Sun, Moon, Menu, LogOut, User as UserIcon, Settings } from 'lucide-react'; // Icons
+import { Sun, Moon, LogOut, User as UserIcon, Settings } from 'lucide-react'; // Icons
 
 // --- Component Props ---
 interface HeaderProps {

@@ -8,7 +8,6 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTickets } from '../../context/TicketContext';
-import { useAuth } from '../../hooks/useAuth';
 import TicketCard from '../../components/tickets/TicketCard';
 import TicketStatusForm from '../../components/forms/TicketStatusForm';
 import TicketCommentForm from '../../components/forms/TicketCommentForm';
@@ -22,7 +21,6 @@ const TicketDetailPage: React.FC = () => {
   // --- Hooks & Params ---
   const { ticketId } = useParams<{ ticketId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const {
     currentTicket,
     isLoading,

@@ -1,11 +1,7 @@
 // src/types/index.ts
 // ==========================================================================
 // Centralized type definitions for the application.
-// **SIMPLIFIED**: Removed task-related types to focus on ticket functionality.
-// **REVISED**: Updated ticket status model to use Open/In Progress/Closed.
 // ==========================================================================
-
-import { ReactNode } from 'react';
 
 // --- User & Auth ---
 export interface User {

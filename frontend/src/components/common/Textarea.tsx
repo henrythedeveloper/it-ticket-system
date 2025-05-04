@@ -5,9 +5,6 @@
     // ==========================================================================
 
     import React, { TextareaHTMLAttributes } from 'react';
-    // Optional: If using react-hook-form
-    // import { UseFormRegisterReturn } from 'react-hook-form';
-
     // --- Component Props ---
 
     /**

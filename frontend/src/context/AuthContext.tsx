@@ -8,7 +8,7 @@
 
 import React, { createContext, useEffect, ReactNode, useMemo } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { AuthContextType, User } from '../types';
+import { AuthContextType } from '../types';
 import { fetchUserProfile } from '../services/authService';
 import Loader from '../components/common/Loader'; // Import Loader
 

@@ -5,7 +5,7 @@
 // ==========================================================================
 
 import api from './api'; // Import the configured Axios instance
-import { Ticket, PaginatedResponse, TicketUpdate, TicketAttachment, Tag, APIResponse, User } from '../types'; // Import relevant types
+import { Ticket, PaginatedResponse, TicketUpdate, TicketAttachment, APIResponse, } from '../types'; // Import relevant types
 import { buildQueryString, keysToCamel } from '../utils/helpers'; // Helper for query params and keysToCamel
 
 // --- Constants ---
@@ -41,18 +41,6 @@ interface UpdateTicketStatusInput {
     resolutionNotes?: string;
 }
 
-// --- Raw API Response Structures ---
-// Define the raw structure expected from the LIST endpoint
-interface RawTicketListItem extends Omit<Ticket, 'updates' | 'attachments' | 'assignedTo' | 'submitter' | 'tags'> {
-    // Assuming backend sends these nested objects directly now
-    assignedTo?: Pick<User, 'id' | 'name'> | null;
-    submitter?: Pick<User, 'id' | 'name' | 'email'> | null;
-    tags?: Tag[];
-}
-
-interface RawPaginatedResponse extends Omit<PaginatedResponse<any>, 'data'> {
-    data: RawTicketListItem[];
-}
 
 // --- Service Functions ---
 

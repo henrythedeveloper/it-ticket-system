@@ -5,11 +5,10 @@
 // ==========================================================================
 
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { Ticket, Notification, TicketFilter, TicketStatusUpdate, TicketContextType, Tag, User } from '../types'; // Ensure all needed types are imported
+import { Ticket, Notification, TicketFilter, TicketContextType, Tag, User } from '../types'; 
 import { fetchTickets, fetchTicketById } from '../services/ticketService'; // Import necessary ticket functions
 import { fetchTags } from '../services/tagService'; // Import from tag service
 import { fetchUsers } from '../services/userService'; // Import user service
-import { useAuth } from '../hooks/useAuth';
 
 // Default filter state
 const defaultFilters: TicketFilter = {
@@ -32,8 +31,6 @@ const TicketContext = createContext<TicketContextType | undefined>(undefined);
 
 // Context Provider Component
 export const TicketProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { user } = useAuth(); // Get authenticated user info
-
   // State variables
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [currentTicket, setCurrentTicket] = useState<Ticket | null>(null);
@@ -41,8 +38,8 @@ export const TicketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFiltersState] = useState<TicketFilter>(defaultFilters);
-  const [notifications, setNotifications] = useState<Notification[]>([]); // Placeholder state
-  const [hasNewNotifications, setHasNewNotifications] = useState(false); // Placeholder state
+  const [notifications] = useState<Notification[]>([]); // Placeholder state
+  const [hasNewNotifications] = useState(false); // Placeholder state
   const [assignableUsers, setAssignableUsers] = useState<Pick<User, 'id' | 'name'>[]>([]);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
 
@@ -113,22 +110,42 @@ export const TicketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     loadFiltersData();
   }, [loadFiltersData]); // Run once on mount
 
-  // --- Other Callbacks (Placeholders - Replace with your actual implementations) ---
+  // --- Other Callbacks ---
   const fetchTicketsHandler = useCallback(async (newFilters?: Partial<TicketFilter>): Promise<void> => {
-      console.log("Fetching tickets with filters:", { ...filters, ...newFilters });
       setIsLoading(true);
-      // Actual fetch logic using fetchTickets service...
-      await new Promise(res => setTimeout(res, 500)); // Simulate fetch
-      setIsLoading(false);
+      setError(null);
+      try {
+        const mergedFilters = { ...filters, ...newFilters };
+        const response = await fetchTickets({
+          ...mergedFilters,
+          tags: mergedFilters.tags ? mergedFilters.tags.join(',') : undefined,
+        });
+        setTickets(response.data);
+        setTotalTickets(response.total);
+        setFiltersState(mergedFilters);
+      } catch (err: any) {
+        setError(err.response?.data?.message || err.message || 'Failed to fetch tickets');
+        setTickets([]);
+        setTotalTickets(0);
+      } finally {
+        setIsLoading(false);
+      }
   }, [filters]);
 
   const fetchTicketByIdHandler = useCallback(async (id: string): Promise<Ticket | null> => {
-      console.log("Fetching ticket by ID:", id);
       setIsLoading(true);
-      // Actual fetch logic using fetchTicketById service...
-      await new Promise(res => setTimeout(res, 500)); // Simulate fetch
-      setIsLoading(false);
-      return null; // Placeholder
+      setError(null);
+      try {
+        const ticket = await fetchTicketById(id);
+        setCurrentTicket(ticket);
+        return ticket;
+      } catch (err: any) {
+        setError(err.response?.data?.message || err.message || 'Failed to fetch ticket');
+        setCurrentTicket(null);
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
   }, []);
 
   const updateTicketState = useCallback((updatedTicketData: Ticket): boolean => {

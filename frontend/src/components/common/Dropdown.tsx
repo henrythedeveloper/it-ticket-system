@@ -6,7 +6,7 @@
 // and click handling, a library like Headless UI or Radix UI is recommended.
 // ==========================================================================
 
-import React, { useState } from 'react';
+import React from 'react';
 
 // --- Component Props ---
 

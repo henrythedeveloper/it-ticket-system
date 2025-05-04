@@ -70,7 +70,7 @@ const TicketsPage: React.FC = () => {
     };
     fetchTickets(filtersFromUrl);
     return () => { clearError(); };
-  }, [currentPage, currentStatus, currentUrgency, currentAssignee, currentSearch, currentTags.join(','), fetchTickets, clearError]);
+  }, [currentPage, currentStatus, currentUrgency, currentAssignee, currentSearch, currentTags, fetchTickets, clearError]);
 
   // --- Handlers ---
   const handleFilterChange = (param: string, value: string) => {

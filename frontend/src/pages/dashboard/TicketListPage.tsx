@@ -27,22 +27,28 @@ const TicketListPage: React.FC = () => {
   useEffect(() => {
     // Load tickets with current filters when component mounts
     fetchTickets();
-  }, [fetchTickets]);
+    return () => {
+      clearError();
+    };
+  }, [fetchTickets, clearError]);
 
   // Filter change handlers
   const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    clearError();
     const value = e.target.value === 'all' ? undefined : e.target.value as TicketStatus;
     setFilters({ status: value, page: 1 });
     fetchTickets({ status: value, page: 1 });
   };
 
   const handleUrgencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    clearError();
     const value = e.target.value === 'all' ? undefined : e.target.value as TicketUrgency;
     setFilters({ urgency: value, page: 1 });
     fetchTickets({ urgency: value, page: 1 });
   };
 
   const handleAssigneeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    clearError();
     let value;
     if (e.target.value === 'all') {
       value = undefined;
@@ -59,6 +65,7 @@ const TicketListPage: React.FC = () => {
   };
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    clearError();
     const [sortBy, sortOrder] = e.target.value.split('-');
     setFilters({ sortBy, sortOrder: sortOrder as 'asc' | 'desc' | undefined, page: 1 });
     fetchTickets({ sortBy, sortOrder: sortOrder as 'asc' | 'desc' | undefined, page: 1 });
@@ -67,6 +74,7 @@ const TicketListPage: React.FC = () => {
   // Search handler
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    clearError();
     const searchInput = e.currentTarget.elements.namedItem('search') as HTMLInputElement;
     setFilters({ search: searchInput.value, page: 1 });
     fetchTickets({ search: searchInput.value, page: 1 });
@@ -74,6 +82,7 @@ const TicketListPage: React.FC = () => {
 
   // Pagination handler
   const handlePageChange = (page: number) => {
+    clearError();
     setFilters({ page });
     fetchTickets({ page });
   };
