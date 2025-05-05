@@ -1,7 +1,7 @@
 # render.yaml
 # ==================================================
 # Infrastructure definition for the IT Helpdesk System on Render.
-# ** UPDATED: Using fromService + internalHostname for proxy envVars **
+# ** CORRECTED: Using fromService + property: host **
 # ==================================================
 
 services:
@@ -17,12 +17,12 @@ services:
         fromService:
           type: web # Type of the source service
           name: it-helpdesk-backend # EXACT name of the backend service
-          property: internalHostname # Property to retrieve
+          property: host # <<< Use 'host' property
       - key: FRONTEND_HOST_INTERNAL # Variable to hold frontend hostname
         fromService:
           type: web # Type of the source service
           name: it-helpdesk-frontend # EXACT name of the frontend service
-          property: internalHostname # Property to retrieve
+          property: host # <<< Use 'host' property
       # --- End fromService definitions ---
 
   # Frontend Service (Web Service using Docker)
