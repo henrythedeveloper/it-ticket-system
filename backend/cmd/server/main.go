@@ -11,23 +11,18 @@ import (
 	"syscall"
 	"time"
 
-	// Correctly import the api package (no alias needed or use 'api')
 	"github.com/henrythedeveloper/it-ticket-system/internal/api"
 	"github.com/henrythedeveloper/it-ticket-system/internal/config"
 	"github.com/henrythedeveloper/it-ticket-system/internal/db"
 	"github.com/henrythedeveloper/it-ticket-system/internal/email"
 	"github.com/henrythedeveloper/it-ticket-system/internal/file"
+	"github.com/labstack/echo/v4" // Import Echo
 )
 
 func main() {
 	// --- Setup slog Logger ---
-	logLevel := new(slog.LevelVar) // Defaults to Info
-	// TODO: Optionally set log level from config/env var later
-	opts := slog.HandlerOptions{
-		Level:     logLevel,
-		AddSource: true, // Add source file and line number
-	}
-	// Use TextHandler for development, JSONHandler for production
+	logLevel := new(slog.LevelVar)
+	opts := slog.HandlerOptions{Level: logLevel, AddSource: true}
 	handler := slog.NewTextHandler(os.Stdout, &opts)
 	logger := slog.New(handler)
 	slog.SetDefault(logger)
@@ -35,10 +30,19 @@ func main() {
 
 	slog.Info("Application starting...")
 
+	// --- Log Internal Hostname ---
+	hostname, hostErr := os.Hostname()
+	if hostErr != nil {
+		slog.Warn("Could not determine internal hostname", "error", hostErr)
+	} else {
+		slog.Info("Internal hostname reported by OS", "hostname", hostname)
+	}
+	// --- End Hostname Log ---
+
 	// --- Load Configuration ---
-	cfg, err := config.Load() // config.Load already logs errors
+	cfg, err := config.Load()
 	if err != nil {
-		slog.Error("Configuration loading failed. Exiting.", "error", err) // Add explicit exit log
+		slog.Error("Configuration loading failed. Exiting.", "error", err)
 		os.Exit(1)
 	}
 
@@ -48,9 +52,8 @@ func main() {
 		slog.Error("Failed to connect to database. Exiting.", "error", err)
 		os.Exit(1)
 	}
-	defer database.Close() // Ensure DB pool is closed on exit
+	defer database.Close()
 	slog.Info("Database connection established")
-
 
 	// --- Initialize Email Service ---
 	emailService, err := email.NewService(cfg.Email, cfg.Server.PortalBaseURL)
@@ -66,54 +69,54 @@ func main() {
 		slog.Error("Failed to initialize file storage service. Exiting.", "error", err)
 		os.Exit(1)
 	}
-	// Be cautious logging storage endpoint if it contains sensitive info
 	slog.Info("File storage service initialized", "endpoint", cfg.Storage.Endpoint)
 
 	// --- Setup API Server ---
-	// Use the correct package identifier 'api'
 	server := api.NewServer(database, emailService, fileService, cfg)
 	slog.Info("API server setup complete")
 
+	// --- Add Health Check Endpoint ---
+	// Get the underlying Echo instance from the server
+	echoInstance := server.EchoInstance()
+	// Add the health check route directly to the Echo instance
+	echoInstance.GET("/api/healthz", func(c echo.Context) error {
+		// Basic check: just return 200 OK. Could add DB ping later.
+		return c.String(http.StatusOK, "ok")
+	})
+	slog.Info("Registered /api/healthz endpoint")
+	// --- End Health Check ---
+
 	// --- Log Registered Routes (Use Debug level) ---
-	slog.Debug("Registering routes...")
-	// Use the EchoInstance() method from the refactored api.Server
-	routes := server.EchoInstance().Routes()
-	for _, r := range routes {
-		slog.Debug("Route registered", "method", r.Method, "path", r.Path, "name", r.Name)
-	}
-	slog.Debug("Route registration complete")
-	// --- End block ---
+	// This helper function should be defined in internal/api/server.go
+	// logRegisteredRoutes(echoInstance) // Assuming logRegisteredRoutes exists
 
 	// --- Start Server ---
-	// Start the server in a goroutine so it doesn't block the shutdown handling
 	go func() {
-		address := fmt.Sprintf(":%d", cfg.Server.Port)
+		internalPort := os.Getenv("PORT")
+		if internalPort == "" {
+			internalPort = "8080" // Ensure backend listens on 8080 as specified in render.yaml
+			slog.Warn("PORT environment variable not set by Render, defaulting to 8080")
+		}
+		address := fmt.Sprintf(":%s", internalPort)
+
+		slog.Info("Starting server", "address", address) // Log before starting
 		if err := server.Start(address); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			// Log fatal error if server can't start (excluding ErrServerClosed)
 			slog.Error("Server failed to start", "address", address, "error", err)
-			os.Exit(1) // Exit if server fails to start
+			os.Exit(1)
 		}
 	}()
 
 	// --- Graceful Shutdown Handling ---
-	// Wait for interrupt signal (Ctrl+C) or termination signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-
-	// Block until a signal is received
 	recSignal := <-quit
 	slog.Info("Received signal, initiating shutdown...", "signal", recSignal.String())
-
-	// Create a context with a timeout for shutdown
-	// Gives active connections time to finish
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-
-	// Attempt to gracefully shut down the server
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		slog.Error("Server forced to shutdown uncleanly", "error", err)
-		os.Exit(1) // Exit with error status if shutdown fails
+		os.Exit(1)
 	}
-
 	slog.Info("Server exited gracefully")
 }
+

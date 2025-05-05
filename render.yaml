@@ -1,73 +1,78 @@
-# Exported from Render on 2025-05-05T01:28:43Z
-databases:
-- name: it-helpdesk-db
-  databaseName: it_helpdesk_db_adv4
-  user: it_helpdesk_db_adv4_user
-  plan: free
-  region: oregon
-  ipAllowList:
-  - source: 0.0.0.0/0
-    description: everywhere
-  postgresMajorVersion: "16"
+# render.yaml
+# ==================================================
+# Infrastructure definition for the IT Helpdesk System on Render.
+# ** UPDATED: Using fromInternalAddress and health check **
+# ==================================================
+
 services:
-- type: web
-  name: it-helpdesk-backend
-  runtime: docker
-  repo: https://github.com/henrythedeveloper/it-ticket-system
-  plan: free
-  envVars:
-  - key: S3_DISABLE_SSL
-    sync: false
-  - key: S3_SECRET_KEY
-    sync: false
-  - key: S3_REGION
-    sync: false
-  - key: S3_ENDPOINT
-    sync: false
-  - key: S3_BUCKET
-    sync: false
-  - key: S3_ACCESS_KEY
-    sync: false
-  - key: RESEND_API_KEY
-    sync: false
-  - key: PORTAL_BASE_URL
-    sync: false
-  - key: JWT_SECRET
-    sync: false
-  - key: EMAIL_PROVIDER
-    sync: false
-  - key: EMAIL_FROM
-    sync: false
-  - key: DATABASE_URL
-    fromDatabase:
-      name: it-helpdesk-db
-      property: connectionString
-  region: oregon
-  dockerContext: .
-  dockerfilePath: ./backend/Dockerfile
-  autoDeploy: false
-- type: web
-  name: it-helpdesk-frontend
-  runtime: docker
-  repo: https://github.com/henrythedeveloper/it-ticket-system
-  plan: free
-  region: oregon
-  dockerContext: .
-  dockerfilePath: ./Dockerfile
-  autoDeploy: false
-  rootDir: frontend
-- type: web
-  name: it-helpdesk-proxy
-  runtime: docker
-  repo: https://github.com/henrythedeveloper/it-ticket-system
-  plan: free
-  envVars:
-  - key: NGINX_PORT
-    sync: false
-  region: oregon
-  dockerContext: .
-  dockerfilePath: ./nginx/Dockerfile
-  domains:
-  - www.answersdesk.org
-  - answersdesk.org
-version: "1"
+  # Nginx Reverse Proxy (Public Web Service)
+  - name: it-helpdesk-proxy # Renamed for clarity (or use your existing Nginx service name)
+    type: web
+    env: docker
+    dockerContext: . # Build context is repo root
+    dockerfilePath: ./nginx/Dockerfile # Path relative to repo root
+    envVars:
+      # Inject internal addresses from other services
+      - key: BACKEND_INTERNAL # Env var for backend address
+        fromInternalAddress:
+          name: it-helpdesk-backend # Name of the backend service
+          port: 8080 # Port the backend listens on
+      - key: FRONTEND_INTERNAL # Env var for frontend address
+        fromInternalAddress:
+          name: it-helpdesk-frontend # Name of the frontend service
+          port: 80 # Port the frontend Nginx listens on
+      # NGINX_PORT is usually not needed as Nginx listens on 80 by default
+
+  # Frontend Service (Web Service using Docker)
+  - name: it-helpdesk-frontend
+    type: web # Changed from pserv to potentially allow Render health checks if needed
+    env: docker
+    dockerContext: ./frontend # Build context is frontend directory
+    dockerfilePath: ./Dockerfile # Path relative to dockerContext
+    # No specific env vars needed here usually
+
+  # Backend Service (Web Service using Docker)
+  - name: it-helpdesk-backend
+    type: web # Changed from pserv to potentially allow Render health checks
+    env: docker
+    dockerContext: . # Build context is repo root
+    dockerfilePath: ./backend/Dockerfile # Path relative to repo root
+    healthCheckPath: /api/healthz # Define the health check path <<< ADDED
+    envVars:
+      # --- Database URL (Injected by Render) ---
+      - key: DATABASE_URL
+        fromDatabase:
+          name: it-helpdesk-db # Must match the database name defined below
+          property: connectionString
+      # --- Secrets (Values MUST be set in Render Dashboard Environment) ---
+      - key: JWT_SECRET
+        value: "" # Set value in Render UI
+      - key: S3_ACCESS_KEY
+        value: "" # Set value in Render UI
+      - key: S3_SECRET_KEY
+        value: "" # Set value in Render UI
+      - key: RESEND_API_KEY
+        value: "" # Set value in Render UI
+      # --- Non-Secrets ---
+      - key: PORT # Internal port the Go app listens on
+        value: 8080 # Explicitly set to 8080
+      - key: PORTAL_BASE_URL
+        value: "" # Set value in Render UI (e.g., https://answersdesk.org)
+      - key: EMAIL_FROM
+        value: "" # Set value in Render UI (e.g., support@answersdesk.org)
+      # --- Backblaze B2 Configuration ---
+      - key: S3_ENDPOINT
+        value: "" # Set value in Render UI
+      - key: S3_REGION
+        value: "" # Set value in Render UI
+      - key: S3_BUCKET
+        value: "" # Set value in Render UI
+      - key: S3_DISABLE_SSL
+        value: false
+
+# Define the managed PostgreSQL database
+databases:
+  - name: it-helpdesk-db
+    postgresMajorVersion: 16
+    ipAllowList: []
+

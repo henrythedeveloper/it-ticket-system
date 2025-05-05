@@ -1,0 +1,49 @@
+# resolver 100.100.100.100 valid=10s; # Resolver no longer needed with envsubst
+
+server {
+    listen 80;
+    server_name _;
+
+    # Increase buffer size if needed for large headers/requests
+    # proxy_buffer_size   128k;
+    # proxy_buffers   4 256k;
+    # proxy_busy_buffers_size   256k;
+
+    # Location for API calls, proxied to the backend service
+    location /api {
+        # Use environment variable injected by Render via render.yaml
+        proxy_pass http://${BACKEND_INTERNAL}; # Variable substitution happens here
+
+        # Standard proxy headers
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_http_version 1.1;
+    }
+
+    # Location for the frontend application, proxied to the frontend service
+    location / {
+        # Use environment variable injected by Render via render.yaml
+        proxy_pass http://${FRONTEND_INTERNAL}; # Variable substitution happens here
+
+        # Standard proxy headers
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_http_version 1.1;
+    }
+
+    # Optional: Add specific error pages or gzip settings if desired
+    # error_page 500 502 503 504 /50x.html;
+    # location = /50x.html {
+    #     root /usr/share/nginx/html;
+    # }
+    # gzip on;
+    # ...
+}
