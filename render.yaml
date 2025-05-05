@@ -1,57 +1,72 @@
-# render.yaml  (version line is optional but recommended)
 version: "1"
 
+databases:
+  - name: it-helpdesk-db
+    postgresMajorVersion: 16
+    ipAllowList: []          # keep empty → only Render services can connect
+
 services:
-  # ───────── NGINX REVERSE PROXY ─────────
-  - name: it-helpdesk-proxy
-    type: web
-    runtime: docker          # <-- not "env"
-    dockerContext: .
-    dockerfilePath: ./nginx/Dockerfile
-    envVars:
-      - key: BACKEND_INTERNAL
-        fromInternalAddress:
-          serviceName: it-helpdesk-backend   # <-- corrected
-          port: 8080
-      - key: FRONTEND_INTERNAL
-        fromInternalAddress:
-          serviceName: it-helpdesk-frontend  # <-- corrected
-          port: 80
-
-  # ───────── FRONTEND ─────────
-  - name: it-helpdesk-frontend
-    type: web
-    runtime: docker
-    dockerContext: ./frontend
-    dockerfilePath: ./Dockerfile   # path is relative to dockerContext
-
-  # ───────── BACKEND ─────────
+  # ───────── BACKEND (Go API) ─────────
   - name: it-helpdesk-backend
     type: web
     runtime: docker
     dockerContext: .
     dockerfilePath: ./backend/Dockerfile
-    healthCheckPath: /healthz        # /api/healthz if that’s what you exposed
+    healthCheckPath: /healthz        # your handler must return 200 here
     envVars:
-      - key: DATABASE_URL
+      - key: DATABASE_URL            # injected automatically from the DB above
         fromDatabase:
           name: it-helpdesk-db
           property: connectionString
-      - key: PORT
-        value: "8080"
-      # put real secrets in the dashboard or add `sync: false`
-      - key: JWT_SECRET      ; sync: false
-      - key: S3_ACCESS_KEY   ; sync: false
-      - key: S3_SECRET_KEY   ; sync: false
-      - key: RESEND_API_KEY  ; sync: false
-      - key: PORTAL_BASE_URL ; value: "https://answersdesk.org"
-      - key: EMAIL_FROM      ; value: "support@answersdesk.org"
-      - key: S3_ENDPOINT     ; sync: false
-      - key: S3_REGION       ; sync: false
-      - key: S3_BUCKET       ; sync: false
-      - key: S3_DISABLE_SSL  ; value: "false"
 
-databases:
-  - name: it-helpdesk-db
-    postgresMajorVersion: 16
-    ipAllowList: []
+      - key: PORT                    # app listens on 8080 internally
+        value: "8080"
+
+      # secrets – define the real values in the Render dashboard
+      - key: JWT_SECRET
+        sync: false
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+
+      # non‑secrets / defaults
+      - key: PORTAL_BASE_URL
+        value: "https://answersdesk.org"
+      - key: EMAIL_FROM
+        value: "support@answersdesk.org"
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_DISABLE_SSL
+        value: "false"
+
+  # ───────── FRONTEND (static files served by nginx) ─────────
+  - name: it-helpdesk-frontend
+    type: web
+    runtime: docker
+    dockerContext: ./frontend
+    dockerfilePath: ./Dockerfile      # path is relative to dockerContext
+    # normally no env vars needed for a static build
+
+  # ───────── PUBLIC REVERSE‑PROXY ─────────
+  - name: it-helpdesk-proxy
+    type: web
+    runtime: docker
+    dockerContext: .
+    dockerfilePath: ./nginx/Dockerfile
+    envVars:
+      # Render fills these with the CURRENT internal hostnames on each deploy
+      - key: BACKEND_INTERNAL
+        fromInternalAddress:
+          serviceName: it-helpdesk-backend
+          port: 8080
+      - key: FRONTEND_INTERNAL
+        fromInternalAddress:
+          serviceName: it-helpdesk-frontend
+          port: 80
