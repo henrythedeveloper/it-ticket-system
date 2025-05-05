@@ -1,0 +1,73 @@
+# Exported from Render on 2025-05-05T01:28:43Z
+databases:
+- name: it-helpdesk-db
+  databaseName: it_helpdesk_db_adv4
+  user: it_helpdesk_db_adv4_user
+  plan: free
+  region: oregon
+  ipAllowList:
+  - source: 0.0.0.0/0
+    description: everywhere
+  postgresMajorVersion: "16"
+services:
+- type: web
+  name: it-helpdesk-backend
+  runtime: docker
+  repo: https://github.com/henrythedeveloper/it-ticket-system
+  plan: free
+  envVars:
+  - key: S3_DISABLE_SSL
+    sync: false
+  - key: S3_SECRET_KEY
+    sync: false
+  - key: S3_REGION
+    sync: false
+  - key: S3_ENDPOINT
+    sync: false
+  - key: S3_BUCKET
+    sync: false
+  - key: S3_ACCESS_KEY
+    sync: false
+  - key: RESEND_API_KEY
+    sync: false
+  - key: PORTAL_BASE_URL
+    sync: false
+  - key: JWT_SECRET
+    sync: false
+  - key: EMAIL_PROVIDER
+    sync: false
+  - key: EMAIL_FROM
+    sync: false
+  - key: DATABASE_URL
+    fromDatabase:
+      name: it-helpdesk-db
+      property: connectionString
+  region: oregon
+  dockerContext: .
+  dockerfilePath: ./backend/Dockerfile
+  autoDeploy: false
+- type: web
+  name: it-helpdesk-frontend
+  runtime: docker
+  repo: https://github.com/henrythedeveloper/it-ticket-system
+  plan: free
+  region: oregon
+  dockerContext: .
+  dockerfilePath: ./Dockerfile
+  autoDeploy: false
+  rootDir: frontend
+- type: web
+  name: it-helpdesk-proxy
+  runtime: docker
+  repo: https://github.com/henrythedeveloper/it-ticket-system
+  plan: free
+  envVars:
+  - key: NGINX_PORT
+    sync: false
+  region: oregon
+  dockerContext: .
+  dockerfilePath: ./nginx/Dockerfile
+  domains:
+  - www.answersdesk.org
+  - answersdesk.org
+version: "1"
