@@ -63,10 +63,12 @@ services:
     envVars:
       # Render fills these with the CURRENT internal hostnames on each deploy
       - key: BACKEND_INTERNAL
-        fromInternalAddress:
+        fromService:
           name: it-helpdesk-backend
+          type: web
           port: 8080
       - key: FRONTEND_INTERNAL
-        fromInternalAddress:
+        fromService:
           name: it-helpdesk-frontend
+          type: web
           port: 80
