@@ -64,9 +64,9 @@ services:
       # Render fills these with the CURRENT internal hostnames on each deploy
       - key: BACKEND_INTERNAL
         fromInternalAddress:
-          serviceName: it-helpdesk-backend
+          name: it-helpdesk-backend
           port: 8080
       - key: FRONTEND_INTERNAL
         fromInternalAddress:
-          serviceName: it-helpdesk-frontend
+          name: it-helpdesk-frontend
           port: 80
