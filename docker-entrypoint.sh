@@ -10,17 +10,6 @@ echo "Configuring nginx with:"
 echo "BACKEND_URL: $BACKEND_URL"
 echo "FRONTEND_URL: $FRONTEND_URL"
 
-# Special handling for backend URL - ensure it has correct endpoint format
-# If URL doesn't end with /api, make sure it's configured correctly
-if [[ "$BACKEND_URL" != *"/api" ]]; then
-    # If the URL already has a path beyond the domain, we need different handling
-    if [[ "$BACKEND_URL" == *"/"* && "$BACKEND_URL" != *"/" ]]; then
-        # URL has a path but doesn't end with /
-        BACKEND_URL="${BACKEND_URL}/"
-    fi
-    echo "Adjusted BACKEND_URL: $BACKEND_URL"
-fi
-
 # Generate nginx config from template
 echo "Generating nginx configuration..."
 envsubst '${BACKEND_URL} ${FRONTEND_URL}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
@@ -29,6 +18,5 @@ envsubst '${BACKEND_URL} ${FRONTEND_URL}' < /etc/nginx/templates/default.conf.te
 echo "Generated nginx configuration:"
 cat /etc/nginx/conf.d/default.conf
 
-# Execute the regular docker entrypoint
-echo "Starting original entrypoint..."
-exec /docker-entrypoint-orig.sh "$@"
+# Execute the command passed to docker run
+exec "$@"
