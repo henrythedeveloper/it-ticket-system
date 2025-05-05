@@ -1,7 +1,7 @@
 # render.yaml
 # ==================================================
 # Infrastructure definition for the IT Helpdesk System on Render.
-# ** CORRECTED: Using fromInternalAddress for service discovery **
+# ** UPDATED: Using fromService + internalHostname for proxy envVars **
 # ==================================================
 
 services:
@@ -12,15 +12,18 @@ services:
     dockerContext: . # Build context is repo root
     dockerfilePath: ./nginx/Dockerfile # Path relative to repo root
     envVars:
-      # Inject internal addresses from other services using fromInternalAddress
-      - key: BACKEND_INTERNAL # Env var for backend address
-        fromInternalAddress:
-          name: it-helpdesk-backend # EXACT name of the backend service below
-          port: 8080 # Port the backend listens on
-      - key: FRONTEND_INTERNAL # Env var for frontend address
-        fromInternalAddress:
-          name: it-helpdesk-frontend # EXACT name of the frontend service below
-          port: 80 # Port the frontend Nginx listens on
+      # --- Use fromService to get internal hostnames ---
+      - key: BACKEND_HOST_INTERNAL # Variable to hold backend hostname
+        fromService:
+          type: web # Type of the source service
+          name: it-helpdesk-backend # EXACT name of the backend service
+          property: internalHostname # Property to retrieve
+      - key: FRONTEND_HOST_INTERNAL # Variable to hold frontend hostname
+        fromService:
+          type: web # Type of the source service
+          name: it-helpdesk-frontend # EXACT name of the frontend service
+          property: internalHostname # Property to retrieve
+      # --- End fromService definitions ---
 
   # Frontend Service (Web Service using Docker)
   - name: it-helpdesk-frontend # Ensure this name matches above
@@ -28,7 +31,6 @@ services:
     env: docker
     dockerContext: ./frontend # Build context is frontend directory
     dockerfilePath: ./Dockerfile # Path relative to dockerContext
-    # No specific env vars needed here usually
 
   # Backend Service (Web Service using Docker)
   - name: it-helpdesk-backend # Ensure this name matches above
