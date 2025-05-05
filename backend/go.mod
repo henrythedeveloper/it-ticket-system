@@ -66,6 +66,7 @@ require (
 require (
 	github.com/google/uuid v1.4.0
 	github.com/redis/go-redis/v9 v9.8.0
+	github.com/resend/resend-go/v2 v2.18.0
 )
 
 require (
