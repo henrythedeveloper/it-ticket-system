@@ -29,8 +29,8 @@ services:
   - name: it-helpdesk-frontend # Ensure this name matches above
     type: web
     env: docker
-    dockerContext: ./frontend # <<< CORRECTED: Build context is frontend directory
-    dockerfilePath: ./Dockerfile # <<< CORRECTED: Path relative to dockerContext
+    dockerContext: . # <<< CORRECTED: Build context is frontend directory
+    dockerfilePath: ./frontend/Dockerfile # <<< CORRECTED: Path relative to dockerContext
     # No specific env vars needed here usually
 
   # Backend Service (Web Service using Docker)
