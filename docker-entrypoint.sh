@@ -3,7 +3,7 @@ set -e
 
 # Default values (can be overridden by environment variables)
 : ${BACKEND_URL:="https://it-helpdesk-backend-3bvz.onrender.com"}
-: ${FRONTEND_URL:="http://localhost:80"}
+: ${FRONTEND_URL:="https://it-helpdesk-frontend.onrender.com"}
 
 # Print configuration for debugging
 echo "Configuring nginx with:"
