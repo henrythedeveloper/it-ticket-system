@@ -41,8 +41,6 @@ This application aims to solve these problems by providing a centralized, effici
 
 ## Architecture
 
-*(Consider adding the architecture diagram image from your presentation here)*
-
 The application follows a client-server architecture:
 1.  A React single-page application (SPA) frontend served by its own Nginx container.
 2.  A Go (Echo) backend API handling business logic, database interactions, file storage, and email sending.
