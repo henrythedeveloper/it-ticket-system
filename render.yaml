@@ -1,7 +1,7 @@
 # render.yaml
 # ==================================================
 # Infrastructure definition for the IT Helpdesk System on Render.
-# ** CORRECTED: Using fromService + property: host **
+# ** CORRECTED: Frontend build context/path & Backend env var definitions **
 # ==================================================
 
 services:
@@ -17,20 +17,21 @@ services:
         fromService:
           type: web # Type of the source service
           name: it-helpdesk-backend # EXACT name of the backend service
-          property: host # <<< Use 'host' property
+          property: host # Use 'host' property
       - key: FRONTEND_HOST_INTERNAL # Variable to hold frontend hostname
         fromService:
           type: web # Type of the source service
           name: it-helpdesk-frontend # EXACT name of the frontend service
-          property: host # <<< Use 'host' property
+          property: host # Use 'host' property
       # --- End fromService definitions ---
 
   # Frontend Service (Web Service using Docker)
   - name: it-helpdesk-frontend # Ensure this name matches above
     type: web
     env: docker
-    dockerContext: ./frontend # Build context is frontend directory
-    dockerfilePath: ./Dockerfile # Path relative to dockerContext
+    dockerContext: ./frontend # <<< CORRECTED: Build context is frontend directory
+    dockerfilePath: ./Dockerfile # <<< CORRECTED: Path relative to dockerContext
+    # No specific env vars needed here usually
 
   # Backend Service (Web Service using Docker)
   - name: it-helpdesk-backend # Ensure this name matches above
