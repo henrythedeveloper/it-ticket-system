@@ -1,104 +1,98 @@
 # IT Helpdesk Ticketing System
 
-## Overview
+A full-stack web application designed to streamline IT support requests and management within an organization. Users can submit tickets publicly, while staff and administrators can manage tickets, users, and FAQs through an authenticated dashboard.
 
-This project is a web-based IT Helpdesk Ticketing System designed to streamline the process of submitting, tracking, and managing IT support requests and internal tasks within an organization. It provides a user-friendly interface for end-users to submit tickets and a more comprehensive dashboard for IT staff and administrators to manage tickets, tasks, users, and FAQs.
+**Live Application:** [https://answersdesk.org](https://answersdesk.org)
 
-## Purpose
+## Problem Solved
 
-The primary goals of this system are:
+Traditional methods of handling IT support (email, calls, walk-ins) often lead to:
+* Lost or untracked requests.
+* Lack of visibility for end-users on issue status.
+* Inefficient task management and prioritization for IT staff.
+* Repetitive answers to common questions.
 
-* **Centralize Support Requests:** Provide a single point of entry for all IT support needs.
-* **Improve Tracking & Visibility:** Allow users and staff to easily track the status and history of support tickets and tasks.
-* **Enhance Efficiency:** Enable IT staff to manage their workload effectively through assignments, status updates, and internal task management.
-* **Facilitate Communication:** Capture communication history through comments and updates on tickets and tasks.
-* **Knowledge Sharing:** Provide a simple FAQ management system for common issues.
+This application aims to solve these problems by providing a centralized, efficient, and user-friendly platform.
 
 ## Features
 
-* **Ticket Management:**
-    * End-user ticket submission (public endpoint).
-    * Ticket viewing, filtering (by status, urgency, assignee, tags, etc.), and searching.
-    * Ticket assignment to staff members.
-    * Status updates (Unassigned, Assigned, In Progress, Closed).
-    * Adding public/internal comments and updates.
-    * File attachments (upload, download).
-    * Tagging for categorization.
-* **Task Management:**
-    * Internal task creation, assignment, and tracking for IT staff.
-    * Task status updates (Open, In Progress, Completed).
-    * Due dates and optional recurrence rules.
-    * Adding comments/updates to tasks.
-* **User Management (Admin):**
-    * User creation, viewing, updating, and deletion.
-    * Role-based access control (Admin, Staff).
-* **FAQ Management (Admin):**
-    * Create, Read, Update, Delete (CRUD) operations for FAQ entries.
-    * Categorization of FAQs.
-* **Authentication:** JWT-based authentication for staff/admin access.
+* **Public Ticket Submission:** Allows anyone to submit a support ticket with details, urgency, type, tags, and file attachments.
+* **Staff/Admin Dashboard:** Authenticated area for managing the helpdesk.
+* **Ticket Management:** View, filter (by status, urgency, assignee, tags), assign, update status, and comment on tickets.
+* **User Management:** Admins can create, view, edit, and delete staff/admin accounts. Staff permissions are slightly restricted (cannot delete users).
+* **FAQ Management:** Admins/Staff can create, edit, and delete frequently asked questions to provide self-service support.
+* **Tag Management:** Admins/Staff can manage tags used to categorize tickets.
+* **File Attachments:** Users can attach files during submission; staff can view/download attachments (stored securely in Backblaze B2).
+* **Email Notifications:** Automated emails (sent via Resend) for ticket creation, updates, assignments, password resets, etc.
+* **Authentication:** Secure JWT-based authentication for staff/admin users, including password hashing and password reset functionality.
 
-## System Architecture
+## Technology Stack
 
-The system follows a standard client-server architecture:
-
-1.  **Frontend:** A single-page application (SPA) built with **React**. It provides the user interface for both end-users (ticket submission) and authenticated staff/admins (management dashboards). It communicates with the backend via a REST API.
-2.  **Backend:** A RESTful API server built with **Go** using the **Echo** framework. It handles:
-    * Business logic for tickets, tasks, users, etc.
-    * API request handling and validation.
-    * Authentication (JWT generation/validation).
-    * Database interactions.
-    * Email notifications.
-    * Interaction with the file storage service.
-3.  **Database:** A **PostgreSQL** database stores all persistent data, including users, tickets, tasks, tags, FAQs, comments, and attachment metadata. Database migrations are managed using `golang-migrate`.
-4.  **File Storage:** An **S3-compatible** object storage service (like AWS S3 or **MinIO** for local development) stores uploaded file attachments.
-5.  **Email Service:** An external email service (like **Resend**) is used to send notifications (e.g., ticket confirmation, closure, task assignment).
-
-*(A visual diagram representing this architecture could be added here separately if desired.)*
-
-## Tech Stack
-
-* **Frontend:** React, Javascript, HTML, CSS (Tailwind CSS likely, based on common practices)
-* **Backend:** Go, Echo Framework
+* **Frontend:** React, TypeScript, Rsbuild (Bundler), Zustand (State Management), Axios, SCSS, React Router
+* **Backend:** Go (Golang), Echo Framework, PGX (Postgres Driver), `golang-jwt/jwt`, `bcrypt`
 * **Database:** PostgreSQL
-* **File Storage:** MinIO (or any S3-compatible service)
-* **Authentication:** JWT (JSON Web Tokens)
-* **Database Migrations:** golang-migrate
-* **Containerization:** Docker, Docker Compose
+* **File Storage:** Backblaze B2 (S3-Compatible Object Storage)
+* **Email:** Resend API
+* **Proxy:** Nginx
+* **Containerization:** Docker, Docker Compose (for local development)
+* **Deployment:** Render (Web Services, Managed Postgres)
+* **DNS:** Cloudflare
+* **Version Control:** Git / GitHub
 
-## Backend Structure (Refactored)
+## Architecture
 
-The Go backend code is organized as follows:
+*(Consider adding the architecture diagram image from your presentation here)*
 
-* `cmd/server/main.go`: Entry point for the application, initializes services and starts the server.
-* `internal/api/`: Contains the API server setup (`server.go`), handlers, and middleware.
-    * `handlers/`: Request handlers organized by resource type (faq, tag, task, ticket, user). Each handler package contains:
-        * `base.go`: Handler struct definition and route registration.
-        * `*.go`: Files implementing specific CRUD operations (e.g., `create.go`, `query.go`, `update.go`).
-        * `utils.go` (optional): Helper functions specific to the handler.
-    * `middleware/auth/`: Authentication middleware (JWT validation, Admin checks).
-* `internal/auth/`: Core authentication service logic (password hashing, JWT generation/validation).
-* `internal/config/`: Configuration loading from environment variables.
-* `internal/db/`: Database connection management and migration execution.
-* `internal/email/`: Email sending service implementation and templates.
-* `internal/file/`: File storage service implementation (S3/MinIO).
-* `internal/models/`: Core data structures (structs) and enums used across the application.
-* `migrations/`: SQL files for database schema migrations.
+The application follows a client-server architecture:
+1.  A React single-page application (SPA) frontend served by its own Nginx container.
+2.  A Go (Echo) backend API handling business logic, database interactions, file storage, and email sending.
+3.  A separate Nginx reverse proxy service acts as the public entry point, routing traffic to the appropriate frontend or backend service based on the URL path.
+4.  Data is persisted in a PostgreSQL database.
+5.  File attachments are stored in a Backblaze B2 bucket.
+6.  Transactional emails are sent via the Resend API.
+7.  The entire stack is containerized with Docker and deployed on the Render platform. Cloudflare manages DNS for the custom domain.
 
-## Setup & Running
-
-The application is designed to be run using Docker Compose.
+## Local Development Setup
 
 1.  **Prerequisites:**
-    * Docker
-    * Docker Compose
-2.  **Configuration:**
-    * Create a `.env` file in the `backend` directory.
-    * Populate the `.env` file with the required environment variables (refer to `internal/config/config.go` for the list, including database credentials, JWT secret, S3/MinIO details, email settings, etc.).
-3.  **Build & Run:**
-    * Navigate to the project's root directory (where the `docker-compose.yml` file is located).
-    * Run the command: `docker-compose up --build -d`
-4.  **Access:**
-    * The frontend should be accessible at `http://localhost:3000` (or the port configured for the frontend service).
-    * The backend API will be running internally, accessible by the frontend via the Docker network, typically on port 8080 within the container.
+    * Docker and Docker Compose installed.
+    * Git installed.
+    * A code editor (e.g., VS Code).
+2.  **Clone Repository:**
+    ```bash
+    git clone [Your Repository URL]
+    cd it-ticket-system
+    ```
+3.  **Environment Variables:**
+    * Create a `.env` file in the project root directory.
+    * Copy the contents of `.env.example` (if available) or add the necessary variables for local development (e.g., `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `JWT_SECRET`, local S3/MinIO credentials, MailDev SMTP settings). Use `localhost` for hostnames.
+4.  **Build and Run:**
+    ```bash
+    docker compose up --build -d
+    ```
+5.  **Access:**
+    * Frontend: `http://localhost:80` (or the port mapped by Nginx)
+    * Backend API (via proxy): `http://localhost/api/...`
+    * MailDev (Email testing): `http://localhost:1080`
+    * MinIO Console (File storage testing): `http://localhost:9001` (or the port configured)
+6.  **Seed Database:** Connect to the local PostgreSQL container (e.g., using `psql` or a GUI tool) and run the `backend/db/seed.sql` script.
 
-*(Note: Adjust ports and URLs based on your specific `docker-compose.yml` configuration if different from standard defaults.)*
+## Deployment (Render)
+
+The application is deployed on Render using individual Web Services for the backend, frontend (Docker), and Nginx proxy, plus a managed PostgreSQL database.
+
+* **Configuration:** Infrastructure is defined partly via `render.yaml` (for service structure) and environment variables/secrets set in the Render dashboard Environment section for the Blueprint.
+* **Build:** Render builds the Docker images based on the Dockerfiles in the `backend/`, `frontend/`, and `nginx/` directories.
+* **Networking:** The Nginx proxy service routes traffic to the internal hostnames of the frontend and backend services.
+* **Custom Domain:** `answersdesk.org` is configured via Cloudflare DNS pointing to the Render Nginx service.
+* **Secrets Management:** API keys (Resend, B2) and JWT secret are stored securely as environment variables in Render.
+
+## Future Development Ideas
+
+* **User Portal:** Allow end-users to log in and view their ticket history.
+* **Knowledge Base Integration:** Link FAQs within ticket submission/viewing.
+* **Reporting:** Add detailed reporting features for admins.
+* **Real-time Updates:** Implement WebSockets for live dashboard notifications.
+* **Improved Search:** Add full-text search capabilities.
+* **Customizable Fields:** Allow admins to define custom ticket fields.
+
